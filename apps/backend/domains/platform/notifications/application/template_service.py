@@ -37,7 +37,9 @@ class TemplateService:
             existing = await self._repo.get(template_id)
             if existing is None:
                 raise ValueError("template_not_found")
-        name = str(data.get("name") or (existing.name if existing else "") or "").strip()
+        name = str(
+            data.get("name") or (existing.name if existing else "") or ""
+        ).strip()
         if not name:
             raise ValueError("name is required")
         data["name"] = name
@@ -64,7 +66,9 @@ class TemplateService:
                 raise ValueError(f"{key}_must_be_object") from exc
         data["slug"] = await self._prepare_slug(data, existing)
         locale_source = (
-            data.get("locale") if "locale" in data else (existing.locale if existing else None)
+            data.get("locale")
+            if "locale" in data
+            else (existing.locale if existing else None)
         )
         data["locale"] = self._normalize_locale(locale_source)
         optional_fields = (
@@ -90,7 +94,9 @@ class TemplateService:
     async def delete(self, template_id: str) -> None:
         await self._repo.delete(template_id)
 
-    async def _prepare_slug(self, data: Mapping[str, Any], existing: Template | None) -> str:
+    async def _prepare_slug(
+        self, data: Mapping[str, Any], existing: Template | None
+    ) -> str:
         raw = str(data.get("slug") or "").strip()
         if raw:
             base = slugify(raw, lowercase=True, separator="-")

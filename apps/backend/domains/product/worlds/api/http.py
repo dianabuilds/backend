@@ -24,7 +24,9 @@ def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/admin/worlds", tags=["admin-worlds"])
     admin_required = require_role_db("moderator")  # moderator+ allowed
 
-    @router.get("", response_model=list[WorldTemplateOut], summary="List world templates")
+    @router.get(
+        "", response_model=list[WorldTemplateOut], summary="List world templates"
+    )
     async def list_worlds(
         _: None = Depends(admin_required),
         container=Depends(get_container),
@@ -39,19 +41,27 @@ def make_router() -> APIRouter:
                 meta=w.meta,
                 created_at=w.created_at,
                 updated_at=w.updated_at,
-                created_by_user_id=(UUID(w.created_by_user_id) if w.created_by_user_id else None),
-                updated_by_user_id=(UUID(w.updated_by_user_id) if w.updated_by_user_id else None),
+                created_by_user_id=(
+                    UUID(w.created_by_user_id) if w.created_by_user_id else None
+                ),
+                updated_by_user_id=(
+                    UUID(w.updated_by_user_id) if w.updated_by_user_id else None
+                ),
             )
             for w in items
         ]
 
-    @router.get("/{world_id}", response_model=WorldTemplateOut, summary="Get world template")
+    @router.get(
+        "/{world_id}", response_model=WorldTemplateOut, summary="Get world template"
+    )
     async def get_world(
         world_id: UUID,
         _: None = Depends(admin_required),
         container=Depends(get_container),
     ):
-        w = await anyio.to_thread.run_sync(container.worlds_service.get_world, str(world_id))
+        w = await anyio.to_thread.run_sync(
+            container.worlds_service.get_world, str(world_id)
+        )
         if not w:
             raise HTTPException(status_code=404, detail="not_found")
         return WorldTemplateOut(
@@ -62,8 +72,12 @@ def make_router() -> APIRouter:
             meta=w.meta,
             created_at=w.created_at,
             updated_at=w.updated_at,
-            created_by_user_id=(UUID(w.created_by_user_id) if w.created_by_user_id else None),
-            updated_by_user_id=(UUID(w.updated_by_user_id) if w.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(w.created_by_user_id) if w.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(w.updated_by_user_id) if w.updated_by_user_id else None
+            ),
         )
 
     @router.post("", response_model=WorldTemplateOut, summary="Create world template")
@@ -88,11 +102,17 @@ def make_router() -> APIRouter:
             meta=w.meta,
             created_at=w.created_at,
             updated_at=w.updated_at,
-            created_by_user_id=(UUID(w.created_by_user_id) if w.created_by_user_id else None),
-            updated_by_user_id=(UUID(w.updated_by_user_id) if w.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(w.created_by_user_id) if w.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(w.updated_by_user_id) if w.updated_by_user_id else None
+            ),
         )
 
-    @router.patch("/{world_id}", response_model=WorldTemplateOut, summary="Update world template")
+    @router.patch(
+        "/{world_id}", response_model=WorldTemplateOut, summary="Update world template"
+    )
     async def update_world(
         world_id: UUID,
         payload: WorldTemplateIn,
@@ -118,8 +138,12 @@ def make_router() -> APIRouter:
             meta=out.meta,
             created_at=out.created_at,
             updated_at=out.updated_at,
-            created_by_user_id=(UUID(out.created_by_user_id) if out.created_by_user_id else None),
-            updated_by_user_id=(UUID(out.updated_by_user_id) if out.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(out.created_by_user_id) if out.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(out.updated_by_user_id) if out.updated_by_user_id else None
+            ),
         )
 
     @router.delete("/{world_id}", summary="Delete world template")
@@ -129,18 +153,24 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
         container=Depends(get_container),
     ):
-        ok = await anyio.to_thread.run_sync(container.worlds_service.delete_world, str(world_id))
+        ok = await anyio.to_thread.run_sync(
+            container.worlds_service.delete_world, str(world_id)
+        )
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")
         return {"status": "ok"}
 
-    @router.get("/characters/{char_id}", response_model=CharacterOut, summary="Get character")
+    @router.get(
+        "/characters/{char_id}", response_model=CharacterOut, summary="Get character"
+    )
     async def get_character(
         char_id: UUID,
         _: None = Depends(admin_required),
         container=Depends(get_container),
     ):
-        ch = await anyio.to_thread.run_sync(container.worlds_service.get_character, str(char_id))
+        ch = await anyio.to_thread.run_sync(
+            container.worlds_service.get_character, str(char_id)
+        )
         if not ch:
             raise HTTPException(status_code=404, detail="not_found")
         return CharacterOut(
@@ -152,8 +182,12 @@ def make_router() -> APIRouter:
             traits=ch.traits,
             created_at=ch.created_at,
             updated_at=ch.updated_at,
-            created_by_user_id=(UUID(ch.created_by_user_id) if ch.created_by_user_id else None),
-            updated_by_user_id=(UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(ch.created_by_user_id) if ch.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None
+            ),
         )
 
     @router.get(
@@ -180,8 +214,12 @@ def make_router() -> APIRouter:
                 traits=c.traits,
                 created_at=c.created_at,
                 updated_at=c.updated_at,
-                created_by_user_id=(UUID(c.created_by_user_id) if c.created_by_user_id else None),
-                updated_by_user_id=(UUID(c.updated_by_user_id) if c.updated_by_user_id else None),
+                created_by_user_id=(
+                    UUID(c.created_by_user_id) if c.created_by_user_id else None
+                ),
+                updated_by_user_id=(
+                    UUID(c.updated_by_user_id) if c.updated_by_user_id else None
+                ),
             )
             for c in chs
         ]
@@ -217,8 +255,12 @@ def make_router() -> APIRouter:
             traits=ch.traits,
             created_at=ch.created_at,
             updated_at=ch.updated_at,
-            created_by_user_id=(UUID(ch.created_by_user_id) if ch.created_by_user_id else None),
-            updated_by_user_id=(UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(ch.created_by_user_id) if ch.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None
+            ),
         )
 
     @router.patch(
@@ -252,8 +294,12 @@ def make_router() -> APIRouter:
             traits=ch.traits,
             created_at=ch.created_at,
             updated_at=ch.updated_at,
-            created_by_user_id=(UUID(ch.created_by_user_id) if ch.created_by_user_id else None),
-            updated_by_user_id=(UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None),
+            created_by_user_id=(
+                UUID(ch.created_by_user_id) if ch.created_by_user_id else None
+            ),
+            updated_by_user_id=(
+                UUID(ch.updated_by_user_id) if ch.updated_by_user_id else None
+            ),
         )
 
     @router.delete("/characters/{char_id}", summary="Delete character")

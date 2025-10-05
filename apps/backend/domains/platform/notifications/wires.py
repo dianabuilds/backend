@@ -10,53 +10,21 @@ from typing import Any
 
 from domains.platform.events.service import Events
 from domains.platform.flags.application.service import FlagService
-from domains.platform.notifications.adapters.broadcast_sql import SQLBroadcastRepo
-from domains.platform.notifications.adapters.consent_audit_sql import (
-    SQLNotificationConsentAuditRepo,
-)
-from domains.platform.notifications.adapters.matrix_sql import (
-    SQLNotificationMatrixRepo,
-)
-from domains.platform.notifications.adapters.notification_repository_sql import (
-    NotificationRepository,
-)
-from domains.platform.notifications.adapters.pusher_ws import (
-    WebSocketPusher,
-)
-from domains.platform.notifications.adapters.repo_sql import (
-    SQLNotificationPreferenceRepo,
-)
-from domains.platform.notifications.adapters.repos_sql import (
-    SQLTemplateRepo,
-)
-from domains.platform.notifications.adapters.ws_manager import (
-    WebSocketManager,
-)
-from domains.platform.notifications.application.audience_resolver import (
-    BroadcastAudienceResolver,
-)
-from domains.platform.notifications.application.broadcast_orchestrator import (
-    BroadcastOrchestrator,
-)
-from domains.platform.notifications.application.broadcast_service import (
-    BroadcastService,
-)
-from domains.platform.notifications.application.delivery_service import (
+from domains.platform.notifications.application.delivery import (
     DeliveryService,
     NotificationEvent,
 )
-from domains.platform.notifications.application.notify_service import (
-    NotifyService,
-)
-from domains.platform.notifications.application.preference_service import (
-    PreferenceService,
-)
-from domains.platform.notifications.application.template_service import (
-    TemplateService,
-)
+from domains.platform.notifications.backends import select_backend
 from domains.platform.notifications.logic.dispatcher import dispatch
+from domains.platform.notifications.ports import (
+    NotificationConsentAuditRepo,
+    NotificationMatrixRepo,
+    NotificationPreferenceRepo,
+)
+from domains.platform.notifications.ports_notify import INotificationRepository
 from packages.core.async_utils import run_sync
-from packages.core.config import Settings, load_settings, to_async_dsn
+from packages.core.config import Settings, load_settings
+from packages.core.testing import is_test_mode
 
 logger = logging.getLogger(__name__)
 _DELIVERY_ERRORS = (
@@ -148,19 +116,19 @@ def register_event_relays(
 @dataclass
 class NotificationsContainer:
     settings: Settings
-    notify_service: NotifyService
-    preference_service: PreferenceService
-    broadcasts: BroadcastService
-    templates: TemplateService
-    repo: NotificationRepository
-    notify: NotifyService
-    ws_manager: WebSocketManager
-    matrix_repo: SQLNotificationMatrixRepo
-    preference_repo: SQLNotificationPreferenceRepo
-    consent_audit_repo: SQLNotificationConsentAuditRepo | None
+    notify_service: Any
+    preference_service: Any
+    broadcasts: Any
+    templates: Any
+    repo: INotificationRepository
+    notify: Any
+    ws_manager: Any
+    matrix_repo: NotificationMatrixRepo
+    preference_repo: NotificationPreferenceRepo
+    consent_audit_repo: NotificationConsentAuditRepo | None
     flag_service: FlagService | None
-    audience_resolver: BroadcastAudienceResolver
-    orchestrator: BroadcastOrchestrator
+    audience_resolver: Any
+    orchestrator: Any
     delivery: DeliveryService
 
 
@@ -170,56 +138,23 @@ def build_container(
     flag_service: FlagService | None = None,
 ) -> NotificationsContainer:
     s = settings or load_settings()
-    async_dsn = to_async_dsn(s.database_url)
-    broadcast_repo = SQLBroadcastRepo(async_dsn)
-    broadcasts = BroadcastService(broadcast_repo)
-    templates_repo = SQLTemplateRepo(async_dsn)
-    templates = TemplateService(templates_repo)
-    notif_repo = NotificationRepository(async_dsn)
-    ws_manager = WebSocketManager()
-    pusher = WebSocketPusher(ws_manager)
-    notify_service = NotifyService(notif_repo, pusher)
-    pref_repo = SQLNotificationPreferenceRepo(async_dsn)
-    matrix_repo = SQLNotificationMatrixRepo(async_dsn)
-    audit_repo = SQLNotificationConsentAuditRepo(async_dsn)
-    preference_service = PreferenceService(
-        matrix_repo=matrix_repo,
-        preference_repo=pref_repo,
-        audit_repo=audit_repo,
-        flag_service=flag_service,
-    )
-    delivery_service = DeliveryService(
-        matrix_repo=matrix_repo,
-        preference_repo=pref_repo,
-        notify_service=notify_service,
-        template_service=templates,
-        flag_service=flag_service,
-    )
-
-    audience_resolver = BroadcastAudienceResolver(async_dsn)
-    orchestrator = BroadcastOrchestrator(
-        repo=broadcast_repo,
-        delivery=delivery_service,
-        audience_resolver=audience_resolver,
-        template_service=templates,
-    )
-
+    backend = select_backend(s, test_mode=is_test_mode(s), flag_service=flag_service)
     return NotificationsContainer(
         settings=s,
-        notify_service=notify_service,
-        preference_service=preference_service,
-        broadcasts=broadcasts,
-        templates=templates,
-        repo=notif_repo,
-        notify=notify_service,
-        ws_manager=ws_manager,
-        matrix_repo=matrix_repo,
-        preference_repo=pref_repo,
-        consent_audit_repo=audit_repo,
+        notify_service=backend.notify_service,
+        preference_service=backend.preference_service,
+        broadcasts=backend.broadcasts,
+        templates=backend.templates,
+        repo=backend.repo,
+        notify=backend.notify_service,
+        ws_manager=backend.ws_manager,
+        matrix_repo=backend.matrix_repo,
+        preference_repo=backend.preference_repo,
+        consent_audit_repo=backend.consent_audit_repo,
         flag_service=flag_service,
-        audience_resolver=audience_resolver,
-        orchestrator=orchestrator,
-        delivery=delivery_service,
+        audience_resolver=backend.audience_resolver,
+        orchestrator=backend.orchestrator,
+        delivery=backend.delivery,
     )
 
 

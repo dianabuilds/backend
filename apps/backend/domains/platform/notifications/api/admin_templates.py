@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -14,6 +13,26 @@ except ImportError:  # pragma: no cover
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
+from domains.platform.notifications.application.template_use_cases import (
+    delete_template as delete_template_use_case,
+)
+from domains.platform.notifications.application.template_use_cases import (
+    get_template as get_template_use_case,
+)
+from domains.platform.notifications.application.template_use_cases import (
+    list_templates as list_templates_use_case,
+)
+from domains.platform.notifications.application.template_use_cases import (
+    upsert_template as upsert_template_use_case,
+)
+
+_TEMPLATE_NOT_FOUND = "template_not_found"
+
+
+def _value_error_to_http(error: ValueError) -> None:
+    detail = str(error) or "bad_request"
+    status = 404 if detail == _TEMPLATE_NOT_FOUND else 400
+    raise HTTPException(status_code=status, detail=detail) from error
 
 
 class TemplatePayload(BaseModel):
@@ -45,8 +64,8 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
-        items = await svc.list(limit=limit, offset=offset)
-        return {"items": [asdict(t) for t in items]}
+        result = await list_templates_use_case(svc, limit=limit, offset=offset)
+        return result
 
     @router.post(
         "/templates",
@@ -62,18 +81,16 @@ def make_router() -> APIRouter:
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
         try:
-            tmpl = await svc.save(
-                payload.model_dump(exclude_none=True, exclude_unset=True)
+            result = await upsert_template_use_case(
+                svc, payload.model_dump(exclude_none=True, exclude_unset=True)
             )
         except ValueError as exc:
-            detail = str(exc)
-            status = 404 if detail == "template_not_found" else 400
-            raise HTTPException(status_code=status, detail=detail) from exc
+            _value_error_to_http(exc)
         except IntegrityError as exc:
             raise HTTPException(
                 status_code=409, detail="template slug already exists"
             ) from exc
-        return {"template": asdict(tmpl)}
+        return result
 
     @router.get(
         "/templates/{template_id}",
@@ -87,10 +104,10 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
-        tmpl = await svc.get(template_id)
-        if not tmpl:
-            raise HTTPException(status_code=404, detail="template_not_found")
-        return {"template": asdict(tmpl)}
+        result = await get_template_use_case(svc, template_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail=_TEMPLATE_NOT_FOUND)
+        return result
 
     @router.delete(
         "/templates/{template_id}",
@@ -105,8 +122,7 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         svc = get_container(req).notifications.templates
-        await svc.delete(template_id)
-        return {"ok": True}
+        return await delete_template_use_case(svc, template_id)
 
     return router
 

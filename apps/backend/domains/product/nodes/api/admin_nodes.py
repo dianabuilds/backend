@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import wraps
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -11,9 +12,9 @@ from domains.platform.iam.security import (  # type: ignore[import-not-found]
     csrf_protect,
     require_admin,
 )
-
-from .admin_common import (
+from domains.product.nodes.application.admin_queries import (
     SYSTEM_ACTOR_ID,
+    AdminQueryError,
     _emit_admin_activity,
     _ensure_engine,
     _extract_actor_id,
@@ -24,13 +25,34 @@ from .admin_common import (
     logger,
 )
 
+from ._memory_utils import resolve_memory_node
+
+DEV_BLOG_TAG = "dev-blog"
+
+
+def _wrap_admin_errors(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except AdminQueryError as exc:
+            raise HTTPException(
+                status_code=exc.status_code, detail=exc.detail
+            ) from exc.__cause__
+
+    return wrapper
+
 
 def register_nodes_routes(router: APIRouter) -> None:
     @router.get("/list", summary="List nodes for admin")
+    @_wrap_admin_errors
     async def list_nodes(
         q: str | None = Query(default=None),
         slug: str | None = Query(default=None, description="Filter by exact slug"),
-        author_id: str | None = Query(default=None, description="Filter by author id (UUID)"),
+        tag: str | None = Query(default=None, description="Filter by tag slug"),
+        author_id: str | None = Query(
+            default=None, description="Filter by author id (UUID)"
+        ),
         limit: int = Query(ge=1, le=1000, default=50),
         offset: int = Query(ge=0, default=0),
         status: str | None = Query(default="all"),
@@ -45,38 +67,60 @@ def register_nodes_routes(router: APIRouter) -> None:
         eng = await _ensure_engine(container)
         embedding_enabled = bool(getattr(container.settings, "embedding_enabled", True))
         if eng is None:
-            # Fallback to service by author if engine is not configured
-            # This path is mainly for local/no-db runs
-            try:
-                rows = container.nodes_service.list_by_author(
-                    getattr(container, "current_user_id", "") or "",
-                    limit=limit,
-                    offset=offset,
-                )
-                return [
-                    {
-                        "id": str(r.id),
-                        "slug": f"node-{r.id}",
-                        "title": r.title,
-                        "is_public": r.is_public,
-                        "author_name": None,
-                        "updated_at": None,
-                    }
-                    for r in rows
-                ]
-            except (AttributeError, RuntimeError, SQLAlchemyError) as exc:
-                logger.warning(
-                    "nodes_admin_fallback_list_failed",
-                    extra={"author_id": getattr(container, "current_user_id", None)},
-                    exc_info=exc,
-                )
+            service = container.nodes_service
+            repo: object | None = getattr(service, "repo", None)
+            nodes: list[Any] = []
+            if repo is not None:
+                raw_nodes = getattr(repo, "_nodes", None)
+                if isinstance(raw_nodes, dict):
+                    nodes = list(raw_nodes.values())
+            if not nodes:
                 return []
+            store = getattr(
+                container,
+                "_moderation_memory",
+                {"status": {}, "updated_at": {}, "history": {}},
+            )
+            status_map = store.get("status", {})
+            updated_map = store.get("updated_at", {})
+            results = []
+            for dto in nodes:
+                key = str(dto.id)
+                results.append(
+                    {
+                        "id": key,
+                        "slug": dto.slug,
+                        "title": dto.title,
+                        "is_public": dto.is_public,
+                        "author_id": dto.author_id,
+                        "moderation_status": status_map.get(key, "pending"),
+                        "moderation_status_updated_at": updated_map.get(key),
+                    }
+                )
+            return results[offset : offset + limit]
 
         where = ["1=1"]
         params: dict[str, Any] = {"limit": limit, "offset": offset}
-        mod_filter = (moderation_status or "").strip().lower() if moderation_status else None
+        mod_filter = (
+            (moderation_status or "").strip().lower() if moderation_status else None
+        )
+        tag_filter = (tag or "").strip().lower() if tag else None
+        dev_blog_clause = "NOT EXISTS (SELECT 1 FROM product_node_tags AS dt WHERE dt.node_id = n.id AND dt.slug = :dev_tag)"
+        if tag_filter:
+            where.append(
+                "EXISTS (SELECT 1 FROM product_node_tags AS t WHERE t.node_id = n.id AND t.slug = :tag_slug)"
+            )
+            params["tag_slug"] = tag_filter
+            if tag_filter != DEV_BLOG_TAG:
+                where.append(dev_blog_clause)
+                params["dev_tag"] = DEV_BLOG_TAG
+        else:
+            where.append(dev_blog_clause)
+            params["dev_tag"] = DEV_BLOG_TAG
         if q:
-            where.append("(n.title ILIKE :q OR n.slug ILIKE :q OR cast(n.id as text) = :qid)")
+            where.append(
+                "(n.title ILIKE :q OR n.slug ILIKE :q OR cast(n.id as text) = :qid)"
+            )
             params["q"] = f"%{q}%"
             params["qid"] = str(q)
         if slug:
@@ -104,7 +148,9 @@ def register_nodes_routes(router: APIRouter) -> None:
             include_moderation: bool,
         ) -> str:
             slug_expr = "n.slug AS slug," if include_slug else "NULL::text AS slug,"
-            status_expr = "n.status AS status," if include_status else "NULL::text AS status,"
+            status_expr = (
+                "n.status AS status," if include_status else "NULL::text AS status,"
+            )
             embedding_expr = (
                 "(n.embedding IS NOT NULL) AS embedding_ready,"
                 if include_embedding
@@ -135,7 +181,9 @@ def register_nodes_routes(router: APIRouter) -> None:
                 where_local.append("n.is_public = :pub")
                 params["pub"] = True if st == "published" else False
             if include_moderation and mod_filter:
-                where_local.append("COALESCE(n.moderation_status, 'pending') = :mod_filter")
+                where_local.append(
+                    "COALESCE(n.moderation_status, 'pending') = :mod_filter"
+                )
                 params["mod_filter"] = mod_filter
             # Sorting (whitelist)
             s = (sort or "updated_at").lower()
@@ -254,7 +302,9 @@ def register_nodes_routes(router: APIRouter) -> None:
                             "slug": row.get("slug"),
                             "embedding_ready": row.get("embedding_ready"),
                             "moderation_status": row.get("moderation_status"),
-                            "moderation_status_updated_at": row.get("moderation_status_updated_at"),
+                            "moderation_status_updated_at": row.get(
+                                "moderation_status_updated_at"
+                            ),
                         }
                     )
             except SQLAlchemyError as exc:
@@ -268,6 +318,14 @@ def register_nodes_routes(router: APIRouter) -> None:
                 try:
                     where2 = ["1=1"]
                     params2 = dict(params)
+                    if tag_filter:
+                        where2.append(
+                            "EXISTS (SELECT 1 FROM product_node_tags AS t WHERE t.node_id = n.id AND t.slug = :tag_slug)"
+                        )
+                        if tag_filter != DEV_BLOG_TAG:
+                            where2.append(dev_blog_clause)
+                    else:
+                        where2.append(dev_blog_clause)
                     if q:
                         where2.append("(COALESCE(n.title, n.slug) ILIKE :q)")
                     st = (status or "all").lower()
@@ -345,11 +403,17 @@ def register_nodes_routes(router: APIRouter) -> None:
                         ready = True
             mod_status = _normalize_moderation_status(it.get("moderation_status"))
             mod_updated = _iso(it.get("moderation_status_updated_at"))
-            status_val = "disabled" if not embedding_enabled else ("ready" if ready else "pending")
+            status_val = (
+                "disabled"
+                if not embedding_enabled
+                else ("ready" if ready else "pending")
+            )
             normalized.append(
                 {
                     "id": str_id,
-                    "slug": (str(slug) if slug else (f"node-{str_id}" if str_id else None)),
+                    "slug": (
+                        str(slug) if slug else (f"node-{str_id}" if str_id else None)
+                    ),
                     "title": it.get("title"),
                     "is_public": it.get("is_public"),
                     "updated_at": it.get("updated_at"),
@@ -365,23 +429,34 @@ def register_nodes_routes(router: APIRouter) -> None:
             normalized = [
                 item
                 for item in normalized
-                if _normalize_moderation_status(item.get("moderation_status")) == mod_filter
+                if _normalize_moderation_status(item.get("moderation_status"))
+                == mod_filter
             ]
         return normalized
 
     @router.get("/{node_id}/engagement", summary="Get node engagement summary")
+    @_wrap_admin_errors
     async def get_node_engagement(
         node_id: str,
         _: None = Depends(require_admin),
         container=Depends(get_container),
     ) -> dict[str, Any]:
         engine = await _ensure_engine(container)
-        if engine is None:
-            raise HTTPException(status_code=503, detail="database_unavailable")
-        resolved_id = await _resolve_node_id(node_id, container, engine)
-        return await _fetch_engagement_summary(engine, resolved_id)
+        if engine is not None:
+            try:
+                resolved_id = await _resolve_node_id(node_id, container, engine)
+                return await _fetch_engagement_summary(engine, resolved_id)
+            except Exception:
+                engine = None
+        dto = await resolve_memory_node(container, node_id)
+        if dto is None:
+            raise HTTPException(status_code=404, detail="not_found")
+        service = container.nodes_service
+        total_views = await service.get_total_views(int(dto.id))
+        return {"id": str(dto.id), "views_count": int(total_views or 0)}
 
     @router.delete("/{node_id}", summary="Admin delete node")
+    @_wrap_admin_errors
     async def admin_delete(
         node_id: int,
         request: Request,
@@ -395,7 +470,9 @@ def register_nodes_routes(router: APIRouter) -> None:
         except HTTPException:
             raise
         except (SQLAlchemyError, RuntimeError, ValueError) as exc:
-            logger.error("nodes_admin_delete_failed", extra={"node_id": node_id}, exc_info=exc)
+            logger.error(
+                "nodes_admin_delete_failed", extra={"node_id": node_id}, exc_info=exc
+            )
             raise HTTPException(status_code=500, detail="delete_failed") from None
         if not ok:
             raise HTTPException(status_code=404, detail="not_found")
@@ -410,6 +487,7 @@ def register_nodes_routes(router: APIRouter) -> None:
         return {"ok": True}
 
     @router.post("/bulk/status", summary="Bulk update node status")
+    @_wrap_admin_errors
     async def bulk_status(
         body: dict,
         request: Request,
@@ -492,6 +570,7 @@ def register_nodes_routes(router: APIRouter) -> None:
         return {"ok": True}
 
     @router.post("/bulk/tags", summary="Bulk add/remove tags")
+    @_wrap_admin_errors
     async def bulk_tags(
         body: dict,
         request: Request,
@@ -570,6 +649,7 @@ def register_nodes_routes(router: APIRouter) -> None:
         return {"ok": True, "updated": updated}
 
     @router.post("/{node_id}/restore", summary="Restore soft-deleted node")
+    @_wrap_admin_errors
     async def restore_node(
         node_id: int,
         request: Request,
@@ -592,7 +672,9 @@ def register_nodes_routes(router: APIRouter) -> None:
                 if callable(rc):
                     rc = rc()
         except SQLAlchemyError as exc:
-            logger.error("nodes_admin_restore_failed", extra={"node_id": node_id}, exc_info=exc)
+            logger.error(
+                "nodes_admin_restore_failed", extra={"node_id": node_id}, exc_info=exc
+            )
             raise HTTPException(status_code=500, detail="restore_failed") from None
         if not rc:
             raise HTTPException(status_code=404, detail="not_found")

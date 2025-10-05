@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from domains.platform.audit.adapters.repo_memory import InMemoryAuditRepo
 from domains.platform.audit.adapters.repo_sql import SQLAuditRepo
 from domains.platform.audit.application.service import AuditService
 from domains.platform.audit.ports.repo import AuditLogRepository
+from packages.core.config import Settings, load_settings, to_async_dsn
+from packages.core.testing import is_test_mode
 
 
 @dataclass
@@ -27,19 +30,20 @@ def _db_reachable(url: str) -> bool:
         return False
 
 
-from packages.core.config import load_settings, to_async_dsn
+def build_container(settings: Settings | None = None) -> AuditContainer:
+    cfg = settings or load_settings()
+    if is_test_mode(cfg):
+        repo: AuditLogRepository = InMemoryAuditRepo()
+        return AuditContainer(repo=repo, service=AuditService(repo))
 
-
-def build_container() -> AuditContainer:
-    settings = load_settings()
-    if not settings.database_url:
+    if not getattr(cfg, "database_url", None):
         raise RuntimeError("APP_DATABASE_URL is required for audit repository")
-    if not _db_reachable(str(settings.database_url)):
+    if not _db_reachable(str(cfg.database_url)):
         raise RuntimeError("database is unreachable for audit repository")
-    dsn = to_async_dsn(settings.database_url)
+    dsn = to_async_dsn(cfg.database_url)
     if isinstance(dsn, str) and "?" in dsn:
         dsn = dsn.split("?", 1)[0]
-    repo: AuditLogRepository = SQLAuditRepo(dsn)
+    repo = SQLAuditRepo(dsn)
     svc = AuditService(repo)
     return AuditContainer(repo=repo, service=svc)
 

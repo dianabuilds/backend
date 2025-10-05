@@ -62,7 +62,9 @@ async def start_events_relay(app: FastAPI, *, block_ms: int = 5000) -> ShutdownH
                 if stop_event.is_set():
                     logger.debug("Events relay stopping after failure")
                     return
-                logger.exception("Events relay crashed; retrying in %.1fs", backoff, exc_info=exc)
+                logger.exception(
+                    "Events relay crashed; retrying in %.1fs", backoff, exc_info=exc
+                )
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2.0, 30.0)
 

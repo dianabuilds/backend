@@ -61,7 +61,9 @@ async def _verify_password(container, user_id: str, password: str) -> None:
     try:
         user = await container.users.service.get(user_id)
     except Exception as exc:
-        logger.exception("Failed to load user %s for password verification", user_id, exc_info=exc)
+        logger.exception(
+            "Failed to load user %s for password verification", user_id, exc_info=exc
+        )
         user = None
     logins: list[str] = []
     if user:
@@ -74,7 +76,9 @@ async def _verify_password(container, user_id: str, password: str) -> None:
         try:
             identity = await adapter.authenticate(login, password)
         except Exception as exc:
-            logger.exception("Credential lookup failed for login %s", login, exc_info=exc)
+            logger.exception(
+                "Credential lookup failed for login %s", login, exc_info=exc
+            )
             continue
         if identity and str(identity.id) == str(user_id):
             return

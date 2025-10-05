@@ -32,4 +32,16 @@ class ProfileView:
     limits: ProfileLimitsView
 
 
-__all__ = ["WalletView", "ProfileLimitsView", "ProfileView"]
+@dataclass(frozen=True)
+class EmailChangeRequest:
+    status: str
+    pending_email: str
+    token: str
+
+
+__all__ = [
+    "EmailChangeRequest",
+    "ProfileLimitsView",
+    "ProfileView",
+    "WalletView",
+]

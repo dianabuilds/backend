@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-from collections.abc import Mapping
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -18,6 +15,25 @@ from domains.platform.iam.security import (
     get_current_user,
     require_admin,
 )
+from domains.platform.notifications.application.messages_exceptions import (
+    NotificationError,
+)
+from domains.platform.notifications.application.messages_use_cases import (
+    list_notifications as list_notifications_use_case,
+)
+from domains.platform.notifications.application.messages_use_cases import (
+    mark_notification_read as mark_notification_read_use_case,
+)
+from domains.platform.notifications.application.messages_use_cases import (
+    send_notification as send_notification_use_case,
+)
+
+
+def _raise_notification_error(error: NotificationError) -> None:
+    headers = error.headers or None
+    raise HTTPException(
+        status_code=error.status_code, detail=error.code, headers=headers
+    ) from error
 
 
 def make_router() -> APIRouter:
@@ -35,29 +51,19 @@ def make_router() -> APIRouter:
         offset: int = Query(default=0, ge=0),
         claims=Depends(get_current_user),
     ) -> dict[str, Any]:
-        c = get_container(req)
-        import uuid as _uuid
-
-        sub = str(claims.get("sub"))
-        # Resolve UUID id if sub is not a UUID (e.g., email in dev)
-        user = await c.users.service.get(sub)
-        if user:
-            user_id = user.id
-        else:
-            try:
-                _uuid.UUID(sub)
-                user_id = sub
-            except ValueError:
-                user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
-        rows = await c.notifications.repo.list_for_user(
-            user_id,
-            placement="inbox",
-            limit=limit,
-            offset=offset,
-        )
-        items = [_serialize_notification(row) for row in rows]
-        unread = sum(1 for item in items if item.get("read_at") is None)
-        return {"items": items, "unread": unread}
+        container = get_container(req)
+        try:
+            result = await list_notifications_use_case(
+                container.notifications.repo,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                placement="inbox",
+                limit=limit,
+                offset=offset,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
     @router.post(
         "/read/{notif_id}",
@@ -71,25 +77,18 @@ def make_router() -> APIRouter:
         claims=Depends(get_current_user),
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
-        c = get_container(req)
-        import uuid as _uuid
+        container = get_container(req)
+        try:
+            result = await mark_notification_read_use_case(
+                container.notifications.repo,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                notification_id=notif_id,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
-        sub = str(claims.get("sub"))
-        user = await c.users.service.get(sub)
-        if user:
-            user_id = user.id
-        else:
-            try:
-                _uuid.UUID(sub)
-                user_id = sub
-            except ValueError:
-                user_id = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}"))
-        updated = await c.notifications.repo.mark_read(user_id, notif_id)
-        if not updated:
-            raise HTTPException(status_code=404, detail="not_found")
-        return {"notification": _serialize_notification(updated)}
-
-    # Admin send
     @router.post(
         "/admin/send",
         dependencies=(
@@ -102,66 +101,17 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
-        c = get_container(req)
-        user_id = str(body.get("user_id") or "")
-        if not user_id:
-            raise HTTPException(status_code=400, detail="user_id_required")
-        title = str(body.get("title") or "")
-        message = str(body.get("message") or "")
-        type_ = str(body.get("type") or "system")
-        placement = str(body.get("placement") or "inbox")
-        topic_key = body.get("topic_key")
-        channel_key = body.get("channel_key")
-        priority = str(body.get("priority") or "normal")
-        cta_label = body.get("cta_label")
-        cta_url = body.get("cta_url")
-        raw_meta = body.get("meta")
-        event_id = body.get("event_id")
-
-        meta_payload: Mapping[str, Any] | None = None
-        if isinstance(raw_meta, Mapping):
-            meta_payload = raw_meta
-        elif isinstance(raw_meta, str) and raw_meta.strip():
-            try:
-                meta_payload = json.loads(raw_meta)
-            except json.JSONDecodeError:
-                meta_payload = None
-
-        dto = await c.notifications.notify.create_notification(
-            user_id=user_id,
-            title=title,
-            message=message,
-            type_=type_,
-            placement=placement,
-            topic_key=topic_key,
-            channel_key=channel_key,
-            priority=priority,
-            cta_label=cta_label,
-            cta_url=cta_url,
-            meta=meta_payload,
-            event_id=event_id,
-        )
-        return {"notification": _serialize_notification(dto)}
+        container = get_container(req)
+        try:
+            result = await send_notification_use_case(
+                container.notifications.notify,
+                body,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
     return router
 
 
-def _serialize_notification(row: Mapping[str, Any]) -> dict[str, Any]:
-    data = dict(row)
-    for field in ("created_at", "updated_at", "read_at"):
-        value = data.get(field)
-        if isinstance(value, datetime):
-            data[field] = value.isoformat()
-    meta = data.get("meta")
-    if isinstance(meta, Mapping):
-        data["meta"] = dict(meta)
-    elif isinstance(meta, str):
-        try:
-            data["meta"] = json.loads(meta)
-        except json.JSONDecodeError:
-            data["meta"] = {}
-    else:
-        data["meta"] = {}
-    data["priority"] = str(data.get("priority") or "normal")
-    data["is_read"] = data.get("read_at") is not None
-    return data
+__all__ = ["make_router"]

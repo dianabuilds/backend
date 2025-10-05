@@ -96,7 +96,11 @@ class SQLRepo(Repo):
     ) -> Sequence[ProductDTO]:  # type: ignore[override]
         if self._engine is None:
             async with self._lock:
-                items = [replace(dto) for dto in self._memory.values() if dto.owner_id == owner_id]
+                items = [
+                    replace(dto)
+                    for dto in self._memory.values()
+                    if dto.owner_id == owner_id
+                ]
             return items[offset : offset + limit]
         await self._ensure_schema()
         async with self._engine.begin() as conn:

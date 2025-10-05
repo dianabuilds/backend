@@ -108,7 +108,13 @@ def _normalize_url_for_alembic(url: str | None) -> str | None:
                 q.pop("ssl", None)
                 q["sslmode"] = "require"
                 url = urlunsplit(
-                    (parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment)
+                    (
+                        parts.scheme,
+                        parts.netloc,
+                        parts.path,
+                        urlencode(q),
+                        parts.fragment,
+                    )
                 )
     except Exception:
         pass
@@ -135,7 +141,11 @@ def _explicit_models_from_args() -> list[str]:
     raw = raw or os.getenv("ALEMBIC_MODELS")
     if not raw:
         return []
-    parts = [p.strip() for p in raw.replace(";", ",").replace(" ", ",").split(",") if p.strip()]
+    parts = [
+        p.strip()
+        for p in raw.replace(";", ",").replace(" ", ",").split(",")
+        if p.strip()
+    ]
     return parts
 
 
@@ -200,9 +210,9 @@ def _collect_all_metadatas() -> MetaData | list[MetaData] | None:
     for mod_name, mod in list(sys.modules.items()):
         if not isinstance(mod_name, str):
             continue
-        if not mod_name.startswith("apps.backend.domains.platform") and not mod_name.startswith(
-            "apps.backend.domains.product"
-        ):
+        if not mod_name.startswith(
+            "apps.backend.domains.platform"
+        ) and not mod_name.startswith("apps.backend.domains.product"):
             continue
         for attr in dir(mod):
             try:

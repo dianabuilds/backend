@@ -33,7 +33,9 @@ class SQLCredentialsAdapter(CredentialsPort):
             LIMIT 1
             """
         )
-        self._primary_update = text("UPDATE users SET last_login_at = now() WHERE id = :id")
+        self._primary_update = text(
+            "UPDATE users SET last_login_at = now() WHERE id = :id"
+        )
         self._fallback_query = text(
             """
             SELECT u.id,
@@ -62,7 +64,11 @@ class SQLCredentialsAdapter(CredentialsPort):
         async with self.engine.begin() as conn:
             try:
                 row = (
-                    (await conn.execute(query, {"login": identifier, "password": password}))
+                    (
+                        await conn.execute(
+                            query, {"login": identifier, "password": password}
+                        )
+                    )
                     .mappings()
                     .first()
                 )

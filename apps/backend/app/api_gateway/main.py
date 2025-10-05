@@ -18,6 +18,7 @@ from starlette.responses import JSONResponse, Response
 
 from packages.core.db import get_async_engine
 from packages.core.errors import ApiError
+from packages.core.testing import is_test_mode
 
 from .events_relay import ShutdownHook, start_events_relay
 from .metrics_middleware import setup_http_metrics
@@ -77,8 +78,11 @@ except ImportError:  # pragma: no cover
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     sapp = cast(Starlette, app)
+    sapp.state.test_mode = is_test_mode()
     try:
-        sapp.state.container = build_container(env="dev")
+        container = build_container(env="dev")
+        sapp.state.container = container
+        sapp.state.test_mode = is_test_mode(getattr(container, "settings", None))
     except Exception as exc:
         logger.exception("Failed to build dependency container", exc_info=exc)
         raise

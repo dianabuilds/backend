@@ -22,7 +22,9 @@ class MemoryQuestsRepo(Repo):
         qid = self._by_slug.get(str(slug))
         return self._by_id.get(qid) if qid else None
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[QuestDTO]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[QuestDTO]:
         items = [q for q in self._by_id.values() if q.author_id == str(author_id)]
         items.sort(key=lambda x: x.id)
         return items[offset : offset + limit]
@@ -80,3 +82,6 @@ class MemoryQuestsRepo(Repo):
         )
         self._by_id[q.id] = dto
         return dto
+
+
+MemoryRepo = MemoryQuestsRepo

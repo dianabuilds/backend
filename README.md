@@ -76,3 +76,21 @@ If you need to add repository-level tooling, prefer wiring it through the respec
 ## Documentation
 
 Backend docs live in `apps/backend/docs/` (ADR, knowledge base, etc.).
+### Test mode
+
+The backend exposes a unified test mode switch via `packages.core.testing.is_test_mode()`. When the mode is active (for example `APP_ENV=test` or whenever pytest bootstraps), all domain containers fall back to in-memory adapters for Postgres, Redis, audit logging, notifications, and events. External services are never touched during startup or tests.
+
+In test mode the following fallbacks are enabled:
+
+- Platform events use the in-process `InMemoryOutbox`/`InMemoryEventBus`, so events are synchronous and not durable.
+- Platform notifications store templates, preferences, and inbox messages in-memory; email/webhook channels log only.
+- Platform audit writes to `InMemoryAuditRepo`, meaning admin activity is not persisted.
+- Platform moderation skips the Postgres snapshot; state changes live only for the process lifetime.
+- Product repos (nodes, profile, achievements, quests, referrals, tags, worlds) fall back to seeded memory adapters with no cross-test persistence.
+- Search uses the in-memory index and cache, ignoring Redis and `search_persist_path`.
+
+To run the full backend test suite locally use the PowerShell helper, which configures the environment automatically:
+
+```
+./scripts/run-tests.ps1
+```

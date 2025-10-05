@@ -1,15 +1,13 @@
-"""
+﻿"""
 Moderation domain package.
 
-Contains routers and DTOs for moderation features:
-overview, users, content, reports, tickets, appeals, ai-rules.
-
-Audit integration is intentionally deferred.
+Provides FastAPI routers plus application/domain/adapters layers.
 """
 
 __all__ = [
     "api",
-    "service",
+    "application",
+    "domain",
+    "adapters",
     "wires",
-    "dtos",
 ]

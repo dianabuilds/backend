@@ -72,7 +72,9 @@ class PeriodicWorker(Worker):
         except Exception as exc:  # pragma: no cover - defensive logging
             self.logger.exception("worker iteration failed: %s", exc)
 
-    async def _sleep(self, interval: float, jitter: float, stop_event: asyncio.Event) -> None:
+    async def _sleep(
+        self, interval: float, jitter: float, stop_event: asyncio.Event
+    ) -> None:
         delay = interval
         if jitter > 0:
             delay += random.uniform(-jitter, jitter)

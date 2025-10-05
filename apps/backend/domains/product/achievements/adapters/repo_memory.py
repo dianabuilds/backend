@@ -25,7 +25,9 @@ class MemoryRepo(Repo):
         self._by_code: dict[str, str] = {}
 
     # User views
-    def list_for_user(self, user_id: str) -> Iterable[tuple[Achievement, UserAchievement | None]]:
+    def list_for_user(
+        self, user_id: str
+    ) -> Iterable[tuple[Achievement, UserAchievement | None]]:
         owned = self._user_map.get(user_id, {})
         for a in sorted(self._ach.values(), key=lambda x: (x.title or "")):
             yield a, owned.get(a.id)
@@ -36,7 +38,9 @@ class MemoryRepo(Repo):
         bag = self._user_map.setdefault(user_id, {})
         if achievement_id in bag:
             return False
-        bag[achievement_id] = UserAchievement(user_id=user_id, achievement_id=achievement_id)
+        bag[achievement_id] = UserAchievement(
+            user_id=user_id, achievement_id=achievement_id
+        )
         return True
 
     def revoke(self, user_id: str, achievement_id: str) -> bool:

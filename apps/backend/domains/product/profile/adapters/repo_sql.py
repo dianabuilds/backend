@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime
 from typing import Any
@@ -11,6 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from domains.product.profile.application.ports import Repo
 from domains.product.profile.domain.entities import Profile
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryRepo, build_default_seed
+
+logger = logging.getLogger(__name__)
 
 
 class SQLProfileRepo(Repo):
@@ -88,7 +94,9 @@ class SQLProfileRepo(Repo):
         if self._include_limits:
             query.append("LEFT JOIN profile_change_limits lim ON lim.user_id = u.id")
         if self._include_email_requests:
-            query.append("LEFT JOIN profile_email_change_requests req ON req.user_id = u.id")
+            query.append(
+                "LEFT JOIN profile_email_change_requests req ON req.user_id = u.id"
+            )
         query.append("WHERE u.id = cast(:user_id as uuid)")
         return " ".join(query)
 
@@ -100,11 +108,16 @@ class SQLProfileRepo(Repo):
                 row = (await conn.execute(sql, {"user_id": user_id})).mappings().first()
                 break
             except ProgrammingError as exc:
-                detail = "".join(str(x) for x in getattr(exc.orig, "args", [exc])).lower()
+                detail = "".join(
+                    str(x) for x in getattr(exc.orig, "args", [exc])
+                ).lower()
                 message = str(exc).lower()
                 combined = f"{detail} {message}"
                 adjusted = False
-                if self._include_email_requests and "profile_email_change_requests" in combined:
+                if (
+                    self._include_email_requests
+                    and "profile_email_change_requests" in combined
+                ):
                     self._include_email_requests = False
                     adjusted = True
                 elif self._include_limits and "profile_change_limits" in combined:
@@ -250,7 +263,9 @@ class SQLProfileRepo(Repo):
             raise ValueError("profile_not_found")
         return profile_after
 
-    async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool:
+    async def email_in_use(
+        self, email: str, exclude_user_id: str | None = None
+    ) -> bool:
         async with self._engine.connect() as conn:
             params = {"email": email}
             conditions = "lower(email) = lower(:email)"
@@ -267,9 +282,7 @@ class SQLProfileRepo(Repo):
                 return True
             if not self._include_email_requests:
                 return False
-            pending_sql = (
-                "SELECT 1 FROM profile_email_change_requests WHERE lower(new_email) = lower(:email)"
-            )
+            pending_sql = "SELECT 1 FROM profile_email_change_requests WHERE lower(new_email) = lower(:email)"
             pending_params: dict[str, Any] = {"email": email}
             if exclude_user_id:
                 pending_sql += " AND user_id <> cast(:id as uuid)"
@@ -448,4 +461,38 @@ class SQLProfileRepo(Repo):
         return profile_after
 
 
-__all__ = ["SQLProfileRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "profile repo: falling back to in-memory backend due to SQL error: %s",
+            error,
+        )
+        return
+    if not reason:
+        logger.debug("profile repo: using in-memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "profile repo: using in-memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryRepo(seed=build_default_seed())
+    try:
+        return SQLProfileRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryRepo()
+
+
+__all__ = [
+    "SQLProfileRepo",
+    "create_repo",
+]

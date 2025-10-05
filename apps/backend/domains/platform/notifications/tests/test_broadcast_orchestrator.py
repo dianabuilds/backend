@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from domains.platform.notifications.application.audience_resolver import (
         BroadcastAudienceResolver,
     )
-    from domains.platform.notifications.application.delivery_service import (
+    from domains.platform.notifications.application.delivery import (
         DeliveryService,
     )
     from domains.platform.notifications.application.template_service import (
@@ -64,7 +64,9 @@ class _StubAudienceResolver:
     def __init__(self, mapping: dict[BroadcastAudienceType, list[str]]) -> None:
         self._mapping = mapping
 
-    async def iter_user_ids(self, audience: BroadcastAudience, *, batch_size: int | None = None):
+    async def iter_user_ids(
+        self, audience: BroadcastAudience, *, batch_size: int | None = None
+    ):
         users = list(self._mapping.get(audience.type, audience.user_ids or []))
         if not users:
             return
@@ -74,7 +76,9 @@ class _StubAudienceResolver:
 
 
 class _FailingAudienceResolver:
-    async def iter_user_ids(self, audience: BroadcastAudience, *, batch_size: int | None = None):
+    async def iter_user_ids(
+        self, audience: BroadcastAudience, *, batch_size: int | None = None
+    ):
         raise AudienceResolutionError("boom")
         yield []  # pragma: no cover - satisfies async generator signature
 
@@ -230,7 +234,9 @@ async def test_process_due_success() -> None:
     )
     repo.add(broadcast)
     delivery = _StubDelivery()
-    resolver = _StubAudienceResolver({BroadcastAudienceType.EXPLICIT_USERS: ["u1", "u2"]})
+    resolver = _StubAudienceResolver(
+        {BroadcastAudienceType.EXPLICIT_USERS: ["u1", "u2"]}
+    )
     orchestrator = BroadcastOrchestrator(
         repo=repo,
         delivery=cast("DeliveryService", delivery),
@@ -268,7 +274,9 @@ async def test_process_due_with_failures_marks_failed() -> None:
     )
     repo.add(broadcast)
     delivery = _StubDelivery(fail_ids={"u2"})
-    resolver = _StubAudienceResolver({BroadcastAudienceType.EXPLICIT_USERS: ["u1", "u2"]})
+    resolver = _StubAudienceResolver(
+        {BroadcastAudienceType.EXPLICIT_USERS: ["u1", "u2"]}
+    )
     orchestrator = BroadcastOrchestrator(
         repo=repo,
         delivery=cast("DeliveryService", delivery),
@@ -348,7 +356,9 @@ async def test_template_lookup_used_when_present() -> None:
     repo.add(broadcast)
     delivery = _StubDelivery()
     resolver = _StubAudienceResolver({BroadcastAudienceType.EXPLICIT_USERS: ["u1"]})
-    template_service = _StubTemplateService({"tpl-1": _TemplateStub(slug="tpl-slug", locale="en")})
+    template_service = _StubTemplateService(
+        {"tpl-1": _TemplateStub(slug="tpl-slug", locale="en")}
+    )
     orchestrator = BroadcastOrchestrator(
         repo=repo,
         delivery=cast("DeliveryService", delivery),

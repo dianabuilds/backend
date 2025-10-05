@@ -46,15 +46,21 @@ class SearchService:
         offset: int = 0,
     ) -> list[Hit]:
         if not self.cache:
-            return await self.query.search(q, tags=tags, match=match, limit=limit, offset=offset)
+            return await self.query.search(
+                q, tags=tags, match=match, limit=limit, offset=offset
+            )
         # cache key
-        norm_tags = ",".join(sorted(t.strip().lower() for t in (tags or []) if t.strip()))
+        norm_tags = ",".join(
+            sorted(t.strip().lower() for t in (tags or []) if t.strip())
+        )
         raw_key = f"q={ (q or '').strip().lower() }|tags={norm_tags}|m={match}|l={limit}|o={offset}"
         key = await self.cache.versioned_key(raw_key)
         cached = await self.cache.get(key)
         if cached is not None:
             return cached
-        hits = await self.query.search(q, tags=tags, match=match, limit=limit, offset=offset)
+        hits = await self.query.search(
+            q, tags=tags, match=match, limit=limit, offset=offset
+        )
         await self.cache.set(key, hits)
         return hits
 

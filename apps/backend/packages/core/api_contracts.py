@@ -29,7 +29,9 @@ def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
     return None
 
 
-def _find_request_schema(spec: dict[str, Any], path: str, method: str) -> dict[str, Any] | None:
+def _find_request_schema(
+    spec: dict[str, Any], path: str, method: str
+) -> dict[str, Any] | None:
     paths = spec.get("paths") or {}
     node = paths.get(path) or {}
     op = node.get(method.lower()) or {}
@@ -42,7 +44,9 @@ def _find_request_schema(spec: dict[str, Any], path: str, method: str) -> dict[s
     return None
 
 
-def validate_notifications_request(path: str, method: str, payload: dict[str, Any]) -> None:
+def validate_notifications_request(
+    path: str, method: str, payload: dict[str, Any]
+) -> None:
     """Validate payload for Notifications API using bundled OpenAPI schema.
 
     Uses apps/backend/packages/schemas/api/notifications/notifications.v1.yaml.

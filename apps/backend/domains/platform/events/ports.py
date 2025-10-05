@@ -9,7 +9,9 @@ Handler = Callable[[str, dict[str, Any]], None]
 
 @runtime_checkable
 class OutboxPublisher(Protocol):
-    def publish(self, topic: str, payload: dict[str, Any], key: str | None = None) -> None: ...
+    def publish(
+        self, topic: str, payload: dict[str, Any], key: str | None = None
+    ) -> None: ...
 
 
 @runtime_checkable

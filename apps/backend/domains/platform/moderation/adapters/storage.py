@@ -16,11 +16,11 @@ _ROW_KEY = "singleton"
 
 
 class ModerationStorage:
-    """Хранение состояния платформенной модерации в Postgres.
+    """Persist platform moderation state in Postgres.
 
-    Таблица создаётся автоматически и содержит единственную строку с JSON-снимком.
-    Этого достаточно, чтобы демо-данные переживали перезапуск и могли быть
-    мигрированы в полноценную схему позднее.
+    The table is created lazily and stores a single JSON snapshot so demo data
+    survives restarts and can be migrated into a permanent schema later.
+    In test mode the engine is ``None``, turning the storage into a no-op.
     """
 
     def __init__(self, engine: AsyncEngine | None) -> None:

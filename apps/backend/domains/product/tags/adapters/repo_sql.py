@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy import text
@@ -9,6 +10,12 @@ from domains.product.tags.application.ports import Repo
 from domains.product.tags.domain.results import TagView
 from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryTagsRepo
+from .store_memory import TagUsageStore
+
+logger = logging.getLogger(__name__)
 
 
 class SQLTagsRepo(Repo):
@@ -65,11 +72,44 @@ class SQLTagsRepo(Repo):
             async with self._engine.begin() as conn:
                 rows = (await conn.execute(sql, params)).mappings().all()
                 return [
-                    TagView(slug=str(r["slug"]), name=str(r["name"]), count=int(r["count"]))
+                    TagView(
+                        slug=str(r["slug"]), name=str(r["name"]), count=int(r["count"])
+                    )
                     for r in rows
                 ]
 
         return run_sync(_run())
 
 
-__all__ = ["SQLTagsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning("tags repo: falling back to memory due to SQL error: %s", error)
+        return
+    if not reason:
+        logger.debug("tags repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "tags repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings, *, store: TagUsageStore | None = None) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryTagsRepo(store or TagUsageStore())
+    try:
+        return SQLTagsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryTagsRepo(store or TagUsageStore())
+
+
+__all__ = [
+    "SQLTagsRepo",
+    "create_repo",
+]

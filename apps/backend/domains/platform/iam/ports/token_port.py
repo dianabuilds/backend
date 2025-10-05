@@ -12,7 +12,9 @@ class TokenPair:
 
 
 class TokenPort(Protocol):
-    def issue(self, subject: str, claims: Mapping[str, Any] | None = None) -> TokenPair: ...
+    def issue(
+        self, subject: str, claims: Mapping[str, Any] | None = None
+    ) -> TokenPair: ...
     def refresh(self, refresh_token: str) -> TokenPair: ...
 
 

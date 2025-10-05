@@ -6,12 +6,18 @@ from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel, Field
 
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
-from packages.core.errors import ApiError
-from packages.core.settings_contract import (
-    assert_if_match,
-    attach_settings_schema,
-    compute_etag,
+from domains.product.profile.application.exceptions import ProfileError
+from domains.product.profile.application.profile_use_cases import (
+    bind_wallet,
+    confirm_email_change,
+    get_profile_admin,
+    get_profile_me,
+    request_email_change,
+    unbind_wallet,
+    update_profile,
 )
+from packages.core.errors import ApiError
+from packages.core.settings_contract import attach_settings_schema
 
 from ..idempotency import require_idempotency_key
 from ..routers import get_container
@@ -134,16 +140,42 @@ _PROFILE_ERROR_MAP: dict[str, tuple[int, str, str]] = {
         "E_WALLET_TAKEN",
         "Wallet already bound",
     ),
+    "forbidden": (
+        status.HTTP_403_FORBIDDEN,
+        "E_FORBIDDEN",
+        "Operation forbidden",
+    ),
 }
 
 
-def _raise_profile_error(error: ValueError) -> None:
-    key = str(error)
+def _raise_profile_error(error: ProfileError) -> None:
     status_code, code, message = _PROFILE_ERROR_MAP.get(
-        key,
-        (status.HTTP_400_BAD_REQUEST, "E_PROFILE_INVALID", key),
+        error.code,
+        (
+            error.status_code,
+            error.code if error.code.startswith("E_") else "E_PROFILE_INVALID",
+            error.message or error.code,
+        ),
     )
-    raise ApiError(code=code, status_code=status_code, message=message) from None
+    headers = dict(error.headers) if error.headers else None
+    raise ApiError(
+        code=code, status_code=status_code, message=message, headers=headers
+    ) from error
+
+
+def _profile_response(
+    response: Response, result_payload: dict[str, Any], status_code: int | None = None
+) -> dict[str, Any]:
+    if status_code is not None:
+        response.status_code = status_code
+    return profile_payload(response, result_payload)
+
+
+def _apply_result_headers(response: Response, headers: dict[str, str] | None) -> None:
+    if not headers:
+        return
+    for key, value in headers.items():
+        response.headers[key] = value
 
 
 def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
@@ -156,12 +188,14 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         claims=Depends(maybe_current_user),
     ) -> dict[str, Any]:
         container = get_container(request)
-        svc = container.profile_service
         try:
-            profile = await svc.get_profile(user_id)
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, profile)
+            result = await get_profile_admin(container.profile_service, user_id)
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @admin_router.put("/profile/{user_id}")
     async def settings_profile_update(
@@ -174,27 +208,22 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         _admin: None = Depends(require_admin),
     ) -> dict[str, Any]:
         container = get_container(request)
-        svc = container.profile_service
-        try:
-            current = await svc.get_profile(user_id)
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        assert_if_match(if_match, compute_etag(current))
-        payload = body.model_dump(exclude_unset=True)
-        fallback_actor = claims.get("sub") if claims and claims.get("sub") else user_id
-        subject = subject_from_claims(claims, str(fallback_actor))
+        subject = subject_from_claims(claims, user_id)
         subject.setdefault("role", "admin")
         try:
-            updated = await svc.update_profile(user_id, payload, subject=subject)
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, updated)
+            result = await update_profile(
+                container.profile_service,
+                user_id,
+                body.model_dump(exclude_unset=True),
+                subject=subject,
+                if_match=if_match,
+            )
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @personal_router.get("/profile")
     async def me_settings_profile_get(
@@ -204,12 +233,14 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
         try:
-            profile = await svc.get_profile(user_id)
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, profile)
+            result = await get_profile_me(container.profile_service, user_id)
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @personal_router.put("/profile")
     async def me_settings_profile_update(
@@ -221,25 +252,21 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
-        try:
-            current = await svc.get_profile(user_id)
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        assert_if_match(if_match, compute_etag(current))
-        payload = body.model_dump(exclude_unset=True)
         subject = subject_from_claims(claims, user_id)
         try:
-            updated = await svc.update_profile(user_id, payload, subject=subject)
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, updated)
+            result = await update_profile(
+                container.profile_service,
+                user_id,
+                body.model_dump(exclude_unset=True),
+                subject=subject,
+                if_match=if_match,
+            )
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @personal_router.post(
         "/profile/email/request-change",
@@ -253,20 +280,20 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await svc.request_email_change(user_id, payload.email, subject=subject)
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        attach_settings_schema(result, response)
-        return result
+            result = await request_email_change(
+                container.profile_service,
+                user_id,
+                payload.email,
+                subject=subject,
+            )
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return attach_settings_schema(result.payload, response)
 
     @personal_router.post(
         "/profile/email/confirm",
@@ -280,19 +307,20 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
         subject = subject_from_claims(claims, user_id)
         try:
-            updated = await svc.confirm_email_change(user_id, payload.token, subject=subject)
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, updated)
+            result = await confirm_email_change(
+                container.profile_service,
+                user_id,
+                payload.token,
+                subject=subject,
+            )
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @personal_router.post(
         "/profile/wallet",
@@ -306,25 +334,20 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
         subject = subject_from_claims(claims, user_id)
         try:
-            updated = await svc.set_wallet(
+            result = await bind_wallet(
+                container.profile_service,
                 user_id,
-                address=payload.address.strip(),
-                chain_id=(payload.chain_id.strip() if payload.chain_id else None),
-                signature=payload.signature,
+                payload.model_dump(exclude_unset=True),
                 subject=subject,
             )
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, updated)
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
     @personal_router.delete(
         "/profile/wallet",
@@ -337,19 +360,19 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = require_user_id(claims)
         container = get_container(request)
-        svc = container.profile_service
         subject = subject_from_claims(claims, user_id)
         try:
-            updated = await svc.clear_wallet(user_id, subject)
-        except PermissionError:
-            raise ApiError(
-                code="E_FORBIDDEN",
-                status_code=status.HTTP_403_FORBIDDEN,
-                message="Operation forbidden",
-            ) from None
-        except ValueError as exc:
-            _raise_profile_error(exc)
-        return profile_payload(response, updated)
+            result = await unbind_wallet(
+                container.profile_service,
+                user_id,
+                subject=subject,
+            )
+        except ProfileError as error:
+            _raise_profile_error(error)
+        _apply_result_headers(
+            response, dict(result.headers) if result.headers else None
+        )
+        return _profile_response(response, result.payload, int(result.status_code))
 
 
 __all__ = [

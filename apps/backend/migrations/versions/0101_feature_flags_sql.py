@@ -148,7 +148,9 @@ def downgrade() -> None:
             server_default=sa.text("gen_random_uuid()"),
         ),
         sa.Column("key", sa.Text(), nullable=False, unique=True),
-        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column(
+            "enabled", sa.Boolean(), nullable=False, server_default=sa.text("false")
+        ),
         sa.Column("payload", pg.JSONB(astext_type=sa.Text())),
         sa.Column(
             "created_at",
@@ -269,7 +271,10 @@ def _ensure_feature_flags_index(bind: sa.engine.Connection) -> None:
     if not sa.inspect(bind).has_table("feature_flags"):
         return
     bind.execute(
-        sa.text("CREATE INDEX IF NOT EXISTS ix_feature_flags_status " "ON feature_flags (status)")
+        sa.text(
+            "CREATE INDEX IF NOT EXISTS ix_feature_flags_status "
+            "ON feature_flags (status)"
+        )
     )
 
 

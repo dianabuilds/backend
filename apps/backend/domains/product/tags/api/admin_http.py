@@ -10,14 +10,13 @@ try:
 except ImportError:  # pragma: no cover
     RateLimiter = None  # type: ignore
 
-from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
-from domains.product.tags.adapters.admin_repo_memory import MemoryAdminRepo
-from domains.product.tags.adapters.admin_repo_sql import SQLAdminRepo
+from domains.product.tags.adapters.admin_repo_sql import (
+    create_repo as create_admin_repo,
+)
 from domains.product.tags.application.admin_service import TagAdminService
-from packages.core.config import to_async_dsn
 
 logger = logging.getLogger(__name__)
 
@@ -26,30 +25,19 @@ def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/admin/tags", tags=["admin-tags"])
 
     def _svc(container) -> TagAdminService:
-        # Prefer SQL repo if DB configured; if engine creation fails, fall back to memory
-        dsn: str | None = None
-        try:
-            dsn = to_async_dsn(getattr(container.settings, "database_url", None))
-        except AttributeError as exc:
-            logger.debug("tag_admin_missing_settings", exc_info=exc)
-        except ValueError as exc:
-            logger.warning("tag_admin_invalid_database_url", exc_info=exc)
-        if dsn:
-            try:
-                repo = SQLAdminRepo(dsn)
-            except (SQLAlchemyError, RuntimeError) as exc:
-                logger.warning("tag_admin_sql_repository_unavailable", exc_info=exc)
-            else:
-                return TagAdminService(repo, outbox=container.events.outbox)
+        cached = getattr(container, "_tags_admin_service", None)
+        if cached is not None:
+            return cached
         usage_store = None
         try:
             repo0 = getattr(getattr(container, "tags_service", None), "repo", None)
             usage_store = getattr(repo0, "store", None)
         except AttributeError as exc:
             logger.debug("tag_admin_usage_store_unavailable", exc_info=exc)
-        return TagAdminService(
-            MemoryAdminRepo(usage_store), outbox=container.events.outbox
-        )
+        repo = create_admin_repo(container.settings, store=usage_store)
+        service = TagAdminService(repo, outbox=container.events.outbox)
+        container._tags_admin_service = service
+        return service
 
     @router.get("/groups", summary="List tag content groups")
     def list_groups(

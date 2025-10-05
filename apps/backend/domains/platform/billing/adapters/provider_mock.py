@@ -14,7 +14,9 @@ class MockProvider(PaymentProvider):
         # Return a fake external id and no external URL
         return CheckoutResult(url=None, provider="mock", external_id=str(uuid.uuid4()))
 
-    async def verify_webhook(self, payload: bytes, signature: str | None) -> bool:  # noqa: ARG002
+    async def verify_webhook(
+        self, payload: bytes, signature: str | None
+    ) -> bool:  # noqa: ARG002
         return True
 
 

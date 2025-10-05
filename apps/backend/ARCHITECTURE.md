@@ -33,8 +33,8 @@ apps/backend/
 ## Слои домена
 
 - `api/`: тонкие контроллеры FastAPI, валидация DTO, без бизнес‑логики.
-- `application/`: use‑cases, координация, транзакции, фича‑флаги, порты (интерфейсы). Здесь вызываем `domain` и
-  `adapters` через порты.
+- `application/`: use‑cases, координация, транзакции, фича‑флаги, presenter‑модули для сериализации выходов, порты (интерфейсы). Здесь вызываем `domain` и
+  `adapters` через порты; логика отвечает за готовые DTO и HTTP связки.
 - `domain/`: чистые сущности/правила/политики, без I/O и фреймворков.
 - `adapters/`: реализация портов (SQL/Redis/HTTP‑клиенты и т.д.).
 - `schema/sql/`: Alembic per‑domain (схема БД = имя домена, `version_table_schema`).
@@ -104,3 +104,13 @@ apps/backend/
 - Подключить реальные проверки совместимости контрактов (oasdiff/jsonschema‑diff) и import‑linter в CI.
 - Добавить интеграционные тесты для платформенного релея и доменных обработчиков.
 - Ввести кодоген клиентов из OpenAPI/событий.
+### Moderation layering update
+
+- Moderation use-cases (`application/content`, `reports`, `tickets`, `appeals`, `ai_rules`) expose pure orchestration functions; HTTP routers build repositories via `create_repository(container.settings)` и держат транспорт тонким.
+- Shared presenter utilities live in `application/presenters`; `merge_model`/`merge_metadata` дают единый способ обогащения DTO метаданными и историей.
+- SQL-ready repositories (`application/*/repository.py`) инкапсулируют persistence и покрыты async unit-тестами (`tests/unit/platform/moderation`).
+- Юнит-тесты `tests/unit/platform/moderation/test_presenters.py` и сценарии в `domains/platform/moderation/tests` проверяют связку use-case ↔ presenter ↔ repository, используя заглушки БД.
+
+- Домен `platform.flags` переведён на presenter/use-case слой: API вызывает `application.use_cases`, сериализацию выполняет `application.presenter`, в HTTP больше нет бизнес-логики.
+- Домен `platform.notifications` (admin templates) теперь опирается на `template_use_cases` и `template_presenter`, HTTP возвращает готовые payload’ы без `asdict`.
+- CI гарантирует минимум 80% покрытия для `reports/tickets/appeals` репозиториев модерации (pytest + pytest-cov) и сохраняет `coverage.xml` для интеграций.

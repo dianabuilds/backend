@@ -98,9 +98,15 @@ class TransitionMetrics:
                 fb = self.fallback.get(mode, 0)
                 nr_ratio = (no_r / count) if count else 0.0
                 fb_ratio = (fb / count) if count else 0.0
-                ent_avg = self.entropy_sum.get(mode, 0.0) / max(self.entropy_count.get(mode, 0), 1)
-                rep_avg = self.repeat_sum.get(mode, 0.0) / max(self.repeat_count.get(mode, 0), 1)
-                nov_avg = self.novelty_sum.get(mode, 0.0) / max(self.novelty_count.get(mode, 0), 1)
+                ent_avg = self.entropy_sum.get(mode, 0.0) / max(
+                    self.entropy_count.get(mode, 0), 1
+                )
+                rep_avg = self.repeat_sum.get(mode, 0.0) / max(
+                    self.repeat_count.get(mode, 0), 1
+                )
+                nov_avg = self.novelty_sum.get(mode, 0.0) / max(
+                    self.novelty_count.get(mode, 0), 1
+                )
                 out.append(
                     {
                         "mode": mode,

@@ -7,7 +7,7 @@ from domains.platform.events.adapters.event_bus_redis import (
 )
 from domains.platform.events.adapters.outbox_redis import RedisOutbox
 from domains.platform.events.service import Events
-from domains.platform.notifications.application.delivery_service import (
+from domains.platform.notifications.application.delivery import (
     NotificationEvent,
 )
 from domains.platform.notifications.logic.dispatcher import (

@@ -30,8 +30,12 @@ def make_service(vector: list[float] | None = None) -> NodeService:
             self.events.append((topic, payload))
 
     outbox = Outbox()
-    embedding = StubEmbeddingClient(vector or [0.1, 0.2, 0.3]) if vector is not None else None
-    service = NodeService(repo=repo, tags=tags, outbox=outbox, usage=None, embedding=embedding)
+    embedding = (
+        StubEmbeddingClient(vector or [0.1, 0.2, 0.3]) if vector is not None else None
+    )
+    service = NodeService(
+        repo=repo, tags=tags, outbox=outbox, usage=None, embedding=embedding
+    )
     service._repo = repo  # type: ignore[attr-defined]
     service._embedding_stub = embedding  # type: ignore[attr-defined]
     service._outbox_stub = outbox  # type: ignore[attr-defined]

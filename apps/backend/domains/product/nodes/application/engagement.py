@@ -91,7 +91,9 @@ class NodeReactionsService:
         if user_id:
             if await self.repo.has(node_id, user_id, _DEFAULT_REACTION):
                 user_reaction = _DEFAULT_REACTION
-        return NodeReactionsSummary(node_id=node_id, totals=totals, user_reaction=user_reaction)
+        return NodeReactionsSummary(
+            node_id=node_id, totals=totals, user_reaction=user_reaction
+        )
 
 
 class NodeCommentsService:
@@ -190,7 +192,9 @@ class NodeCommentsService:
             reason=reason,
         )
 
-    async def unlock_comments(self, node_id: int, *, actor_id: str | None = None) -> None:
+    async def unlock_comments(
+        self, node_id: int, *, actor_id: str | None = None
+    ) -> None:
         await self.repo.lock_node(
             node_id,
             locked_by=None,

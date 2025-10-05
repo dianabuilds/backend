@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +18,18 @@ from domains.product.achievements.api.schemas import (
     AchievementOut,
     AchievementUpdateIn,
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_uuid(value: str | None) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(str(value))
+    except (ValueError, TypeError):
+        logger.debug("achievements_api: invalid UUID %s", value)
+        return None
 
 
 class UserIdIn(BaseModel):
@@ -50,8 +63,8 @@ def make_router() -> APIRouter:
                 icon=r.icon,
                 visible=bool(r.visible),
                 condition=dict(r.condition or {}),
-                created_by_user_id=(UUID(r.created_by_user_id) if r.created_by_user_id else None),
-                updated_by_user_id=(UUID(r.updated_by_user_id) if r.updated_by_user_id else None),
+                created_by_user_id=(_safe_uuid(r.created_by_user_id)),
+                updated_by_user_id=(_safe_uuid(r.updated_by_user_id)),
             )
             for r in rows
         ]
@@ -87,8 +100,8 @@ def make_router() -> APIRouter:
             icon=item.icon,
             visible=bool(item.visible),
             condition=dict(item.condition or {}),
-            created_by_user_id=(UUID(item.created_by_user_id) if item.created_by_user_id else None),
-            updated_by_user_id=(UUID(item.updated_by_user_id) if item.updated_by_user_id else None),
+            created_by_user_id=(_safe_uuid(item.created_by_user_id)),
+            updated_by_user_id=(_safe_uuid(item.updated_by_user_id)),
         )
 
     @admin.patch(
@@ -107,7 +120,9 @@ def make_router() -> APIRouter:
         data = body.model_dump(exclude_unset=True)
         try:
             actor = str(claims.get("sub") or "")
-            item = await container.achievements_admin.update(str(achievement_id), data, actor)
+            item = await container.achievements_admin.update(
+                str(achievement_id), data, actor
+            )
         except ValueError as err:
             if str(err) == "code_conflict":
                 raise HTTPException(status_code=409, detail="conflict") from err
@@ -122,8 +137,8 @@ def make_router() -> APIRouter:
             icon=item.icon,
             visible=bool(item.visible),
             condition=dict(item.condition or {}),
-            created_by_user_id=(UUID(item.created_by_user_id) if item.created_by_user_id else None),
-            updated_by_user_id=(UUID(item.updated_by_user_id) if item.updated_by_user_id else None),
+            created_by_user_id=(_safe_uuid(item.created_by_user_id)),
+            updated_by_user_id=(_safe_uuid(item.updated_by_user_id)),
         )
 
     @admin.delete("/{achievement_id}", summary="Delete achievement")
@@ -165,7 +180,9 @@ def make_router() -> APIRouter:
         return {"revoked": revoked}
 
     @user.get("", response_model=list[AchievementOut], summary="List achievements")
-    async def list_for_user(claims=Depends(get_current_user), container=Depends(get_container)):
+    async def list_for_user(
+        claims=Depends(get_current_user), container=Depends(get_container)
+    ):
         uid = str(claims.get("sub") or "")
         rows = await container.achievements_service.list(uid)
         out: list[AchievementOut] = []

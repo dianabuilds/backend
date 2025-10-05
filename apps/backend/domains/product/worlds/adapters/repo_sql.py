@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from sqlalchemy import text
@@ -11,6 +12,11 @@ from domains.product.worlds.domain.entities import Character, WorldTemplate
 from packages.core.async_utils import run_sync
 from packages.core.config import sanitize_async_dsn
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryRepo
+
+logger = logging.getLogger(__name__)
 
 
 class SQLWorldsRepo(Repo):
@@ -151,7 +157,9 @@ class SQLWorldsRepo(Repo):
 
         return self._run_sync(_run())
 
-    def update_world(self, world: WorldTemplate, data: dict, actor_id: str) -> WorldTemplate:
+    def update_world(
+        self, world: WorldTemplate, data: dict, actor_id: str
+    ) -> WorldTemplate:
         async def _run() -> WorldTemplate:
             sets = [
                 "updated_at = now()",
@@ -233,7 +241,11 @@ class SQLWorldsRepo(Repo):
             engine, dispose = self._engine_for_call()
             try:
                 async with engine.begin() as conn:
-                    rows = (await conn.execute(sql, {"world_id": world_id})).mappings().all()
+                    rows = (
+                        (await conn.execute(sql, {"world_id": world_id}))
+                        .mappings()
+                        .all()
+                    )
                 return [
                     Character(
                         id=str(row["id"]),
@@ -417,4 +429,37 @@ class SQLWorldsRepo(Repo):
         return run_sync(coro)
 
 
-__all__ = ["SQLWorldsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "worlds repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("worlds repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "worlds repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryRepo()
+    try:
+        return SQLWorldsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryRepo()
+
+
+__all__ = [
+    "SQLWorldsRepo",
+    "create_repo",
+]

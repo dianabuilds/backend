@@ -210,7 +210,9 @@ class BroadcastService:
     @staticmethod
     def _ensure_mutable(status: BroadcastStatus) -> None:
         if status not in {BroadcastStatus.DRAFT, BroadcastStatus.SCHEDULED}:
-            raise BroadcastStatusError(f"Cannot edit broadcast in status {status.value}")
+            raise BroadcastStatusError(
+                f"Cannot edit broadcast in status {status.value}"
+            )
 
     @staticmethod
     def _validate_title(title: str) -> None:
@@ -220,7 +222,9 @@ class BroadcastService:
     @staticmethod
     def _validate_content(*, body: str | None, template_id: str | None) -> None:
         if (body is None or not body.strip()) and not template_id:
-            raise BroadcastValidationError("Either body or template_id must be provided")
+            raise BroadcastValidationError(
+                "Either body or template_id must be provided"
+            )
 
     @staticmethod
     def _normalize_body(body: str | None) -> str | None:

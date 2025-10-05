@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import math
+from datetime import UTC, datetime
 
 from domains.product.navigation.application.ports import NodesPort
-from domains.product.navigation.application.service import NavigationService, NodeSnapshot
+from domains.product.navigation.application.service import (
+    NavigationService,
+    NodeSnapshot,
+)
 from domains.product.navigation.domain.transition import TransitionContext
 
 
@@ -12,16 +16,15 @@ class StubNodesPort(NodesPort):
         self._nodes = nodes
 
     def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0):
-        return [node for node in self._nodes.values() if node.get("author_id") == author_id]
+        return [
+            node for node in self._nodes.values() if node.get("author_id") == author_id
+        ]
 
     def get(self, node_id: int):
         return self._nodes.get(node_id)
 
     def search_by_embedding(self, embedding, *, limit: int = 64):
         return list(self._nodes.values())
-
-
-from datetime import UTC, datetime
 
 
 def make_context():

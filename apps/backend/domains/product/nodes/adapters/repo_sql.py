@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import secrets
 from collections.abc import Sequence
@@ -11,6 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.nodes.application.ports import NodeDTO, Repo
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryNodesRepo
+
+logger = logging.getLogger(__name__)
 
 
 def _format_vector(values: Sequence[float] | None) -> str | None:
@@ -500,3 +506,31 @@ class SQLNodesRepo(Repo):
                 return None
             tags = await self._load_tags(conn, [int(node_id)])
             return self._row_to_dto(row, tags.get(int(node_id), []))
+
+
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning("nodes repo: falling back to memory due to SQL error: %s", error)
+        return
+    if not reason:
+        logger.debug("nodes repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "nodes repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings, *, memory_repo: MemoryNodesRepo | None = None) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return memory_repo or MemoryNodesRepo()
+    try:
+        return SQLNodesRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return memory_repo or MemoryNodesRepo()

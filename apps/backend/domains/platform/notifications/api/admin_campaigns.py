@@ -13,17 +13,31 @@ except ImportError:  # pragma: no cover
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
+from domains.platform.notifications.application.broadcast_exceptions import (
+    BroadcastError,
+)
 from domains.platform.notifications.application.broadcast_service import (
-    BroadcastCreateInput,
-    BroadcastNotFoundError,
     BroadcastService,
-    BroadcastStatusError,
-    BroadcastUpdateInput,
-    BroadcastValidationError,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    cancel_broadcast as cancel_broadcast_use_case,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    create_broadcast as create_broadcast_use_case,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    list_broadcasts as list_broadcasts_use_case,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    schedule_broadcast as schedule_broadcast_use_case,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    send_broadcast_now as send_broadcast_now_use_case,
+)
+from domains.platform.notifications.application.broadcast_use_cases import (
+    update_broadcast as update_broadcast_use_case,
 )
 from domains.platform.notifications.domain.broadcast import (
-    Broadcast,
-    BroadcastAudience,
     BroadcastAudienceType,
     BroadcastStatus,
 )
@@ -162,40 +176,13 @@ def make_router() -> APIRouter:
         container = get_container(req)
         return container.notifications.broadcasts
 
-    def _audience_from_payload(payload: BroadcastAudiencePayload) -> BroadcastAudience:
-        audience = BroadcastAudience(
-            type=BroadcastAudienceType(payload.type),
-            filters=payload.filters,
-            user_ids=tuple(payload.user_ids) if payload.user_ids else None,
-        )
-        audience.validate()
-        return audience
-
-    def _audience_to_response(audience: BroadcastAudience) -> BroadcastAudienceResponse:
-        return BroadcastAudienceResponse(
-            type=audience.type,
-            filters=audience.filters,
-            user_ids=list(audience.user_ids) if audience.user_ids else None,
-        )
-
-    def _broadcast_to_response(broadcast: Broadcast) -> BroadcastResponse:
-        return BroadcastResponse(
-            id=broadcast.id,
-            title=broadcast.title,
-            body=broadcast.body,
-            template_id=broadcast.template_id,
-            audience=_audience_to_response(broadcast.audience),
-            status=broadcast.status,
-            created_by=broadcast.created_by,
-            created_at=broadcast.created_at,
-            updated_at=broadcast.updated_at,
-            scheduled_at=broadcast.scheduled_at,
-            started_at=broadcast.started_at,
-            finished_at=broadcast.finished_at,
-            total=broadcast.total,
-            sent=broadcast.sent,
-            failed=broadcast.failed,
-        )
+    def _raise_broadcast_error(error: BroadcastError) -> None:
+        headers = error.headers or None
+        raise HTTPException(
+            status_code=error.status_code,
+            detail=error.message,
+            headers=headers,
+        ) from error
 
     @router.get(
         "/broadcasts",
@@ -208,29 +195,21 @@ def make_router() -> APIRouter:
         req: Request,
         limit: int = Query(default=50, ge=1, le=200),
         offset: int = Query(default=0, ge=0),
-        status: list[BroadcastStatus] | None = Query(default=None),
+        statuses: list[BroadcastStatus] | None = Query(default=None),
         q: str | None = Query(default=None, min_length=1, max_length=120),
         _admin: None = Depends(require_admin),
     ) -> BroadcastListResponse:
-        service = _get_service(req)
-        result = await service.list(
-            limit=limit, offset=offset, statuses=status, query=q
-        )
-        items = [_broadcast_to_response(item) for item in result.items]
-        counts = {
-            status.value: result.status_counts.get(status, 0)
-            for status in BroadcastStatus
-        }
-        has_next = offset + len(items) < result.total
-        return BroadcastListResponse(
-            items=items,
-            total=result.total,
-            offset=offset,
-            limit=limit,
-            has_next=has_next,
-            status_counts=counts,
-            recipients=result.recipient_total,
-        )
+        try:
+            result = await list_broadcasts_use_case(
+                _get_service(req),
+                limit=limit,
+                offset=offset,
+                statuses=statuses,
+                query=q,
+            )
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastListResponse(**result.payload)
 
     @router.post(
         "/broadcasts",
@@ -245,21 +224,14 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> BroadcastResponse:
-        service = _get_service(req)
         try:
-            audience = _audience_from_payload(payload.audience)
-            data = BroadcastCreateInput(
-                title=payload.title,
-                body=payload.body,
-                template_id=payload.template_id,
-                audience=audience,
-                created_by=payload.created_by,
-                scheduled_at=payload.scheduled_at,
+            result = await create_broadcast_use_case(
+                _get_service(req),
+                payload.model_dump(exclude_none=True),
             )
-            broadcast = await service.create(data)
-        except BroadcastValidationError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return _broadcast_to_response(broadcast)
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastResponse(**result.payload)
 
     @router.put(
         "/broadcasts/{broadcast_id}",
@@ -275,24 +247,15 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> BroadcastResponse:
-        service = _get_service(req)
         try:
-            audience = _audience_from_payload(payload.audience)
-            data = BroadcastUpdateInput(
-                title=payload.title,
-                body=payload.body,
-                template_id=payload.template_id,
-                audience=audience,
-                scheduled_at=payload.scheduled_at,
+            result = await update_broadcast_use_case(
+                _get_service(req),
+                broadcast_id,
+                payload.model_dump(exclude_none=True),
             )
-            broadcast = await service.update(broadcast_id, data)
-        except BroadcastNotFoundError:
-            raise HTTPException(status_code=404, detail="broadcast not found") from None
-        except BroadcastStatusError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        except BroadcastValidationError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return _broadcast_to_response(broadcast)
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastResponse(**result.payload)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/send-now",
@@ -307,14 +270,14 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> BroadcastResponse:
-        service = _get_service(req)
         try:
-            broadcast = await service.send_now(broadcast_id)
-        except BroadcastNotFoundError:
-            raise HTTPException(status_code=404, detail="broadcast not found") from None
-        except BroadcastStatusError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        return _broadcast_to_response(broadcast)
+            result = await send_broadcast_now_use_case(
+                _get_service(req),
+                broadcast_id,
+            )
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastResponse(**result.payload)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/schedule",
@@ -330,16 +293,15 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> BroadcastResponse:
-        service = _get_service(req)
         try:
-            broadcast = await service.schedule(broadcast_id, payload.scheduled_at)
-        except BroadcastNotFoundError:
-            raise HTTPException(status_code=404, detail="broadcast not found") from None
-        except BroadcastStatusError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        except BroadcastValidationError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return _broadcast_to_response(broadcast)
+            result = await schedule_broadcast_use_case(
+                _get_service(req),
+                broadcast_id,
+                payload.scheduled_at,
+            )
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastResponse(**result.payload)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/cancel",
@@ -354,13 +316,16 @@ def make_router() -> APIRouter:
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> BroadcastResponse:
-        service = _get_service(req)
         try:
-            broadcast = await service.cancel(broadcast_id)
-        except BroadcastNotFoundError:
-            raise HTTPException(status_code=404, detail="broadcast not found") from None
-        except BroadcastStatusError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        return _broadcast_to_response(broadcast)
+            result = await cancel_broadcast_use_case(
+                _get_service(req),
+                broadcast_id,
+            )
+        except BroadcastError as error:
+            _raise_broadcast_error(error)
+        return BroadcastResponse(**result.payload)
 
     return router
+
+
+__all__ = ["make_router"]

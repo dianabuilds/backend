@@ -30,7 +30,9 @@ class TemplateRepo(Protocol):
 class BroadcastRepo(Protocol):
     async def create(self, payload: BroadcastCreateModel) -> Broadcast: ...
 
-    async def update(self, broadcast_id: str, payload: BroadcastUpdateModel) -> Broadcast: ...
+    async def update(
+        self, broadcast_id: str, payload: BroadcastUpdateModel
+    ) -> Broadcast: ...
 
     async def update_status(
         self,
@@ -67,7 +69,9 @@ class NotificationMatrixRepo(Protocol):
 
 class NotificationPreferenceRepo(Protocol):
     async def list_for_user(self, user_id: str) -> list[PreferenceRecord]: ...
-    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None: ...
+    async def replace_for_user(
+        self, user_id: str, records: Sequence[PreferenceRecord]
+    ) -> None: ...
 
 
 class NotificationConsentAuditRepo(Protocol):

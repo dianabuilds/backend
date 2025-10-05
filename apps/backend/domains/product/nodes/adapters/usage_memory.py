@@ -11,5 +11,7 @@ class MemoryUsageProjection(UsageProjection):
         self.store = store
         self.content_type = content_type
 
-    def apply_diff(self, author_id: str, added: Sequence[str], removed: Sequence[str]) -> None:
+    def apply_diff(
+        self, author_id: str, added: Sequence[str], removed: Sequence[str]
+    ) -> None:
         self.store.apply_diff(author_id, added, removed, content_type=self.content_type)

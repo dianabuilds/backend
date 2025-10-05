@@ -24,7 +24,10 @@ class SearchStatsService:
 
     def top(self, limit: int = 10) -> list[dict[str, int | str]]:
         items = sorted(self._stats.items(), key=lambda kv: kv[1].count, reverse=True)
-        return [{"query": q, "count": s.count, "results": s.results} for q, s in items[:limit]]
+        return [
+            {"query": q, "count": s.count, "results": s.results}
+            for q, s in items[:limit]
+        ]
 
     def reset(self) -> None:
         self._stats.clear()

@@ -1,15 +1,54 @@
 from __future__ import annotations
 
+import uuid
+from collections.abc import Mapping
 from datetime import datetime
 
 from domains.product.profile.application.ports import Repo
 from domains.product.profile.domain.entities import Profile
 
+_DEFAULT_PROFILE_SEED: tuple[tuple[str, dict[str, object | None]], ...] = (
+    (
+        "00000000-0000-0000-0000-000000000001",
+        {"username": "demo-user", "role": "user"},
+    ),
+    (
+        "00000000-0000-0000-0000-000000000002",
+        {"username": "demo-user-2", "role": "user"},
+    ),
+    (
+        "00000000-0000-0000-0000-000000000099",
+        {"username": "admin-99", "role": "admin"},
+    ),
+    (
+        str(uuid.uuid5(uuid.NAMESPACE_DNS, "user:author-1")),
+        {"username": "author-1", "role": "user"},
+    ),
+    (
+        str(uuid.uuid5(uuid.NAMESPACE_DNS, "user:moderation-author")),
+        {"username": "moderation-author", "role": "user"},
+    ),
+    (
+        str(uuid.uuid5(uuid.NAMESPACE_DNS, "user:engagement-author")),
+        {"username": "engagement-author", "role": "user"},
+    ),
+)
+
+
+def build_default_seed() -> dict[str, Profile]:
+    seed: dict[str, Profile] = {}
+    for user_id, attrs in _DEFAULT_PROFILE_SEED:
+        seed[user_id] = Profile(id=user_id, **attrs)
+    return seed
+
 
 class MemoryRepo(Repo):
-    def __init__(self) -> None:
+    def __init__(self, seed: Mapping[str, Profile] | None = None) -> None:
         self._profiles: dict[str, Profile] = {}
         self._email_requests: dict[str, tuple[str, str, datetime]] = {}
+        initial = dict(seed) if seed is not None else build_default_seed()
+        for user_id, profile in initial.items():
+            self._profiles[user_id] = self._copy(profile)
 
     def _copy(self, profile: Profile) -> Profile:
         return Profile(
@@ -56,7 +95,9 @@ class MemoryRepo(Repo):
         self._profiles[user_id] = self._copy(profile)
         return self._copy(profile)
 
-    async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool:
+    async def email_in_use(
+        self, email: str, exclude_user_id: str | None = None
+    ) -> bool:
         lowered = email.lower()
         for uid, profile in self._profiles.items():
             if exclude_user_id and uid == exclude_user_id:
@@ -137,4 +178,4 @@ class MemoryRepo(Repo):
         return self._copy(profile)
 
 
-__all__ = ["MemoryRepo"]
+__all__ = ["MemoryRepo", "build_default_seed"]

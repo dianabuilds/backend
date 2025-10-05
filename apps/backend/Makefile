@@ -34,8 +34,7 @@ imports-check:
 	echo "Generated import-linter rules to /tmp/import-linter.ini"
 
 imports-lint:
-	python infra/ci/gen_import_rules.py > /tmp/import-linter.ini
-	lint-imports -c /tmp/import-linter.ini
+	python -m importlinter.cli lint --config importlinter.ini
 
 lint:
 	ruff check . --config pyproject.toml

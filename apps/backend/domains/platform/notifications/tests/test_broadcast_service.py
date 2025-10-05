@@ -51,7 +51,9 @@ class InMemoryBroadcastRepo(BroadcastRepo):
         self._storage[identifier] = model
         return model
 
-    async def update(self, broadcast_id: str, payload: BroadcastUpdateModel) -> Broadcast:
+    async def update(
+        self, broadcast_id: str, payload: BroadcastUpdateModel
+    ) -> Broadcast:
         existing = self._storage.get(broadcast_id)
         if existing is None:
             raise BroadcastNotFoundError(broadcast_id)
@@ -100,9 +102,13 @@ class InMemoryBroadcastRepo(BroadcastRepo):
             created_by=existing.created_by,
             created_at=existing.created_at,
             updated_at=datetime.now(UTC),
-            scheduled_at=(scheduled_at if scheduled_at is not None else existing.scheduled_at),
+            scheduled_at=(
+                scheduled_at if scheduled_at is not None else existing.scheduled_at
+            ),
             started_at=started_at if started_at is not None else existing.started_at,
-            finished_at=(finished_at if finished_at is not None else existing.finished_at),
+            finished_at=(
+                finished_at if finished_at is not None else existing.finished_at
+            ),
             total=total if total is not None else existing.total,
             sent=sent if sent is not None else existing.sent,
             failed=failed if failed is not None else existing.failed,

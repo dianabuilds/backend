@@ -10,8 +10,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
 
+from ..api.rbac import require_scopes
 from ..dtos import OverviewDTO
-from ..rbac import require_scopes
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/overview", tags=["moderation-overview"])

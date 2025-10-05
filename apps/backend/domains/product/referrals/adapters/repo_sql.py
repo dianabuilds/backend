@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid as _uuid
 from typing import Any
 
@@ -12,12 +13,19 @@ from domains.product.referrals.domain.entities import (
     ReferralEvent,
 )
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryReferralsRepo
+
+logger = logging.getLogger(__name__)
 
 
 class SQLReferralsRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("referrals", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("referrals", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def get_personal_code(self, owner_user_id: str) -> ReferralCode | None:
@@ -46,7 +54,11 @@ class SQLReferralsRepo(Repo):
             """
         )
         async with self._engine.begin() as conn:
-            r = (await conn.execute(sql, {"uid": owner_user_id, "code": code})).mappings().first()
+            r = (
+                (await conn.execute(sql, {"uid": owner_user_id, "code": code}))
+                .mappings()
+                .first()
+            )
             assert r is not None
             return ReferralCode(
                 id=str(r["id"]),
@@ -116,7 +128,9 @@ class SQLReferralsRepo(Repo):
             id=str(r["id"]),
             code_id=str(r["code_id"]) if r["code_id"] else None,
             code=str(r["code"]) if r["code"] else None,
-            referrer_user_id=(str(r["referrer_user_id"]) if r["referrer_user_id"] else None),
+            referrer_user_id=(
+                str(r["referrer_user_id"]) if r["referrer_user_id"] else None
+            ),
             referee_user_id=str(r["referee_user_id"]),
             event_type=str(r["event_type"]),
             occurred_at=r["occurred_at"],
@@ -188,7 +202,9 @@ class SQLReferralsRepo(Repo):
                 id=str(r["id"]),
                 code_id=str(r["code_id"]) if r["code_id"] else None,
                 code=str(r["code"]) if r["code"] else None,
-                referrer_user_id=(str(r["referrer_user_id"]) if r["referrer_user_id"] else None),
+                referrer_user_id=(
+                    str(r["referrer_user_id"]) if r["referrer_user_id"] else None
+                ),
                 referee_user_id=str(r["referee_user_id"]),
                 event_type=str(r["event_type"]),
                 occurred_at=r["occurred_at"],
@@ -219,7 +235,11 @@ class SQLReferralsRepo(Repo):
         )
         async with self._engine.begin() as conn:
             r = (
-                (await conn.execute(sql, {"active": bool(active), "uid": owner_user_id}))
+                (
+                    await conn.execute(
+                        sql, {"active": bool(active), "uid": owner_user_id}
+                    )
+                )
                 .mappings()
                 .first()
             )
@@ -235,4 +255,37 @@ class SQLReferralsRepo(Repo):
         )
 
 
-__all__ = ["SQLReferralsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "referrals repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("referrals repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "referrals repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryReferralsRepo()
+    try:
+        return SQLReferralsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryReferralsRepo()
+
+
+__all__ = [
+    "SQLReferralsRepo",
+    "create_repo",
+]

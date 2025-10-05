@@ -40,7 +40,9 @@ class DatabaseProbe:
             async with engine.connect() as conn:
                 rows = (
                     await conn.execute(
-                        text("SELECT status, COUNT(*) AS count FROM worker_jobs GROUP BY status")
+                        text(
+                            "SELECT status, COUNT(*) AS count FROM worker_jobs GROUP BY status"
+                        )
                     )
                 ).mappings()
                 counts = {str(row["status"]).lower(): int(row["count"]) for row in rows}
@@ -61,7 +63,9 @@ class DatabaseProbe:
 
             async with engine.connect() as conn:
                 result = await conn.execute(
-                    text("SELECT MAX(started_at) FROM worker_job_runs WHERE status = 'started'")
+                    text(
+                        "SELECT MAX(started_at) FROM worker_job_runs WHERE status = 'started'"
+                    )
                 )
                 heartbeat = result.scalar_one_or_none()
 

@@ -203,3 +203,6 @@ class MemoryModerationRepo(Repo):
         item["_updated_at"] = now
         item["updated_at"] = _to_iso(now)
         return await self.get_case(case_id)
+
+
+MemoryRepo = MemoryModerationRepo

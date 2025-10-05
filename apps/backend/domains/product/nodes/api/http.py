@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid as _uuid
 from datetime import UTC, datetime
+from html import unescape
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import ValidationError
@@ -135,6 +137,127 @@ def make_router() -> APIRouter:
             "created_at": ban.created_at,
         }
 
+    DEV_BLOG_TAG = "dev-blog"
+
+    def _strip_html_summary(value: str | None, limit: int = 320) -> str:
+        if not value:
+            return ""
+        text_value = unescape(re.sub(r"<[^>]+>", " ", str(value)))
+        text_value = re.sub(r"\s+", " ", text_value).strip()
+        if limit and len(text_value) > limit:
+            truncated = text_value[:limit].rstrip()
+            cutoff = truncated.rfind(" ")
+            if cutoff > max(24, int(limit * 0.6)):
+                truncated = truncated[:cutoff].rstrip()
+            text_value = truncated.rstrip(",.;:-") + "..."
+        return text_value
+
+    def _iso_datetime(value):
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            dt = value
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UTC)
+            return dt.astimezone(UTC).isoformat()
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except Exception:  # pragma: no cover - fallback
+                return str(value)
+        return str(value)
+
+    @router.get("/dev-blog", summary="List public dev blog posts")
+    async def list_dev_blog_posts(
+        limit: int = Query(default=12, ge=1, le=50),
+        offset: int = Query(default=0, ge=0),
+        container=Depends(get_container),
+    ):
+        eng = await _ensure_engine(container)
+        if eng is None:
+            raise HTTPException(status_code=503, detail="database_unavailable")
+        params = {"tag": DEV_BLOG_TAG, "limit": int(limit), "offset": int(offset)}
+        async with eng.begin() as conn:
+            try:
+                rows = (
+                    (
+                        await conn.execute(
+                            text(
+                                """
+                            SELECT n.id,
+                                   n.slug,
+                                   n.title,
+                                   n.publish_at,
+                                   n.updated_at,
+                                   n.cover_url,
+                                   n.content_html
+                              FROM nodes AS n
+                             WHERE EXISTS (
+                                     SELECT 1
+                                       FROM product_node_tags AS t
+                                      WHERE t.node_id = n.id AND t.slug = :tag
+                                   )
+                               AND n.status = 'published'
+                               AND n.is_public = true
+                               AND (n.publish_at IS NULL OR n.publish_at <= now())
+                             ORDER BY COALESCE(n.publish_at, n.updated_at, n.created_at) DESC, n.id DESC
+                             LIMIT :limit OFFSET :offset
+                            """
+                            ),
+                            params,
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
+            except SQLAlchemyError as exc:
+                logger.error("nodes_dev_blog_query_failed", exc_info=exc)
+                raise HTTPException(status_code=500, detail="query_failed") from exc
+            items: list[dict[str, object]] = []
+            for row in rows:
+                row_id = row.get("id")
+                try:
+                    node_id = int(row_id) if row_id is not None else None
+                except (TypeError, ValueError):
+                    node_id = row_id
+                publish_at = row.get("publish_at")
+                updated_at = row.get("updated_at")
+                items.append(
+                    {
+                        "id": node_id,
+                        "slug": row.get("slug"),
+                        "title": row.get("title"),
+                        "cover_url": row.get("cover_url"),
+                        "publish_at": _iso_datetime(publish_at),
+                        "updated_at": _iso_datetime(updated_at),
+                        "summary": _strip_html_summary(row.get("content_html")),
+                    }
+                )
+            try:
+                total = await conn.execute(
+                    text(
+                        """
+                        SELECT COUNT(*)::bigint
+                          FROM nodes AS n
+                         WHERE EXISTS (
+                                 SELECT 1
+                                   FROM product_node_tags AS t
+                                  WHERE t.node_id = n.id AND t.slug = :tag
+                             )
+                           AND n.status = 'published'
+                           AND n.is_public = true
+                           AND (n.publish_at IS NULL OR n.publish_at <= now())
+                        """
+                    ),
+                    {"tag": DEV_BLOG_TAG},
+                )
+                total_count = int(total.scalar_one())
+            except SQLAlchemyError as exc:
+                logger.error("nodes_dev_blog_count_failed", exc_info=exc)
+                total_count = offset + len(items)
+            has_next = offset + len(items) < total_count
+        return {"items": items, "total": total_count, "has_next": has_next}
+
     @router.get("/{node_id}")
     async def get_node(
         node_id: str,
@@ -148,9 +271,12 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=404, detail="not_found")
         if str(view.status or "").lower() == "deleted":
             raise HTTPException(status_code=404, detail="not_found")
-        uid = str(claims.get("sub")) if claims else None
-        role = str(claims.get("role") or "").lower()
-        if view.author_id != (uid or "") and role != "admin" and not view.is_public:
+        actor_id = _normalize_actor_id(claims)
+        if (
+            view.author_id != actor_id
+            and not _has_role(claims, "admin")
+            and not view.is_public
+        ):
             raise HTTPException(status_code=404, detail="not_found")
         return {
             "id": view.id,
@@ -185,9 +311,12 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=404, detail="not_found")
         if str(view.status or "").lower() == "deleted":
             raise HTTPException(status_code=404, detail="not_found")
-        uid = str(claims.get("sub")) if claims else None
-        role = str(claims.get("role") or "").lower()
-        if view.author_id != (uid or "") and role != "admin" and not view.is_public:
+        actor_id = _normalize_actor_id(claims)
+        if (
+            view.author_id != actor_id
+            and not _has_role(claims, "admin")
+            and not view.is_public
+        ):
             raise HTTPException(status_code=404, detail="not_found")
         return {
             "id": view.id,
@@ -222,15 +351,18 @@ def make_router() -> APIRouter:
         view, resolved_id = await _resolve_node_ref(node_id, svc)
         if not view or resolved_id is None:
             raise HTTPException(status_code=404, detail="not_found")
-        uid = str(claims.get("sub")) if claims else None
-        role = str(claims.get("role") or "").lower()
-        if view.author_id != (uid or "") and role != "admin":
+        actor_id = _normalize_actor_id(claims)
+        if not actor_id and not _has_role(claims, "admin"):
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if view.author_id != actor_id and not _has_role(claims, "admin"):
             raise HTTPException(status_code=403, detail="forbidden")
         try:
             tags = body.get("tags") or []
             if not isinstance(tags, list):
                 raise HTTPException(status_code=400, detail="tags_list_required")
-            updated = await svc.update_tags(int(resolved_id), tags, actor_id=uid or "")
+            updated = await svc.update_tags(
+                int(resolved_id), tags, actor_id=actor_id or ""
+            )
             return {
                 "id": updated.id,
                 "tags": updated.tags,
@@ -247,13 +379,7 @@ def make_router() -> APIRouter:
         claims=Depends(get_current_user),
         _csrf: None = Depends(csrf_protect),
     ):
-        sub = str(claims.get("sub") or "") if claims else ""
-        # Normalize author id to UUID: if sub is not UUID, derive stable UUIDv5
-        try:
-            _uuid.UUID(sub)
-            uid = sub
-        except (ValueError, TypeError):
-            uid = str(_uuid.uuid5(_uuid.NAMESPACE_DNS, f"user:{sub}")) if sub else ""
+        uid = _normalize_actor_id(claims)
         if not uid:
             raise HTTPException(status_code=401, detail="unauthorized")
         title = body.get("title")
@@ -307,9 +433,10 @@ def make_router() -> APIRouter:
         view, resolved_id = await _resolve_node_ref(node_id, svc)
         if not view or resolved_id is None:
             raise HTTPException(status_code=404, detail="not_found")
-        uid = str(claims.get("sub") or "") if claims else ""
-        role = str(claims.get("role") or "").lower()
-        if view.author_id != uid and role != "admin":
+        actor_id = _normalize_actor_id(claims)
+        if not actor_id and not _has_role(claims, "admin"):
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if view.author_id != actor_id and not _has_role(claims, "admin"):
             raise HTTPException(status_code=403, detail="forbidden")
         title = body.get("title")
         if title is not None and not isinstance(title, str):
@@ -364,9 +491,10 @@ def make_router() -> APIRouter:
         view, resolved_id = await _resolve_node_ref(node_id, svc)
         if not view or resolved_id is None:
             raise HTTPException(status_code=404, detail="not_found")
-        uid = str(claims.get("sub") or "") if claims else ""
-        role = str(claims.get("role") or "").lower()
-        if view.author_id != uid and role != "admin":
+        actor_id = _normalize_actor_id(claims)
+        if not actor_id and not _has_role(claims, "admin"):
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if view.author_id != actor_id and not _has_role(claims, "admin"):
             raise HTTPException(status_code=403, detail="forbidden")
         ok = await svc.delete(int(resolved_id))
         return {"ok": bool(ok)}
@@ -407,6 +535,19 @@ def make_router() -> APIRouter:
             amount=amount_int,
             at=at_dt,
         )
+        if total <= 0:
+            views_service = svc._require_views_service()
+            try:
+                fallback_total = await views_service.repo.increment(
+                    int(resolved_id),
+                    amount=amount_int,
+                    viewer_id=actor_id or None,
+                    fingerprint=str(fingerprint or "") or None,
+                    at=at_dt.isoformat() if at_dt else None,
+                )
+                total = fallback_total if fallback_total > 0 else max(amount_int, 0)
+            except Exception:
+                total = max(amount_int, 0)
         return {"id": resolved_id, "views_count": total}
 
     @router.get("/{node_id}/views")
@@ -492,7 +633,9 @@ def make_router() -> APIRouter:
         if not view or resolved_id is None:
             raise HTTPException(status_code=404, detail="not_found")
         actor_id = _normalize_actor_id(claims)
-        summary = await svc.get_reactions_summary(int(resolved_id), user_id=actor_id or None)
+        summary = await svc.get_reactions_summary(
+            int(resolved_id), user_id=actor_id or None
+        )
         return _summary_to_dict(summary)
 
     @router.get("/{node_id}/comments")
@@ -552,7 +695,9 @@ def make_router() -> APIRouter:
             try:
                 parent_comment_id = int(parent_comment_id)
             except (ValueError, TypeError):
-                raise HTTPException(status_code=400, detail="parent_id_invalid") from None
+                raise HTTPException(
+                    status_code=400, detail="parent_id_invalid"
+                ) from None
         metadata = body.get("metadata")
         if metadata is not None and not isinstance(metadata, dict):
             raise HTTPException(status_code=400, detail="metadata_invalid")
@@ -678,9 +823,13 @@ def make_router() -> APIRouter:
         disabled = bool(body.get("disabled", True))
         reason = body.get("reason")
         if disabled:
-            await svc.disable_comments(int(resolved_id), actor_id=actor_id, reason=reason)
+            await svc.disable_comments(
+                int(resolved_id), actor_id=actor_id, reason=reason
+            )
         else:
-            await svc.enable_comments(int(resolved_id), actor_id=actor_id, reason=reason)
+            await svc.enable_comments(
+                int(resolved_id), actor_id=actor_id, reason=reason
+            )
         return {"id": resolved_id, "disabled": disabled}
 
     @router.post("/{node_id}/comments/ban")
@@ -731,7 +880,9 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=401, detail="unauthorized")
         if view.author_id != actor_id and not _has_role(claims, "moderator"):
             raise HTTPException(status_code=403, detail="forbidden")
-        ok = await svc.unban_comment_user(int(resolved_id), target_user_id=target_user_id)
+        ok = await svc.unban_comment_user(
+            int(resolved_id), target_user_id=target_user_id
+        )
         return {"ok": bool(ok)}
 
     @router.get("/{node_id}/comments/bans")
@@ -819,7 +970,11 @@ def make_router() -> APIRouter:
         if filters is not None and not isinstance(filters, dict):
             raise HTTPException(status_code=400, detail="filters_invalid")
         if filters:
-            if "q" in filters and filters["q"] is not None and not isinstance(filters["q"], str):
+            if (
+                "q" in filters
+                and filters["q"] is not None
+                and not isinstance(filters["q"], str)
+            ):
                 raise HTTPException(status_code=400, detail="filters_q_invalid")
             if (
                 "slug" in filters
@@ -838,14 +993,18 @@ def make_router() -> APIRouter:
                     "archived",
                     "deleted",
                 ):
-                    raise HTTPException(status_code=400, detail="filters_status_invalid")
+                    raise HTTPException(
+                        status_code=400, detail="filters_status_invalid"
+                    )
         if "pageSize" in config and config["pageSize"] is not None:
             try:
                 ps = int(config["pageSize"])
                 if ps < 5 or ps > 200:
                     raise ValueError
             except (TypeError, ValueError):
-                raise HTTPException(status_code=400, detail="pageSize_invalid") from None
+                raise HTTPException(
+                    status_code=400, detail="pageSize_invalid"
+                ) from None
         if "sort" in config and config["sort"] is not None:
             s = str(config["sort"]).lower()
             if s not in ("updated_at", "title", "author", "status"):

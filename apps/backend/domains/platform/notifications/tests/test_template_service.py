@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from domains.platform.flags.application.service import FlagService
-from domains.platform.notifications.application.delivery_service import (
+from domains.platform.notifications.application.delivery import (
     DeliveryService,
     NotificationEvent,
 )
@@ -98,7 +98,9 @@ class StubPreferenceRepo:
     async def list_for_user(self, user_id: str) -> list[PreferenceRecord]:
         return []
 
-    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None:
+    async def replace_for_user(
+        self, user_id: str, records: Sequence[PreferenceRecord]
+    ) -> None:
         return None
 
 
@@ -133,7 +135,9 @@ async def test_template_service_accepts_json_strings() -> None:
     repo = InMemoryTemplateRepo()
     svc = TemplateService(repo)
 
-    tmpl = await svc.save({"name": "Payment", "body": "Body", "variables": '{"flag": true}'})
+    tmpl = await svc.save(
+        {"name": "Payment", "body": "Body", "variables": '{"flag": true}'}
+    )
     assert tmpl.variables == {"flag": True}
 
     with pytest.raises(ValueError):
@@ -145,7 +149,9 @@ async def test_delivery_service_renders_template_with_variables() -> None:
     topic_key = "economy.billing"
     matrix = NotificationMatrix(
         topics={
-            topic_key: NotificationTopic(key=topic_key, category="billing", display_name="Billing")
+            topic_key: NotificationTopic(
+                key=topic_key, category="billing", display_name="Billing"
+            )
         },
         channels={
             "in_app": NotificationChannel(

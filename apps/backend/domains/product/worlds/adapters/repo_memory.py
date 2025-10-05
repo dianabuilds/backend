@@ -41,7 +41,9 @@ class MemoryRepo(Repo):
         self._worlds[wid] = world
         return world
 
-    def update_world(self, world: WorldTemplate, data: dict, actor_id: str) -> WorldTemplate:
+    def update_world(
+        self, world: WorldTemplate, data: dict, actor_id: str
+    ) -> WorldTemplate:
         if "title" in data and data["title"] is not None:
             world.title = str(data["title"]).strip()
         if "locale" in data:

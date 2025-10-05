@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from packages.core.config import sanitize_async_dsn
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
 
 
 @dataclass(slots=True)
@@ -69,6 +71,9 @@ class _RegistryBackend(Protocol):
     async def upsert_fallback(self, data: dict[str, Any]) -> FallbackRule: ...
 
     async def delete_fallback(self, rule_id: str) -> None: ...
+
+
+logger = logging.getLogger(__name__)
 
 
 class LLMRegistry:
@@ -274,7 +279,9 @@ class _SQLBackend:
             async with engine.begin() as conn:
                 row = (await conn.execute(sql, params)).mappings().first()
             assert row is not None
-            stored_extras = row["extras"] if row["extras"] is None else dict(row["extras"])
+            stored_extras = (
+                row["extras"] if row["extras"] is None else dict(row["extras"])
+            )
             return LLMProviderCfg(
                 slug=row["slug"],
                 title=row["title"],
@@ -381,7 +388,9 @@ class _SQLBackend:
             async with engine.begin() as conn:
                 row = (await conn.execute(sql, params)).mappings().first()
             assert row is not None
-            stored_params = row["params"] if row["params"] is None else dict(row["params"])
+            stored_params = (
+                row["params"] if row["params"] is None else dict(row["params"])
+            )
             return LLMModelCfg(
                 id=str(row["id"]),
                 name=row["name"],
@@ -520,10 +529,47 @@ def redact_provider(d: LLMProviderCfg) -> dict[str, Any]:
     return out
 
 
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "ai registry: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("ai registry: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "ai registry: using memory backend (%s)", reason)
+
+
+def create_registry(settings, *, dsn: str | None = None) -> LLMRegistry:
+    if dsn:
+        try:
+            return LLMRegistry(dsn)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            _log_fallback("engine initialization failed", error=exc)
+            return LLMRegistry()
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return LLMRegistry()
+    try:
+        return LLMRegistry(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return LLMRegistry()
+
+
 __all__ = [
     "LLMProviderCfg",
     "LLMModelCfg",
     "FallbackRule",
     "LLMRegistry",
+    "create_registry",
     "redact_provider",
 ]

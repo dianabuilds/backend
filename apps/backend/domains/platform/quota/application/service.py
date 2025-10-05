@@ -44,7 +44,9 @@ class QuotaService:
         ts = now.astimezone(UTC) if now else datetime.now(tz=UTC)
         if scope == "day":
             period = ts.strftime("%Y%m%d")
-            reset_at = ts.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            reset_at = ts.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
         elif scope == "month":
             period = ts.strftime("%Y%m")
             first_day = ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

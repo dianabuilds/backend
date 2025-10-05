@@ -8,7 +8,9 @@ from .endpoints import config, health, integrations, system
 
 
 def make_router() -> APIRouter:
-    router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+    router = APIRouter(
+        prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)]
+    )
     health.register(router)
     config.register(router)
     integrations.register(router)

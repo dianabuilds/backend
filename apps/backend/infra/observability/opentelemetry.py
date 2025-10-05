@@ -70,7 +70,9 @@ def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:
         exporter_kwargs["headers"] = _parse_headers(headers_env)
 
     tracer_provider = TracerProvider(resource=resource)
-    tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(**exporter_kwargs)))
+    tracer_provider.add_span_processor(
+        BatchSpanProcessor(OTLPSpanExporter(**exporter_kwargs))
+    )
     trace.set_tracer_provider(tracer_provider)
 
     reader = PrometheusMetricReader()

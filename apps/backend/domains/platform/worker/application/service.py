@@ -53,7 +53,9 @@ class WorkerQueueService:
         else:
             job_id = command.job_id
         if command.idempotency_key:
-            existing = await self._repo.find_by_idempotency(command.type, command.idempotency_key)
+            existing = await self._repo.find_by_idempotency(
+                command.type, command.idempotency_key
+            )
             if existing is not None:
                 return existing
         payload = {
@@ -117,7 +119,9 @@ class WorkerQueueService:
             lease_seconds=lease_seconds,
         )
 
-    async def heartbeat(self, job_id: UUID, worker_id: str, lease_seconds: int) -> WorkerJob | None:
+    async def heartbeat(
+        self, job_id: UUID, worker_id: str, lease_seconds: int
+    ) -> WorkerJob | None:
         return await self._repo.heartbeat(
             job_id=job_id,
             worker_id=worker_id,

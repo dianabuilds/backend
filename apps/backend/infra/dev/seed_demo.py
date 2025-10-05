@@ -220,7 +220,9 @@ async def seed_users(engine: AsyncEngine, count: int = 10) -> list[CreatedUser]:
                 updates.append("display_name = EXCLUDED.display_name")
             updates.append("is_active = EXCLUDED.is_active")
             name_expr = (
-                "username" if have_username else ("display_name" if have_display else "email")
+                "username"
+                if have_username
+                else ("display_name" if have_display else "email")
             )
             sql = text(
                 f"""
@@ -465,7 +467,9 @@ def _discover_cover_images() -> list[str]:
         candidate = parent / "static"
         if candidate.is_dir():
             files = sorted(
-                f.name for f in candidate.iterdir() if f.is_file() and f.suffix.lower() in exts
+                f.name
+                for f in candidate.iterdir()
+                if f.is_file() and f.suffix.lower() in exts
             )
             if files:
                 return files
@@ -489,7 +493,9 @@ def _compose_node_content(
     sections.append(f"<p>{topic['summary']}</p>")
     if highlights:
         sections.append("<p>Key points we captured:</p>")
-        sections.append("<ul>" + "".join(f"<li>{point}</li>" for point in highlights) + "</ul>")
+        sections.append(
+            "<ul>" + "".join(f"<li>{point}</li>" for point in highlights) + "</ul>"
+        )
     sections.append(f"<blockquote>{spotlight}</blockquote>")
     sections.append(f"<p>{callout}</p>")
     return "\n".join(sections)
@@ -526,8 +532,14 @@ def _build_embedding_client() -> tuple[object | None, int]:
         client = EmbeddingClient(
             base_url=base_url,
             model=str(settings.embedding_model) if settings.embedding_model else None,
-            api_key=str(settings.embedding_api_key) if settings.embedding_api_key else None,
-            provider=str(settings.embedding_provider) if settings.embedding_provider else None,
+            api_key=(
+                str(settings.embedding_api_key) if settings.embedding_api_key else None
+            ),
+            provider=(
+                str(settings.embedding_provider)
+                if settings.embedding_provider
+                else None
+            ),
             timeout=float(getattr(settings, "embedding_timeout", 10.0)),
             connect_timeout=float(getattr(settings, "embedding_connect_timeout", 2.0)),
             retries=int(getattr(settings, "embedding_retries", 3)),
@@ -622,7 +634,9 @@ async def _seed_tag_usage(engine: AsyncEngine, nodes: Sequence[CreatedNode]) -> 
     return updated
 
 
-async def _seed_node_assoc_cache(engine: AsyncEngine, nodes: Sequence[CreatedNode]) -> int:
+async def _seed_node_assoc_cache(
+    engine: AsyncEngine, nodes: Sequence[CreatedNode]
+) -> int:
     if not nodes:
         return 0
     try:
@@ -715,7 +729,9 @@ async def _make_embedding_vector(
     if not cleaned:
         cleaned = "seed-demo node"
     try:
-        enabled = bool(getattr(client, "enabled", False)) if client is not None else False
+        enabled = (
+            bool(getattr(client, "enabled", False)) if client is not None else False
+        )
     except Exception:
         enabled = False
     if client is not None and enabled:
@@ -781,7 +797,8 @@ async def seed_nodes(
         extra_tag_count = min(2, len(_EXTRA_TAG_OPTIONS))
         if extra_tag_count:
             tag_pool.update(
-                _canon_tag(t) for t in random.sample(_EXTRA_TAG_OPTIONS, k=extra_tag_count)
+                _canon_tag(t)
+                for t in random.sample(_EXTRA_TAG_OPTIONS, k=extra_tag_count)
             )
         tags = sorted(tag_pool)
         if len(tags) > 5:
@@ -858,7 +875,9 @@ async def seed_nodes(
             if have_embedding:
                 cols.append("embedding")
                 vals.append(":embedding")
-                params["embedding"] = list(seed.embedding) if seed.embedding is not None else None
+                params["embedding"] = (
+                    list(seed.embedding) if seed.embedding is not None else None
+                )
             sql = text(
                 f"INSERT INTO nodes({', '.join(cols)}) VALUES ({', '.join(vals)}) RETURNING id"
             )
@@ -912,8 +931,12 @@ async def main() -> None:
     ap = argparse.ArgumentParser(description="Seed demo users and nodes")
     ap.add_argument("--users", type=int, default=10, help="Users to create")
     ap.add_argument("--nodes", type=int, default=50, help="Nodes to create")
-    ap.add_argument("--dburl", type=str, default=None, help="Override DB URL (postgresql://...)")
-    ap.add_argument("--debug", action="store_true", help="Print debug info (show sanitized DSN)")
+    ap.add_argument(
+        "--dburl", type=str, default=None, help="Override DB URL (postgresql://...)"
+    )
+    ap.add_argument(
+        "--debug", action="store_true", help="Print debug info (show sanitized DSN)"
+    )
     args = ap.parse_args()
 
     _load_env_files_nearby()

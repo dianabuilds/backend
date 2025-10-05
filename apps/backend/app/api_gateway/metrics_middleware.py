@@ -41,7 +41,9 @@ def _route_template(request: Request) -> str:
     try:
         route = request.scope.get("route")
         return (
-            getattr(route, "path", None) or getattr(route, "path_format", None) or request.url.path
+            getattr(route, "path", None)
+            or getattr(route, "path_format", None)
+            or request.url.path
         )
     except AttributeError:
         return request.url.path
@@ -71,7 +73,9 @@ def setup_http_metrics(app: FastAPI) -> None:
                     counter.labels(method=method, path=path, status=status).inc()
                     duration.labels(method=method, path=path).observe(dt_ms)
                 except (ValueError, RuntimeError):
-                    logger.exception("Failed to record HTTP metrics for %s %s", method, path)
+                    logger.exception(
+                        "Failed to record HTTP metrics for %s %s", method, path
+                    )
 
 
 __all__ = ["setup_http_metrics"]

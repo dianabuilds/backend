@@ -36,9 +36,9 @@ def compute_etag(data: Any) -> str:
     elif isinstance(data, str):
         raw = data.encode("utf-8")
     else:
-        raw = json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-            "utf-8"
-        )
+        raw = json.dumps(
+            data, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode("utf-8")
     return sha256(raw).hexdigest()
 
 

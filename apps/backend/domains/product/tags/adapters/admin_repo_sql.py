@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import Integer, String, bindparam, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -13,6 +15,12 @@ from domains.product.tags.domain.admin_models import (
 )
 from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .admin_repo_memory import MemoryAdminRepo
+from .store_memory import TagUsageStore
+
+logger = logging.getLogger(__name__)
 
 
 class SQLAdminRepo(AdminRepo):
@@ -471,4 +479,37 @@ class SQLAdminRepo(AdminRepo):
         return run_sync(_run())
 
 
-__all__ = ["SQLAdminRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "tags admin repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("tags admin repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "tags admin repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings, *, store: TagUsageStore | None = None) -> AdminRepo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryAdminRepo(store or TagUsageStore())
+    try:
+        return SQLAdminRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryAdminRepo(store or TagUsageStore())
+
+
+__all__ = [
+    "SQLAdminRepo",
+    "create_repo",
+]

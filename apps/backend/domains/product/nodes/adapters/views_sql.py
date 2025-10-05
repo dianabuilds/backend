@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 
 from sqlalchemy import text
@@ -7,6 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.nodes.application.ports import NodeViewsRepo, NodeViewStat
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .views_memory import MemoryNodeViewsRepo
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_at(value: str | None) -> datetime:
@@ -53,7 +59,9 @@ class SQLNodeViewsRepo(NodeViewsRepo):
                 RETURNING views_count
                 """
             )
-            result = await conn.execute(update_node, {"delta": delta, "node_id": int(node_id)})
+            result = await conn.execute(
+                update_node, {"delta": delta, "node_id": int(node_id)}
+            )
             row = result.first()
             if row is None:
                 raise ValueError("node_not_found")
@@ -97,7 +105,11 @@ class SQLNodeViewsRepo(NodeViewsRepo):
             rows = (
                 await conn.execute(
                     query,
-                    {"node_id": int(node_id), "limit": int(limit), "offset": int(offset)},
+                    {
+                        "node_id": int(node_id),
+                        "limit": int(limit),
+                        "offset": int(offset),
+                    },
                 )
             ).mappings()
             stats: list[NodeViewStat] = []
@@ -113,4 +125,39 @@ class SQLNodeViewsRepo(NodeViewsRepo):
             return stats
 
 
-__all__ = ["SQLNodeViewsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "node views repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("node views repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "node views repo: using memory backend (%s)", reason)
+
+
+def create_repo(
+    settings, *, memory_repo: MemoryNodeViewsRepo | None = None
+) -> NodeViewsRepo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return memory_repo or MemoryNodeViewsRepo()
+    try:
+        return SQLNodeViewsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return memory_repo or MemoryNodeViewsRepo()
+
+
+__all__ = [
+    "SQLNodeViewsRepo",
+    "create_repo",
+]

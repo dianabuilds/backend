@@ -4,6 +4,7 @@ import logging
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from domains.platform.flags.application.service import FlagService
@@ -410,6 +411,10 @@ def _build_preference_record(
 
     if not channel.supports_digest:
         digest = DigestMode.INSTANT.value
+    now = datetime.now(tz=UTC)
+    created_at = (
+        now if previous is None or previous.created_at is None else previous.created_at
+    )
     return PreferenceRecord(
         user_id=user_id,
         topic_key=topic.key,
@@ -421,6 +426,8 @@ def _build_preference_record(
         consent_version=version,
         updated_by=actor_id,
         request_id=request_id,
+        created_at=created_at,
+        updated_at=now,
     )
 
 

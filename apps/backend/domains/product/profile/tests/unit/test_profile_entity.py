@@ -6,6 +6,7 @@ import pytest
 
 from domains.product.profile.adapters.repo_memory import MemoryRepo
 from domains.product.profile.application.services import Service
+from domains.product.profile.domain.entities import Profile
 from packages.core import Flags
 
 
@@ -31,9 +32,11 @@ def make_service() -> Service:
 async def test_update_profile_rate_limit():
     svc = make_service()
     subject = {"user_id": "u1"}
+    repo = svc.repo  # type: ignore[attr-defined]
+    repo._profiles["u1"] = Profile(id="u1")  # type: ignore[index]
 
     result = await svc.update_profile("u1", {"username": "first"}, subject=subject)
-    assert result["username"] == "first"
+    assert result.username == "first"
 
     with pytest.raises(ValueError) as exc:
         await svc.update_profile("u1", {"username": "second"}, subject=subject)
@@ -47,20 +50,22 @@ async def test_update_profile_rate_limit():
     repo._profiles["u1"] = profile  # type: ignore[attr-defined]
 
     result = await svc.update_profile("u1", {"username": "second"}, subject=subject)
-    assert result["username"] == "second"
+    assert result.username == "second"
 
 
 @pytest.mark.asyncio
 async def test_request_email_change_and_confirm():
     svc = make_service()
     subject = {"user_id": "u1"}
+    repo = svc.repo  # type: ignore[attr-defined]
+    repo._profiles["u1"] = Profile(id="u1")  # type: ignore[index]
 
     await svc.update_profile("u1", {"username": "user"}, subject=subject)
     result = await svc.request_email_change("u1", "test@example.com", subject=subject)
-    token = result["token"]
+    token = result.token
 
     updated = await svc.confirm_email_change("u1", token, subject=subject)
-    assert updated["email"] == "test@example.com"
+    assert updated.email == "test@example.com"
 
     # Further change blocked until cooldown passes
     with pytest.raises(ValueError) as exc:
@@ -75,6 +80,6 @@ async def test_request_email_change_and_confirm():
     repo._profiles["u1"] = profile  # type: ignore[attr-defined]
 
     result = await svc.request_email_change("u1", "next@example.com", subject=subject)
-    token = result["token"]
+    token = result.token
     updated = await svc.confirm_email_change("u1", token, subject=subject)
-    assert updated["email"] == "next@example.com"
+    assert updated.email == "next@example.com"

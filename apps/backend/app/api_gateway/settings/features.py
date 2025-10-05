@@ -37,7 +37,9 @@ def _feature_label(slug: str) -> str | None:
     return None
 
 
-async def _resolve_features(request: Request, user_claims: dict[str, Any] | None) -> dict[str, Any]:
+async def _resolve_features(
+    request: Request, user_claims: dict[str, Any] | None
+) -> dict[str, Any]:
     container = get_container(request)
     svc = container.flags.service
     claims = user_claims or {}
@@ -52,7 +54,9 @@ async def _resolve_features(request: Request, user_claims: dict[str, Any] | None
         try:
             effective = bool(await svc.evaluate(flag_slug, claims))
         except Exception as exc:
-            logger.exception("Failed to evaluate feature flag %s", flag_slug, exc_info=exc)
+            logger.exception(
+                "Failed to evaluate feature flag %s", flag_slug, exc_info=exc
+            )
             effective = False
         if flag is None:
             result[feature_key] = _missing_feature(flag_slug, effective, evaluated_at)
@@ -107,7 +111,9 @@ def _serialize_feature(
     }
 
 
-def _missing_feature(slug: str, effective: bool, evaluated_at: datetime) -> dict[str, Any]:
+def _missing_feature(
+    slug: str, effective: bool, evaluated_at: datetime
+) -> dict[str, Any]:
     return {
         "slug": slug,
         "label": _feature_label(slug),

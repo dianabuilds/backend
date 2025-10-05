@@ -64,7 +64,9 @@ def make_router() -> APIRouter:
     user = APIRouter(prefix="/v1/referrals", tags=["referrals"])
     admin = APIRouter(prefix="/v1/admin/referrals", tags=["admin", "referrals"])
 
-    @user.get("/me/code", response_model=MyReferralCodeOut, summary="Get my referral code")
+    @user.get(
+        "/me/code", response_model=MyReferralCodeOut, summary="Get my referral code"
+    )
     async def get_my_code(
         claims=Depends(get_current_user), container=Depends(get_container)
     ) -> MyReferralCodeOut:
@@ -74,7 +76,9 @@ def make_router() -> APIRouter:
         code = await container.referrals_service.get_or_create_personal_code(uid)
         return MyReferralCodeOut(code=code.code, active=bool(code.active))
 
-    @user.get("/me/stats", response_model=MyReferralStatsOut, summary="My referral stats")
+    @user.get(
+        "/me/stats", response_model=MyReferralStatsOut, summary="My referral stats"
+    )
     async def get_my_stats(
         claims=Depends(get_current_user), container=Depends(get_container)
     ) -> MyReferralStatsOut:
@@ -183,7 +187,9 @@ def make_router() -> APIRouter:
                 id=UUID(it.id),
                 code_id=UUID(it.code_id) if it.code_id else None,
                 code=it.code,
-                referrer_user_id=(UUID(it.referrer_user_id) if it.referrer_user_id else None),
+                referrer_user_id=(
+                    UUID(it.referrer_user_id) if it.referrer_user_id else None
+                ),
                 referee_user_id=UUID(it.referee_user_id),
                 event_type=it.event_type,
                 occurred_at=it.occurred_at,

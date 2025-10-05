@@ -24,7 +24,9 @@ class SQLOutbox:
         else:
             self._session = None
             self._engine = (
-                get_async_engine("events-outbox", url=engine) if isinstance(engine, str) else engine
+                get_async_engine("events-outbox", url=engine)
+                if isinstance(engine, str)
+                else engine
             )
 
     async def publish(self, topic: str, payload: dict, key: str | None = None) -> None:

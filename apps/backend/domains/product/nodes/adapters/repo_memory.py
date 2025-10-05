@@ -33,7 +33,9 @@ class MemoryNodesRepo:
             return None
         return self._nodes.get(node_id)
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[NodeDTO]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[NodeDTO]:
         author = str(author_id)
         items = [dto for dto in self._nodes.values() if dto.author_id == author]
         items.sort(key=lambda dto: dto.id)

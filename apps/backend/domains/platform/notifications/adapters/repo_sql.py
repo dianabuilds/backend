@@ -68,21 +68,29 @@ class SQLNotificationPreferenceRepo(NotificationPreferenceRepo):
                     quiet_hours=quiet_hours,
                     consent_source=str(row.get("consent_source") or "user"),
                     consent_version=int(row.get("consent_version") or 1),
-                    updated_by=(str(row.get("updated_by")) if row.get("updated_by") else None),
-                    request_id=(str(row.get("request_id")) if row.get("request_id") else None),
+                    updated_by=(
+                        str(row.get("updated_by")) if row.get("updated_by") else None
+                    ),
+                    request_id=(
+                        str(row.get("request_id")) if row.get("request_id") else None
+                    ),
                     created_at=row.get("created_at"),
                     updated_at=row.get("updated_at"),
                 )
             )
         return records
 
-    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None:
+    async def replace_for_user(
+        self, user_id: str, records: Sequence[PreferenceRecord]
+    ) -> None:
         normalized = self._normalize_user_id(user_id)
         if normalized is None:
             return
         async with self._engine.begin() as conn:
             await conn.execute(
-                text("DELETE FROM notification_preferences WHERE user_id = cast(:uid as uuid)"),
+                text(
+                    "DELETE FROM notification_preferences WHERE user_id = cast(:uid as uuid)"
+                ),
                 {"uid": normalized},
             )
             if not records:

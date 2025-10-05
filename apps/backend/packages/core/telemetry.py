@@ -13,7 +13,9 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 def setup_logging(level: int = logging.INFO) -> None:
-    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s %(levelname)s %(name)s %(message)s"
+    )
 
 
 def _log_duration(name: str, started_at: float) -> None:

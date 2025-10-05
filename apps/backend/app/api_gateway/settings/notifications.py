@@ -38,7 +38,9 @@ def _preference_service_for_dsn(dsn: str) -> PreferenceService:
 
 
 def _get_preference_service(container) -> PreferenceService:
-    svc = getattr(getattr(container, "notifications", object()), "preference_service", None)
+    svc = getattr(
+        getattr(container, "notifications", object()), "preference_service", None
+    )
     if svc is not None:
         return svc
     dsn = dsn_from_settings(container.settings)
@@ -99,7 +101,9 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
                 after=updated,
             )
         except Exception as exc:
-            logger.exception("Failed to audit admin notification preference update", exc_info=exc)
+            logger.exception(
+                "Failed to audit admin notification preference update", exc_info=exc
+            )
         return payload
 
     @personal_router.get("/notifications/preferences")
@@ -166,7 +170,9 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
                 after=updated,
             )
         except Exception as exc:
-            logger.exception("Failed to audit user notification preference update", exc_info=exc)
+            logger.exception(
+                "Failed to audit user notification preference update", exc_info=exc
+            )
         return payload
 
 

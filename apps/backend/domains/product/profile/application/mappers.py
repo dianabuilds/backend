@@ -14,14 +14,18 @@ def to_view(profile: Profile, *, cooldown: timedelta) -> ProfileView:
     now = datetime.now(UTC)
 
     next_username_change_at = (
-        profile.last_username_change_at + cooldown if profile.last_username_change_at else None
+        profile.last_username_change_at + cooldown
+        if profile.last_username_change_at
+        else None
     )
     can_change_username = True
     if next_username_change_at and next_username_change_at > now:
         can_change_username = False
 
     next_email_change_at = (
-        profile.last_email_change_at + cooldown if profile.last_email_change_at else None
+        profile.last_email_change_at + cooldown
+        if profile.last_email_change_at
+        else None
     )
     can_change_email = True
     if next_email_change_at and next_email_change_at > now:

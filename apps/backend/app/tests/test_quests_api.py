@@ -49,6 +49,8 @@ async def test_quests_create_get_tags_patch():
         assert j["title"] == "Quest 1"
 
         # Set tags
-        r = client.put(f"/v1/quests/{qid}/tags", json={"tags": ["story"]}, headers=headers)
+        r = client.put(
+            f"/v1/quests/{qid}/tags", json={"tags": ["story"]}, headers=headers
+        )
         assert r.status_code == 200
         assert r.json()["tags"] == ["story"]

@@ -17,7 +17,9 @@ class GenerationLogSQLRepository(IGenerationLogRepository):
 
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("telemetry", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("telemetry", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def add_stage(self, entry: GenerationStageLog) -> None:

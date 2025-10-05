@@ -65,7 +65,9 @@ class MemoryAdminRepo(AdminRepo):
         items = list(self._tags.values())
         if q:
             ql = q.lower()
-            items = [t for t in items if ql in t.slug.lower() or ql in (t.name or "").lower()]
+            items = [
+                t for t in items if ql in t.slug.lower() or ql in (t.name or "").lower()
+            ]
         items.sort(key=lambda t: t.name or t.slug)
         window = items[offset : offset + limit]
         out: list[TagListItem] = []
@@ -155,12 +157,15 @@ class MemoryAdminRepo(AdminRepo):
             ql = q.lower()
             items = [(k, v) for (k, v) in items if ql in k.lower()]
         return [
-            BlacklistItem(slug=k, reason=v, created_at=datetime.now(tz=UTC)) for (k, v) in items
+            BlacklistItem(slug=k, reason=v, created_at=datetime.now(tz=UTC))
+            for (k, v) in items
         ]
 
     def blacklist_add(self, slug: str, reason: str | None) -> BlacklistItem:
         self._blacklist[str(slug)] = reason
-        return BlacklistItem(slug=str(slug), reason=reason, created_at=datetime.now(tz=UTC))
+        return BlacklistItem(
+            slug=str(slug), reason=reason, created_at=datetime.now(tz=UTC)
+        )
 
     def blacklist_delete(self, slug: str) -> None:
         self._blacklist.pop(str(slug), None)
@@ -197,7 +202,9 @@ class MemoryAdminRepo(AdminRepo):
             for ctype in list(by_type.keys()):
                 by_type[ctype].pop(t.slug, None)
 
-    def merge_dry_run(self, from_id: str, to_id: str, content_type: str | None = None) -> dict:
+    def merge_dry_run(
+        self, from_id: str, to_id: str, content_type: str | None = None
+    ) -> dict:
         f = self._tags.get(str(from_id))
         t = self._tags.get(str(to_id))
         if not f or not t:
@@ -236,7 +243,9 @@ class MemoryAdminRepo(AdminRepo):
                 cnt = int(by_type.get(content_type, {}).get(f.slug, 0))
                 if cnt:
                     by_type.setdefault(content_type, {})
-                    by_type[content_type][t.slug] = int(by_type[content_type].get(t.slug, 0)) + cnt
+                    by_type[content_type][t.slug] = (
+                        int(by_type[content_type].get(t.slug, 0)) + cnt
+                    )
                     by_type[content_type].pop(f.slug, None)
             else:
                 for _ctype, items in by_type.items():

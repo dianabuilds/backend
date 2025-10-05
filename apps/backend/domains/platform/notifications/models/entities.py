@@ -98,10 +98,14 @@ class NotificationMatrix:
     version: int = 1
 
     def topics_in_order(self) -> Sequence[NotificationTopic]:
-        return tuple(sorted(self.topics.values(), key=lambda t: (int(t.position), t.key)))
+        return tuple(
+            sorted(self.topics.values(), key=lambda t: (int(t.position), t.key))
+        )
 
     def channels_in_order(self) -> Sequence[NotificationChannel]:
-        return tuple(sorted(self.channels.values(), key=lambda c: (int(c.position), c.key)))
+        return tuple(
+            sorted(self.channels.values(), key=lambda c: (int(c.position), c.key))
+        )
 
     def topic_rules(self, topic_key: str) -> Sequence[TopicChannelRule]:
         items: Iterable[TopicChannelRule] = (

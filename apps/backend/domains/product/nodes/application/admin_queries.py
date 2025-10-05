@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import csv
 import json
@@ -7,8 +7,6 @@ from datetime import UTC, datetime, timedelta
 from io import StringIO
 from typing import Any
 
-from fastapi import HTTPException, Request
-from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -17,19 +15,31 @@ from domains.product.nodes.application.ports import (  # type: ignore[import-not
     NodeCommentBanDTO,
     NodeCommentDTO,
 )
-from packages.core.config import to_async_dsn  # type: ignore[import-not-found]
 from packages.core.db import get_async_engine  # type: ignore[import-not-found]
+from packages.core.sql_fallback import evaluate_sql_backend
 
 logger = logging.getLogger(__name__)
 
 
+class AdminQueryError(Exception):
+    """Domain-level error for admin queries."""
+
+    def __init__(
+        self, status_code: int, detail: str, *, cause: Exception | None = None
+    ) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+        if cause is not None:
+            self.__cause__ = cause
+
+
 async def _ensure_engine(container) -> AsyncEngine | None:
-    try:
-        dsn = to_async_dsn(container.settings.database_url)
-    except (ValidationError, ValueError, TypeError) as exc:
-        logger.warning("nodes_admin_invalid_database_dsn", exc_info=exc)
-        return None
+    decision = evaluate_sql_backend(getattr(container, "settings", None))
+    dsn = decision.dsn
     if not dsn:
+        if decision.reason:
+            logger.debug("nodes_admin_engine_disabled: %s", decision.reason)
         return None
     if "?" in dsn:
         dsn = dsn.split("?", 1)[0]
@@ -136,7 +146,7 @@ def _parse_query_datetime(raw: str | None, *, field: str) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=f"{field}_invalid") from exc
+        raise AdminQueryError(400, f"{field}_invalid") from exc
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
@@ -168,7 +178,9 @@ def _extract_comment_history(metadata: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
             record = {
                 "status": str(entry.get("status") or ""),
-                "actor_id": str(entry.get("actor_id")) if entry.get("actor_id") else None,
+                "actor_id": (
+                    str(entry.get("actor_id")) if entry.get("actor_id") else None
+                ),
                 "reason": entry.get("reason"),
                 "at": _iso(entry.get("at")),
             }
@@ -196,7 +208,9 @@ def _comment_record_to_payload(
         "id": str(comment_id),
         "node_id": str(node_id),
         "author_id": str(author_id),
-        "parent_comment_id": str(parent_comment_id) if parent_comment_id is not None else None,
+        "parent_comment_id": (
+            str(parent_comment_id) if parent_comment_id is not None else None
+        ),
         "depth": int(depth),
         "content": content,
         "status": str(status),
@@ -263,7 +277,7 @@ def _ban_to_dict(ban: NodeCommentBanDTO) -> dict[str, Any]:
     }
 
 
-def _extract_actor_id(request: Request) -> str | None:
+def _extract_actor_id(request: Any) -> str | None:
     try:
         ctx = getattr(request.state, "auth_context", None)
     except AttributeError:
@@ -272,7 +286,9 @@ def _extract_actor_id(request: Request) -> str | None:
         candidate = ctx.get("actor_id") or ctx.get("user_id") or ctx.get("sub")
         if candidate:
             return str(candidate)
-    header_actor = request.headers.get("X-Actor-Id") or request.headers.get("x-actor-id")
+    header_actor = request.headers.get("X-Actor-Id") or request.headers.get(
+        "x-actor-id"
+    )
     if header_actor:
         candidate = header_actor.strip()
         if candidate:
@@ -296,7 +312,9 @@ async def _emit_admin_activity(
 ) -> None:
     if event and payload is not None:
         nodes_service = getattr(container, "nodes_service", None)
-        safe_publish = getattr(nodes_service, "_safe_publish", None) if nodes_service else None
+        safe_publish = (
+            getattr(nodes_service, "_safe_publish", None) if nodes_service else None
+        )
         context_payload: dict[str, Any] = {"source": "nodes_admin_api"}
         if event_context:
             context_payload.update(event_context)
@@ -405,7 +423,9 @@ def _ensure_utc(value: Any) -> datetime | None:
     return parsed.astimezone(UTC)
 
 
-async def _fetch_engagement_summary(engine: AsyncEngine, node_id: int) -> dict[str, Any]:
+async def _fetch_engagement_summary(
+    engine: AsyncEngine, node_id: int
+) -> dict[str, Any]:
     summary_sql = text(
         """
         SELECT
@@ -450,9 +470,13 @@ async def _fetch_engagement_summary(engine: AsyncEngine, node_id: int) -> dict[s
         """
     )
     async with engine.begin() as conn:
-        row = (await conn.execute(summary_sql, {"node_id": int(node_id)})).mappings().first()
+        row = (
+            (await conn.execute(summary_sql, {"node_id": int(node_id)}))
+            .mappings()
+            .first()
+        )
     if row is None:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise AdminQueryError(404, "not_found")
     counts_map = {
         "pending": int(row.get("pending_count") or 0),
         "published": int(row.get("published_count") or 0),
@@ -466,8 +490,12 @@ async def _fetch_engagement_summary(engine: AsyncEngine, node_id: int) -> dict[s
     comments_summary["locked"] = locked_by is not None
     comments_summary["locked_by"] = locked_by
     comments_summary["locked_at"] = _iso(row.get("comments_locked_at"))
-    comments_summary["last_comment_created_at"] = _iso(row.get("last_comment_created_at"))
-    comments_summary["last_comment_updated_at"] = _iso(row.get("last_comment_updated_at"))
+    comments_summary["last_comment_created_at"] = _iso(
+        row.get("last_comment_created_at")
+    )
+    comments_summary["last_comment_updated_at"] = _iso(
+        row.get("last_comment_updated_at")
+    )
     comments_summary["bans_count"] = int(row.get("bans_count") or 0)
     node_id_str = str(row.get("id"))
     summary = {
@@ -512,7 +540,9 @@ async def _fetch_comment_collection(
     async with engine.begin() as conn:
         params: dict[str, Any] = {"node_id": int(node_id)}
         conditions: list[str] = [f"{alias}.node_id = :node_id"]
-        status_clause = _build_status_condition(alias, statuses, params, prefix="status")
+        status_clause = _build_status_condition(
+            alias, statuses, params, prefix="status"
+        )
         if status_clause:
             conditions.append(status_clause)
         view_mode = view.lower()
@@ -520,7 +550,7 @@ async def _fetch_comment_collection(
             conditions.append(f"{alias}.parent_comment_id IS NULL")
         elif view_mode == "children":
             if parent_id is None:
-                raise HTTPException(status_code=400, detail="parent_id_required")
+                raise AdminQueryError(400, "parent_id_required")
             parent_row = (
                 (
                     await conn.execute(
@@ -532,13 +562,13 @@ async def _fetch_comment_collection(
                 .first()
             )
             if parent_row is None or int(parent_row["node_id"]) != int(node_id):
-                raise HTTPException(status_code=404, detail="comment_not_found")
+                raise AdminQueryError(404, "comment_not_found")
             conditions.append(f"{alias}.parent_comment_id = :parent_id")
             params["parent_id"] = int(parent_id)
         elif view_mode == "all":
             pass
         else:
-            raise HTTPException(status_code=400, detail="view_invalid")
+            raise AdminQueryError(400, "view_invalid")
         _append_comment_filters(
             conditions=conditions,
             params=params,
@@ -621,10 +651,12 @@ async def _fetch_comment_thread(
             .first()
         )
         if parent_row is None or int(parent_row["node_id"]) != int(node_id):
-            raise HTTPException(status_code=404, detail="comment_not_found")
+            raise AdminQueryError(404, "comment_not_found")
         params: dict[str, Any] = {"root_id": int(root_id), "node_id": int(node_id)}
         conditions: list[str] = ["1=1"]
-        status_clause = _build_status_condition(alias, statuses, params, prefix="thread_status")
+        status_clause = _build_status_condition(
+            alias, statuses, params, prefix="thread_status"
+        )
         if status_clause:
             conditions.append(status_clause)
         _append_comment_filters(
@@ -722,7 +754,7 @@ async def _fetch_comments_data(
     view_mode = (view or "roots").lower()
     if view_mode == "thread":
         if parent_id is None:
-            raise HTTPException(status_code=400, detail="thread_id_required")
+            raise AdminQueryError(400, "thread_id_required")
         return await _fetch_comment_thread(
             engine,
             node_id=node_id,
@@ -816,7 +848,9 @@ async def _fetch_analytics(
              GROUP BY reaction_type
             """
         )
-        reactions_rows = (await conn.execute(reactions_sql, reactions_params)).mappings().all()
+        reactions_rows = (
+            (await conn.execute(reactions_sql, reactions_params)).mappings().all()
+        )
         reactions_totals = {
             str(row["reaction_type"]): int(row["count"] or 0) for row in reactions_rows
         }
@@ -846,13 +880,17 @@ async def _fetch_analytics(
              GROUP BY status
             """
         )
-        comments_rows = (await conn.execute(comments_sql, comments_params)).mappings().all()
+        comments_rows = (
+            (await conn.execute(comments_sql, comments_params)).mappings().all()
+        )
     comments_counts = {row["status"]: int(row["count"] or 0) for row in comments_rows}
     comments_summary = _status_summary_from_counts(comments_counts)
     comments_last_created: datetime | None = None
     if comments_rows:
         comments_last_created = max(
-            row["last_created_at"] for row in comments_rows if row["last_created_at"] is not None
+            row["last_created_at"]
+            for row in comments_rows
+            if row["last_created_at"] is not None
         )
     raw_points: list[datetime | None] = [
         _ensure_utc(latest_views_updated),
@@ -923,7 +961,9 @@ async def _resolve_node_id(node_identifier: str, container, engine: AsyncEngine)
     try:
         dto = await container.nodes_service._repo_get_by_slug_async(candidate)
     except (AttributeError, RuntimeError, SQLAlchemyError) as exc:
-        logger.debug("nodes_admin_resolve_slug_failed", extra={"slug": candidate}, exc_info=exc)
+        logger.debug(
+            "nodes_admin_resolve_slug_failed", extra={"slug": candidate}, exc_info=exc
+        )
         dto = None
     if dto is not None and getattr(dto, "id", None) is not None:
         try:
@@ -942,14 +982,18 @@ async def _resolve_node_id(node_identifier: str, container, engine: AsyncEngine)
                 )
             ).scalar()
     except SQLAlchemyError as exc:
-        logger.error("nodes_admin_resolve_query_failed", extra={"slug": candidate}, exc_info=exc)
-        raise HTTPException(status_code=500, detail="lookup_failed") from None
+        logger.error(
+            "nodes_admin_resolve_query_failed", extra={"slug": candidate}, exc_info=exc
+        )
+        raise AdminQueryError(500, "lookup_failed") from None
     if resolved is None:
-        raise HTTPException(status_code=404, detail="not_found")
+        raise AdminQueryError(404, "not_found")
     return int(resolved)
 
 
-async def _fetch_moderation_detail(engine: AsyncEngine, node_id: int) -> dict[str, Any] | None:
+async def _fetch_moderation_detail(
+    engine: AsyncEngine, node_id: int
+) -> dict[str, Any] | None:
     async with engine.begin() as conn:
         row = (
             (

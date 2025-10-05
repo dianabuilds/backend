@@ -9,7 +9,7 @@ from domains.platform.notifications.application.audience_resolver import (
     AudienceResolutionError,
     BroadcastAudienceResolver,
 )
-from domains.platform.notifications.application.delivery_service import (
+from domains.platform.notifications.application.delivery import (
     DeliveryService,
     NotificationEvent,
 )

@@ -24,6 +24,7 @@ from domains.platform.search.adapters.persist_file import (
 from domains.platform.search.application.service import SearchService
 from domains.platform.search.ports import Doc, SearchCache
 from packages.core.config import Settings, load_settings, to_async_dsn
+from packages.core.testing import is_test_mode
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +50,11 @@ def _database_dsn(settings: Settings) -> str | None:
 
 def build_container(settings: Settings | None = None) -> SearchContainer:
     s = settings or load_settings()
+    test_mode = is_test_mode(s)
 
     dsn = _database_dsn(s)
     backend: InMemoryIndex | SQLSearchIndex
-    if dsn:
+    if dsn and not test_mode:
         try:
             backend = SQLSearchIndex(dsn)
         except Exception as exc:
@@ -62,7 +64,7 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
         backend = InMemoryIndex()
 
     cache: SearchCache = InMemorySearchCache(ttl_seconds=30)
-    if s.redis_url:
+    if not test_mode and s.redis_url:
         try:
             client = redis.from_url(str(s.redis_url), decode_responses=True)
             cache = RedisSearchCache(client, ttl_seconds=30)
@@ -71,7 +73,7 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
 
     persist = None
     path = getattr(s, "search_persist_path", None)
-    if path:
+    if path and not test_mode:
         persist = FileSearchPersistence(str(path))
 
         async def _warmup() -> None:

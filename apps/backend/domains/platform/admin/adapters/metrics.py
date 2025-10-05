@@ -14,7 +14,9 @@ def _safe_iso(value: datetime | None) -> str | None:
 
 @dataclass
 class MetricsProbe:
-    def worker_signals(self, collected_at: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def worker_signals(
+        self, collected_at: str
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         snapshot = worker_metrics.snapshot()
         jobs = snapshot.get("jobs", {}) or {}
         completed = int(jobs.get("completed", jobs.get("succeeded", 0)))
@@ -45,14 +47,20 @@ class MetricsProbe:
         }
         return [signal], summary
 
-    def llm_signals(self, collected_at: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    def llm_signals(
+        self, collected_at: str
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         snapshot = llm_metrics.snapshot()
         calls = snapshot.get("calls", []) or []
         success = sum(
-            int(item.get("count", 0)) for item in calls if str(item.get("type")) == "calls"
+            int(item.get("count", 0))
+            for item in calls
+            if str(item.get("type")) == "calls"
         )
         errors = sum(
-            int(item.get("count", 0)) for item in calls if str(item.get("type")) == "errors"
+            int(item.get("count", 0))
+            for item in calls
+            if str(item.get("type")) == "errors"
         )
         total = success + errors
         success_rate = (success / total) if total else 1.0
@@ -65,9 +73,9 @@ class MetricsProbe:
         latency_entries = snapshot.get("latency_avg_ms", []) or []
         avg_latency = 0.0
         if latency_entries:
-            avg_latency = sum(float(item.get("avg_ms", 0.0)) for item in latency_entries) / len(
-                latency_entries
-            )
+            avg_latency = sum(
+                float(item.get("avg_ms", 0.0)) for item in latency_entries
+            ) / len(latency_entries)
 
         signal = {
             "id": "llm:providers",

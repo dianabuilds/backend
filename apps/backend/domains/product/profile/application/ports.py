@@ -17,7 +17,9 @@ class Repo(Protocol):
         set_username_timestamp: bool,
         now: datetime,
     ) -> Profile: ...
-    async def email_in_use(self, email: str, exclude_user_id: str | None = None) -> bool: ...
+    async def email_in_use(
+        self, email: str, exclude_user_id: str | None = None
+    ) -> bool: ...
     async def create_email_change_request(
         self,
         user_id: str,

@@ -13,7 +13,8 @@ import redis  # type: ignore
 def _normalize(value: Any) -> Any:
     if isinstance(value, Mapping):
         return {
-            str(k): _normalize(v) for k, v in sorted(value.items(), key=lambda item: str(item[0]))
+            str(k): _normalize(v)
+            for k, v in sorted(value.items(), key=lambda item: str(item[0]))
         }
     if isinstance(value, (list, tuple)):
         return [_normalize(v) for v in value]
@@ -42,7 +43,9 @@ def _normalize(value: Any) -> Any:
 
 def _hash_payload(payload: Mapping[str, Any]) -> str:
     normalized = _normalize(dict(payload))
-    data = json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    data = json.dumps(
+        normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
@@ -51,12 +54,16 @@ class RedisIdempotency:
         self._r = r
         self._ttl = ttl_seconds
 
-    def key(self, topic: str, entity_key: str | None, payload: Mapping[str, Any]) -> str:
+    def key(
+        self, topic: str, entity_key: str | None, payload: Mapping[str, Any]
+    ) -> str:
         ph = _hash_payload(payload)
         ek = entity_key or "_"
         return f"idem:{topic}:{ek}:{ph}"
 
-    def check_and_set(self, topic: str, entity_key: str | None, payload: Mapping[str, Any]) -> bool:
+    def check_and_set(
+        self, topic: str, entity_key: str | None, payload: Mapping[str, Any]
+    ) -> bool:
         k = self.key(topic, entity_key, payload)
         # Set if not exists with TTL
         return bool(self._r.set(k, "1", nx=True, ex=self._ttl))

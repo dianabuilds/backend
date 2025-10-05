@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -10,6 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.product.moderation.application.ports import Repo
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryRepo
+
+logger = logging.getLogger(__name__)
 
 
 def _norm(values: Sequence[str] | None) -> list[str]:
@@ -357,4 +363,38 @@ class SQLModerationRepo(Repo):
         return await self.get_case(case_id)
 
 
-__all__ = ["SQLModerationRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "product moderation repo: falling back to memory due to SQL error: %s",
+            error,
+        )
+        return
+    if not reason:
+        logger.debug("product moderation repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "product moderation repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryRepo()
+    try:
+        return SQLModerationRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryRepo()
+
+
+__all__ = [
+    "SQLModerationRepo",
+    "create_repo",
+]

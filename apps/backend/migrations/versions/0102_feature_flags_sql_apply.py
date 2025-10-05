@@ -71,7 +71,9 @@ def _ensure_feature_flag_rules_table(bind) -> None:
         sa.Column("rollout", sa.SmallInteger()),
         sa.Column("priority", sa.Integer(), nullable=False, server_default="10"),
         sa.Column("meta", pg.JSONB(astext_type=sa.Text())),
-        sa.ForeignKeyConstraint(["flag_slug"], ["feature_flags.slug"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["flag_slug"], ["feature_flags.slug"], ondelete="CASCADE"
+        ),
     )
     op.create_index(
         "ix_feature_flag_rules_flag_slug_priority",
@@ -103,7 +105,9 @@ def _ensure_feature_flag_audit_table(bind) -> None:
             nullable=False,
             server_default=sa.text("now()"),
         ),
-        sa.ForeignKeyConstraint(["flag_slug"], ["feature_flags.slug"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["flag_slug"], ["feature_flags.slug"], ondelete="CASCADE"
+        ),
     )
     op.create_index(
         "ix_feature_flag_audit_flag_created",
@@ -123,10 +127,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     inspector = sa.inspect(op.get_bind())
     if inspector.has_table("feature_flag_audit"):
-        op.drop_index("ix_feature_flag_audit_flag_created", table_name="feature_flag_audit")
+        op.drop_index(
+            "ix_feature_flag_audit_flag_created", table_name="feature_flag_audit"
+        )
         op.drop_table("feature_flag_audit")
     if inspector.has_table("feature_flag_rules"):
-        op.drop_index("ix_feature_flag_rules_flag_slug_priority", table_name="feature_flag_rules")
+        op.drop_index(
+            "ix_feature_flag_rules_flag_slug_priority", table_name="feature_flag_rules"
+        )
         op.drop_table("feature_flag_rules")
     if inspector.has_table("feature_flags"):
         op.drop_table("feature_flags")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -8,6 +7,7 @@ from uuid import uuid4
 from domains.product.profile.application.mappers import to_view
 from domains.product.profile.application.ports import IamClient, Outbox, Repo
 from domains.product.profile.domain.entities import Profile
+from domains.product.profile.domain.results import EmailChangeRequest, ProfileView
 from packages.core import Flags
 
 COOLDOWN_DAYS = 14
@@ -29,30 +29,21 @@ class Service:
     def _now(self) -> datetime:
         return datetime.now(UTC)
 
-    def _to_dict(self, profile: Profile) -> dict[str, Any]:
-        view = to_view(profile, cooldown=self.cooldown)
-        data = asdict(view)
-        wallet = data.get("wallet") or {}
-        if wallet.get("verified_at") is not None:
-            wallet["verified_at"] = wallet["verified_at"].isoformat()
-        limits = data.get("limits") or {}
-        for key in ("next_username_change_at", "next_email_change_at"):
-            if limits.get(key) is not None:
-                limits[key] = limits[key].isoformat()
-        return data
+    def _to_view(self, profile: Profile) -> ProfileView:
+        return to_view(profile, cooldown=self.cooldown)
 
-    async def get_profile(self, user_id: str) -> dict[str, Any]:
+    async def get_profile(self, user_id: str) -> ProfileView:
         profile = await self.repo.get(user_id)
         if not profile:
             raise ValueError("profile_not_found")
-        return self._to_dict(profile)
+        return self._to_view(profile)
 
     async def update_profile(
         self,
         user_id: str,
         payload: dict[str, Any],
         subject: dict,
-    ) -> dict[str, Any]:
+    ) -> ProfileView:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
 
@@ -103,7 +94,7 @@ class Service:
             updates["avatar_url"] = avatar_val
 
         if not updates:
-            return self._to_dict(current)
+            return self._to_view(current)
 
         updated = await self.repo.update_profile(
             user_id,
@@ -120,14 +111,14 @@ class Service:
             event_payload,
             key=updated.id,
         )
-        return self._to_dict(updated)
+        return self._to_view(updated)
 
     async def request_email_change(
         self,
         user_id: str,
         new_email: str,
         subject: dict,
-    ) -> dict[str, Any]:
+    ) -> EmailChangeRequest:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
 
@@ -169,14 +160,16 @@ class Service:
             },
             key=user_id,
         )
-        return {"status": "pending", "pending_email": normalized_email, "token": token}
+        return EmailChangeRequest(
+            status="pending", pending_email=normalized_email, token=token
+        )
 
     async def confirm_email_change(
         self,
         user_id: str,
         token: str,
         subject: dict,
-    ) -> dict[str, Any]:
+    ) -> ProfileView:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
         if not isinstance(token, str) or not token.strip():
@@ -196,7 +189,7 @@ class Service:
             },
             key=updated.id,
         )
-        return self._to_dict(updated)
+        return self._to_view(updated)
 
     async def set_wallet(
         self,
@@ -206,7 +199,7 @@ class Service:
         chain_id: str | None,
         signature: str | None,
         subject: dict,
-    ) -> dict[str, Any]:
+    ) -> ProfileView:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
         if not isinstance(address, str) or not address:
@@ -227,9 +220,9 @@ class Service:
             },
             key=updated.id,
         )
-        return self._to_dict(updated)
+        return self._to_view(updated)
 
-    async def clear_wallet(self, user_id: str, subject: dict) -> dict[str, Any]:
+    async def clear_wallet(self, user_id: str, subject: dict) -> ProfileView:
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
         updated = await self.repo.clear_wallet(user_id)
@@ -238,4 +231,4 @@ class Service:
             {"id": updated.id},
             key=updated.id,
         )
-        return self._to_dict(updated)
+        return self._to_view(updated)

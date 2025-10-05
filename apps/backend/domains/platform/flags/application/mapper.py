@@ -68,7 +68,9 @@ def legacy_from_feature(feature: FeatureFlag) -> Flag:
     if percentage_rules:
         rollout = percentage_rules[0]
     users = {rule.value for rule in feature.rules if rule.type is FlagRuleType.USER}
-    segments = {rule.value for rule in feature.rules if rule.type is FlagRuleType.SEGMENT}
+    segments = {
+        rule.value for rule in feature.rules if rule.type is FlagRuleType.SEGMENT
+    }
     roles = {rule.value for rule in feature.rules if rule.type is FlagRuleType.ROLE}
     if feature.status is FlagStatus.PREMIUM:
         roles.add("premium")

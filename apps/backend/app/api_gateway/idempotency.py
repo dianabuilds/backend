@@ -55,7 +55,9 @@ def _get_store(settings) -> IdempotencyStore | None:
 
 async def require_idempotency_key(
     request: Request,
-    key: str | None = Header(default=None, alias=IDEMPOTENCY_HEADER, convert_underscores=False),
+    key: str | None = Header(
+        default=None, alias=IDEMPOTENCY_HEADER, convert_underscores=False
+    ),
     container=Depends(get_container),
 ) -> str:
     if not key:

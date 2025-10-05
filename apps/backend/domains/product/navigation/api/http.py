@@ -44,6 +44,9 @@ ALGO_SOURCES = {
 }
 
 
+DEV_BLOG_TAG = "dev-blog"
+
+
 def _iso(dt: Any) -> str | None:
     if dt is None:
         return None
@@ -152,6 +155,7 @@ async def _fetch_top_relations(
     placeholders = ", ".join(f":algo{i}" for i in range(len(sources)))
     params: dict[str, Any] = {f"algo{i}": src for i, src in enumerate(sources)}
     params["lim"] = int(limit)
+    params["dev_tag"] = DEV_BLOG_TAG
     try:
         async with engine.begin() as conn:
             rows = (
@@ -165,6 +169,8 @@ async def _fetch_top_relations(
                             "JOIN nodes src ON src.id = c.source_id\n"
                             "JOIN nodes tgt ON tgt.id = c.target_id\n"
                             f"WHERE c.algo IN ({placeholders})\n"
+                            "  AND NOT EXISTS (SELECT 1 FROM product_node_tags dt WHERE dt.node_id = src.id AND dt.slug = :dev_tag)\n"
+                            "  AND NOT EXISTS (SELECT 1 FROM product_node_tags dt WHERE dt.node_id = tgt.id AND dt.slug = :dev_tag)\n"
                             "ORDER BY c.score DESC, c.updated_at DESC\n"
                             "LIMIT :lim"
                         ),
@@ -356,9 +362,11 @@ def make_router() -> APIRouter:
                 (
                     await _conn.execute(
                         text(
-                            "SELECT author_id::text AS author_id, is_public FROM nodes WHERE id = :id"
+                            "SELECT author_id::text AS author_id, is_public,"
+                            "       EXISTS (SELECT 1 FROM product_node_tags WHERE node_id = :id AND slug = :dev_tag) AS is_dev_blog"
+                            " FROM nodes WHERE id = :id"
                         ),
-                        {"id": int(node_id)},
+                        {"id": int(node_id), "dev_tag": DEV_BLOG_TAG},
                     )
                 )
                 .mappings()
@@ -368,6 +376,8 @@ def make_router() -> APIRouter:
                 await _conn.rollback()
         if not cur:
             raise HTTPException(status_code=404, detail="not_found")
+        if bool(cur.get("is_dev_blog")):
+            return []
         uid = str(claims.get("sub") or "") if claims else ""
         role = str(claims.get("role") or "").lower()
         allow_private = bool(
@@ -379,7 +389,7 @@ def make_router() -> APIRouter:
             sql = text(
                 """
                 WITH cur_tags AS (
-                  SELECT slug FROM product_node_tags WHERE node_id = :nid
+                  SELECT slug FROM product_node_tags WHERE node_id = :nid AND slug <> :dev_tag
                 )
                 SELECT n.id,
                        n.slug,
@@ -392,6 +402,7 @@ def make_router() -> APIRouter:
                 JOIN nodes n ON n.id = t.node_id
                 WHERE t.node_id <> :nid
                   AND (:allow OR n.is_public = true)
+                  AND NOT EXISTS (SELECT 1 FROM product_node_tags AS dt WHERE dt.node_id = n.id AND dt.slug = :dev_tag)
                 GROUP BY n.id, n.slug, n.title, n.cover_url, n.is_public
                 ORDER BY score DESC, n.updated_at DESC, n.id DESC
                 LIMIT :lim
@@ -406,6 +417,7 @@ def make_router() -> APIRouter:
                                 "nid": int(node_id),
                                 "lim": int(lim),
                                 "allow": bool(allow_private),
+                                "dev_tag": DEV_BLOG_TAG,
                             },
                         )
                     )
@@ -437,7 +449,7 @@ def make_router() -> APIRouter:
                 sql2 = text(
                     """
                     WITH cur_tags AS (
-                      SELECT slug FROM product_node_tags WHERE node_id = :nid
+                      SELECT slug FROM product_node_tags WHERE node_id = :nid AND slug <> :dev_tag
                     )
                     SELECT n.id,
                            n.title,
@@ -448,6 +460,7 @@ def make_router() -> APIRouter:
                     JOIN nodes n ON n.id = t.node_id
                     WHERE t.node_id <> :nid
                       AND (:allow OR n.is_public = true)
+                      AND NOT EXISTS (SELECT 1 FROM product_node_tags AS dt WHERE dt.node_id = n.id AND dt.slug = :dev_tag)
                     GROUP BY n.id, n.title, n.is_public
                     ORDER BY score DESC, n.updated_at DESC, n.id DESC
                     LIMIT :lim
@@ -461,6 +474,7 @@ def make_router() -> APIRouter:
                                 "nid": int(node_id),
                                 "lim": int(lim),
                                 "allow": bool(allow_private),
+                                "dev_tag": DEV_BLOG_TAG,
                             },
                         )
                     )
@@ -492,6 +506,7 @@ def make_router() -> APIRouter:
                 FROM nodes n
                 WHERE n.id <> :nid
                   AND (:allow OR n.is_public = true)
+                  AND NOT EXISTS (SELECT 1 FROM product_node_tags AS dt WHERE dt.node_id = n.id AND dt.slug = :dev_tag)
                   AND n.search_vector @@ to_tsquery('simple', :query)
                 ORDER BY score DESC, n.updated_at DESC, n.id DESC
                 LIMIT :lim
@@ -568,6 +583,7 @@ def make_router() -> APIRouter:
                                     "cut": cutoff,
                                     "allow": bool(allow_private),
                                     "lim": int(lim),
+                                    "dev_tag": DEV_BLOG_TAG,
                                 },
                             )
                         )

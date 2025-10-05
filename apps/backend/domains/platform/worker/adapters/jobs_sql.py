@@ -85,10 +85,18 @@ class SQLWorkerJobRepository:
             row = (await conn.execute(sql, {"job_id": job_id})).mappings().first()
         return self._row_to_job(row) if row else None
 
-    async def find_by_idempotency(self, job_type: str, key: str | None) -> WorkerJob | None:
-        sql = text("SELECT * FROM worker_jobs WHERE type = :type AND idempotency_key = :key")
+    async def find_by_idempotency(
+        self, job_type: str, key: str | None
+    ) -> WorkerJob | None:
+        sql = text(
+            "SELECT * FROM worker_jobs WHERE type = :type AND idempotency_key = :key"
+        )
         async with self._engine.begin() as conn:
-            row = (await conn.execute(sql, {"type": job_type, "key": key})).mappings().first()
+            row = (
+                (await conn.execute(sql, {"type": job_type, "key": key}))
+                .mappings()
+                .first()
+            )
         return self._row_to_job(row) if row else None
 
     async def lease_jobs(
@@ -154,7 +162,9 @@ class SQLWorkerJobRepository:
         jobs: list[WorkerJob] = []
         async with self._engine.begin() as conn:
             if not job_ids:
-                selected_ids = (await conn.execute(select_sql, select_params)).scalars().all()
+                selected_ids = (
+                    (await conn.execute(select_sql, select_params)).scalars().all()
+                )
                 if not selected_ids:
                     return []
             rows = (
@@ -359,7 +369,9 @@ class SQLWorkerJobRepository:
             "INSERT INTO worker_job_events (job_id, event, details) VALUES (:job_id, :event, :details)"
         )
         async with self._engine.begin() as conn:
-            await conn.execute(sql, {"job_id": job_id, "event": event, "details": details})
+            await conn.execute(
+                sql, {"job_id": job_id, "event": event, "details": details}
+            )
 
     def _row_to_job(self, row: Any) -> WorkerJob:
         if row is None:

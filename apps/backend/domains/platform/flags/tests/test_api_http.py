@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from domains.platform.flags.api import http
+from domains.platform.flags.application import presenter as flag_presenter
 from domains.platform.flags.domain.models import (
     FeatureFlag,
     FlagRule,
@@ -28,7 +28,7 @@ def make_flag(**kwargs) -> FeatureFlag:
 
 def test_audience_hint_from_status_all():
     flag = make_flag(status=FlagStatus.ALL)
-    assert http._audience_hint(flag) == "all"
+    assert flag_presenter.audience_hint(flag) == "all"
 
 
 def test_audience_hint_from_rules_custom():
@@ -44,14 +44,18 @@ def test_audience_hint_from_rules_custom():
             ),
         ),
     )
-    assert http._audience_hint(flag) == "custom"
+    assert flag_presenter.audience_hint(flag) == "custom"
 
 
 def test_serialize_flag_includes_effective_and_audience():
     flag = make_flag(
         status=FlagStatus.TESTERS,
-        rules=(FlagRule(type=FlagRuleType.USER, value="u1", rollout=None, priority=10, meta=None),),
+        rules=(
+            FlagRule(
+                type=FlagRuleType.USER, value="u1", rollout=None, priority=10, meta=None
+            ),
+        ),
     )
-    payload = http._serialize_flag(flag, effective=True)
+    payload = flag_presenter.serialize_flag(flag, effective=True)
     assert payload["effective"] is True
     assert payload["audience"] == "testers"

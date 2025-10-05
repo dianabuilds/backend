@@ -20,7 +20,9 @@ def make_router() -> APIRouter:
     # Playground: quick prompt test
     @router.post(
         "/playground",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def playground(
         req: Request,
@@ -38,7 +40,9 @@ def make_router() -> APIRouter:
         svc = c.ai_service
         if not svc:
             raise HTTPException(status_code=503, detail="ai_unavailable")
-        return await svc.generate(prompt, model=model, provider=provider, model_id=model_id)
+        return await svc.generate(
+            prompt, model=model, provider=provider, model_id=model_id
+        )
 
     # Models
     @router.get("/models")
@@ -49,7 +53,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/models",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upsert_model(
         req: Request,
@@ -63,7 +69,9 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/models/{model_id}",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def delete_model(
         req: Request,
@@ -77,7 +85,9 @@ def make_router() -> APIRouter:
 
     # Providers
     @router.get("/providers")
-    async def list_providers(req: Request, _admin: None = Depends(require_admin)) -> dict:
+    async def list_providers(
+        req: Request, _admin: None = Depends(require_admin)
+    ) -> dict:
         from domains.product.ai.application.registry import redact_provider
 
         c = get_container(req)
@@ -86,7 +96,9 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/providers",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upsert_provider(
         req: Request,
@@ -104,7 +116,9 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/providers/{slug}",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def delete_provider(
         req: Request,
@@ -118,14 +132,18 @@ def make_router() -> APIRouter:
 
     # Fallbacks
     @router.get("/fallbacks")
-    async def list_fallbacks(req: Request, _admin: None = Depends(require_admin)) -> dict:
+    async def list_fallbacks(
+        req: Request, _admin: None = Depends(require_admin)
+    ) -> dict:
         c = get_container(req)
         items = await c.ai_registry.list_fallbacks()
         return {"items": [asdict(r) for r in items]}
 
     @router.post(
         "/fallbacks",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def upsert_fallback(
         req: Request,
@@ -139,7 +157,9 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/fallbacks/{rule_id}",
-        dependencies=([Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+        ),
     )
     async def delete_fallback(
         req: Request,

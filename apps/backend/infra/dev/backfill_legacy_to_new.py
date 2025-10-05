@@ -77,8 +77,12 @@ def read_nodes_from_csv(path: str) -> list[NodeRow]:
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Legacy -> DDD backfill (template)")
-    parser.add_argument("--from-csv", type=str, default=None, help="Path to CSV export folder")
-    parser.add_argument("--from-db", action="store_true", help="Read from legacy DB (implement)")
+    parser.add_argument(
+        "--from-csv", type=str, default=None, help="Path to CSV export folder"
+    )
+    parser.add_argument(
+        "--from-db", action="store_true", help="Read from legacy DB (implement)"
+    )
     args = parser.parse_args()
 
     dsn = os.getenv("APP_DATABASE_URL") or os.getenv("DATABASE_URL")

@@ -47,7 +47,7 @@ def test_notifications_send_admin(client: TestClient):
 
 
 def test_profile_update_username_owner(client: TestClient):
-    user_id = "u99"
+    user_id = "00000000-0000-0000-0000-000000000099"
     token = _admin_token(sub=user_id)  # owner token
     s = load_settings()
     cookies = {"access_token": token, s.auth_csrf_cookie_name: "t1"}

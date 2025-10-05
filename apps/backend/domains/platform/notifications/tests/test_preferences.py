@@ -46,7 +46,9 @@ class _MemoryPreferenceRepo(NotificationPreferenceRepo):
     async def list_for_user(self, user_id: str) -> list[PreferenceRecord]:
         return [replace(record) for record in self._storage.get(user_id, [])]
 
-    async def replace_for_user(self, user_id: str, records: Sequence[PreferenceRecord]) -> None:
+    async def replace_for_user(
+        self, user_id: str, records: Sequence[PreferenceRecord]
+    ) -> None:
         self._storage[user_id] = [replace(record) for record in records]
 
 

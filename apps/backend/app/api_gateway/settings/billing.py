@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request, Response, status
 
 from domains.platform.iam.security import get_current_user, require_admin
+from domains.product.profile.application.profile_presenter import profile_to_dict
 from packages.core.errors import ApiError
 
 from ..routers import get_container
@@ -20,12 +21,14 @@ async def _billing_bundle(container, user_id: str) -> dict[str, Any]:
     history = await svc.get_history_for_user(user_id)
     wallet = None
     try:
-        profile = await container.profile_service.get_profile(user_id)
-        wallet = profile.get("wallet")
+        profile_view = await container.profile_service.get_profile(user_id)
+        wallet = profile_to_dict(profile_view).get("wallet")
     except ValueError:
         wallet = None
     except Exception as exc:
-        logger.exception("Failed to fetch profile while building billing bundle", exc_info=exc)
+        logger.exception(
+            "Failed to fetch profile while building billing bundle", exc_info=exc
+        )
         wallet = None
     return {"summary": summary, "history": history, "wallet": wallet}
 

@@ -19,7 +19,9 @@ class EventMetrics:
         with self._lock:
             self._counters[event] = self._counters.get(event, 0) + 1
 
-    def record_handler(self, event: str, handler: str, success: bool, duration_ms: float) -> None:
+    def record_handler(
+        self, event: str, handler: str, success: bool, duration_ms: float
+    ) -> None:
         status = "success" if success else "failure"
         with self._lock:
             hmap = self._handler_counts.setdefault(event, {}).setdefault(handler, {})

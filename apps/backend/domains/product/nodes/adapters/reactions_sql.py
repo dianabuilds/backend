@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -8,6 +10,11 @@ from domains.product.nodes.application.ports import (
     NodeReactionsRepo,
 )
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .reactions_memory import MemoryNodeReactionsRepo
+
+logger = logging.getLogger(__name__)
 
 _DATETIME_FMT = 'YYYY-MM-DD""T""HH24:MI:SS""Z""'
 
@@ -20,7 +27,9 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
             else get_async_engine("node-reactions", url=engine)
         )
 
-    async def add(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool:
+    async def add(
+        self, node_id: int, user_id: str, reaction_type: str = "like"
+    ) -> bool:
         reaction = (reaction_type or "like").strip().lower() or "like"
         async with self._engine.begin() as conn:
             insert_sql = text(
@@ -33,7 +42,11 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
             )
             result = await conn.execute(
                 insert_sql,
-                {"node_id": int(node_id), "user_id": str(user_id), "reaction": reaction},
+                {
+                    "node_id": int(node_id),
+                    "user_id": str(user_id),
+                    "reaction": reaction,
+                },
             )
             inserted = result.first() is not None
             if inserted and reaction == "like":
@@ -45,7 +58,9 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
                 )
             return inserted
 
-    async def remove(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool:
+    async def remove(
+        self, node_id: int, user_id: str, reaction_type: str = "like"
+    ) -> bool:
         reaction = (reaction_type or "like").strip().lower() or "like"
         async with self._engine.begin() as conn:
             delete_sql = text(
@@ -59,7 +74,11 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
             )
             result = await conn.execute(
                 delete_sql,
-                {"node_id": int(node_id), "user_id": str(user_id), "reaction": reaction},
+                {
+                    "node_id": int(node_id),
+                    "user_id": str(user_id),
+                    "reaction": reaction,
+                },
             )
             deleted = result.first() is not None
             if deleted and reaction == "like":
@@ -75,7 +94,9 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
                 )
             return deleted
 
-    async def has(self, node_id: int, user_id: str, reaction_type: str = "like") -> bool:
+    async def has(
+        self, node_id: int, user_id: str, reaction_type: str = "like"
+    ) -> bool:
         reaction = (reaction_type or "like").strip().lower() or "like"
         async with self._engine.begin() as conn:
             query = text(
@@ -90,7 +111,11 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
             )
             result = await conn.execute(
                 query,
-                {"node_id": int(node_id), "user_id": str(user_id), "reaction": reaction},
+                {
+                    "node_id": int(node_id),
+                    "user_id": str(user_id),
+                    "reaction": reaction,
+                },
             )
             return result.scalar_one_or_none() is not None
 
@@ -150,4 +175,39 @@ class SQLNodeReactionsRepo(NodeReactionsRepo):
             ]
 
 
-__all__ = ["SQLNodeReactionsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "node reactions repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("node reactions repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "node reactions repo: using memory backend (%s)", reason)
+
+
+def create_repo(
+    settings, *, memory_repo: MemoryNodeReactionsRepo | None = None
+) -> NodeReactionsRepo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return memory_repo or MemoryNodeReactionsRepo()
+    try:
+        return SQLNodeReactionsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return memory_repo or MemoryNodeReactionsRepo()
+
+
+__all__ = [
+    "SQLNodeReactionsRepo",
+    "create_repo",
+]

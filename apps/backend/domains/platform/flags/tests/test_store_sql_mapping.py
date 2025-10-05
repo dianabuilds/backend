@@ -29,7 +29,11 @@ def test_feature_flag_to_legacy_percentage_rollout() -> None:
         slug="rollout",
         status=FlagStatus.CUSTOM,
         rollout=None,
-        rules=(FlagRule(type=FlagRuleType.PERCENTAGE, value="default", rollout=30, priority=10),),
+        rules=(
+            FlagRule(
+                type=FlagRuleType.PERCENTAGE, value="default", rollout=30, priority=10
+            ),
+        ),
         meta={},
     )
     legacy = mapper_legacy_from_feature(feature)
@@ -44,10 +48,14 @@ def test_legacy_to_feature_flag_infers_status_for_users() -> None:
 
 
 def test_legacy_to_feature_flag_percentage_rule() -> None:
-    legacy = Flag(slug="gradual", enabled=True, rollout=45, meta={}, users=set(), roles=set())
+    legacy = Flag(
+        slug="gradual", enabled=True, rollout=45, meta={}, users=set(), roles=set()
+    )
     feature = mapper_feature_from_legacy(legacy)
     assert feature.status is FlagStatus.CUSTOM
-    percentage_rules = [rule for rule in feature.rules if rule.type is FlagRuleType.PERCENTAGE]
+    percentage_rules = [
+        rule for rule in feature.rules if rule.type is FlagRuleType.PERCENTAGE
+    ]
     assert percentage_rules and percentage_rules[0].rollout == 45
 
 

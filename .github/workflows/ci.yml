@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m pip install -r requirements.txt
-          python -m pip install ruff mypy pytest
+          python -m pip install ruff mypy pytest pytest-cov
 
       - name: Ruff (lint)
         working-directory: apps/backend
@@ -34,9 +34,17 @@ jobs:
         working-directory: apps/backend
         run: python -m mypy . --config-file pyproject.toml
 
+      - name: Import Linter
+        working-directory: apps/backend
+        run: python -m importlinter.cli lint --config importlinter.ini
+
       - name: Pytest
         working-directory: apps/backend
         run: python -m pytest -c pytest.ini
+
+      - name: Moderation coverage
+        working-directory: apps/backend
+        run: python -m pytest ../../tests/unit/platform/moderation --cov=apps.backend.domains.platform.moderation.application.reports.repository --cov=apps.backend.domains.platform.moderation.application.tickets.repository --cov=apps.backend.domains.platform.moderation.application.appeals.repository --cov-report=xml --cov-report=term --cov-fail-under=80
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -56,3 +64,4 @@ jobs:
       - name: TypeScript typecheck
         run: npm run typecheck
         working-directory: apps/web
+

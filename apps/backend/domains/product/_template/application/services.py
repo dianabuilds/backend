@@ -67,7 +67,9 @@ class Service:
     async def delete(self, product_id: str) -> bool:
         deleted = await self.repo.delete(product_id)
         if deleted:
-            self.outbox.publish("product.deleted.v1", {"id": product_id}, key=product_id)
+            self.outbox.publish(
+                "product.deleted.v1", {"id": product_id}, key=product_id
+            )
         return deleted
 
     def _gen_id(self) -> str:

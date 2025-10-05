@@ -35,7 +35,9 @@ class Profile:
     def with_email(self, email: str | None) -> None:
         self.email = email
 
-    def with_pending_email(self, email: str | None, requested_at: datetime | None) -> None:
+    def with_pending_email(
+        self, email: str | None, requested_at: datetime | None
+    ) -> None:
         self.pending_email = email
         self.email_change_requested_at = requested_at
 

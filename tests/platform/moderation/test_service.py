@@ -1,6 +1,12 @@
-﻿import pytest
-from apps.backend.domains.platform.moderation.dtos import ContentType, SanctionStatus, SanctionType
-from apps.backend.domains.platform.moderation.service import PlatformModerationService
+import pytest
+from apps.backend.domains.platform.moderation.domain.dtos import (
+    ContentType,
+    SanctionStatus,
+    SanctionType,
+)
+from apps.backend.domains.platform.moderation.application.service import (
+    PlatformModerationService,
+)
 
 
 @pytest.mark.asyncio
@@ -20,7 +26,9 @@ async def test_issue_and_cancel_sanction():
 @pytest.mark.asyncio
 async def test_list_content_filters_reports():
     svc = PlatformModerationService()
-    result = await svc.list_content(type=ContentType.node, has_reports=True, limit=10, cursor=None)
+    result = await svc.list_content(
+        type=ContentType.node, has_reports=True, limit=10, cursor=None
+    )
     assert result["items"], "expected seeded content with reports"
     assert all(item.type == ContentType.node for item in result["items"])
 

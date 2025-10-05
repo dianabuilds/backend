@@ -3,11 +3,37 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+
+try:
+    from fastapi_limiter.depends import RateLimiter  # type: ignore
+except ImportError:  # pragma: no cover
+    RateLimiter = None  # type: ignore
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
+from domains.platform.notifications.application.dispatch_use_cases import (
+    preview_channel_notification as preview_channel_notification_use_case,
+)
+from domains.platform.notifications.application.dispatch_use_cases import (
+    send_channel_notification as send_channel_notification_use_case,
+)
+from domains.platform.notifications.application.messages_exceptions import (
+    NotificationError,
+)
+from domains.platform.notifications.application.messages_use_cases import (
+    list_notifications as list_notifications_use_case,
+)
+from domains.platform.notifications.application.messages_use_cases import (
+    mark_notification_read as mark_notification_read_use_case,
+)
+from domains.platform.notifications.application.preferences_use_cases import (
+    get_preferences as get_preferences_use_case,
+)
+from domains.platform.notifications.application.preferences_use_cases import (
+    set_preferences as set_preferences_use_case,
+)
 from domains.platform.notifications.logic.dispatcher import dispatch
 from packages.core import validate_notifications_request
 
@@ -33,6 +59,13 @@ class SendIn(BaseModel):
     payload: dict[str, Any]
 
 
+def _raise_notification_error(error: NotificationError) -> None:
+    headers = error.headers or None
+    raise HTTPException(
+        status_code=error.status_code, detail=error.code, headers=headers
+    ) from error
+
+
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/notifications")
 
@@ -41,14 +74,17 @@ def make_router() -> APIRouter:
         req: Request,
         claims=Depends(get_current_user),
     ) -> dict[str, Any]:
-        user_id = str(claims.get("sub")) if claims and claims.get("sub") else None
-        if not user_id:
-            raise HTTPException(status_code=401, detail="unauthenticated")
         container = get_container(req)
-        prefs = await container.notifications.preference_service.get_preferences(
-            user_id
-        )
-        return {"preferences": prefs}
+        try:
+            result = await get_preferences_use_case(
+                container.notifications.preference_service,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                context={"sub": claims.get("sub")},
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
     @router.put("/preferences", dependencies=[Depends(csrf_protect)])
     async def set_preferences(
@@ -56,53 +92,110 @@ def make_router() -> APIRouter:
         body: PreferenceBody,
         claims=Depends(get_current_user),
     ) -> dict[str, Any]:
-        user_id = str(claims.get("sub")) if claims and claims.get("sub") else None
-        if not user_id:
-            raise HTTPException(status_code=401, detail="unauthenticated")
         container = get_container(req)
-        await container.notifications.preference_service.set_preferences(
-            user_id, body.preferences
-        )
-        return {"ok": True}
+        try:
+            result = await set_preferences_use_case(
+                container.notifications.preference_service,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                preferences=body.preferences,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
-    @router.post("/test", dependencies=[Depends(csrf_protect)])
+    @router.get(
+        "",
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
+    )
+    async def list_my_notifications(
+        req: Request,
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0),
+        claims=Depends(get_current_user),
+    ) -> dict[str, Any]:
+        container = get_container(req)
+        try:
+            result = await list_notifications_use_case(
+                container.notifications.repo,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                placement="inbox",
+                limit=limit,
+                offset=offset,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
+
+    @router.post(
+        "/read/{notif_id}",
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
+    )
+    async def mark_read(
+        req: Request,
+        notif_id: str,
+        claims=Depends(get_current_user),
+        _csrf: None = Depends(csrf_protect),
+    ) -> dict[str, Any]:
+        container = get_container(req)
+        try:
+            result = await mark_notification_read_use_case(
+                container.notifications.repo,
+                container.users.service,
+                subject=str(claims.get("sub") or ""),
+                notification_id=notif_id,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
+
+    @router.post(
+        "/test",
+        dependencies=[Depends(csrf_protect)],
+    )
     async def test_notification(
         body: TestNotificationBody,
         _claims=Depends(get_current_user),
     ) -> dict[str, Any]:
-        payload = body.payload or {}
-        dispatch(body.channel, payload)
-        return {"ok": True}
+        try:
+            result = preview_channel_notification_use_case(
+                dispatch,
+                channel=body.channel,
+                payload=body.payload,
+                logger=logger,
+            )
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
-    @router.post("/send")
+    @router.post(
+        "/send",
+        dependencies=[Depends(require_admin), Depends(csrf_protect)],
+    )
     async def send_notification(
         body: SendIn,
-        _admin: None = Depends(require_admin),
-        _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         try:
-            validate_notifications_request(
-                "/v1/notifications/send", "post", body.model_dump()
+            result = send_channel_notification_use_case(
+                dispatch,
+                validate_notifications_request,
+                channel=body.channel,
+                payload=body.payload,
+                logger=logger,
+                validation_errors=(
+                    JsonSchemaValidationError,
+                    ValueError,
+                    TypeError,
+                ),
             )
-        except (JsonSchemaValidationError, TypeError, ValueError) as exc:
-            logger.info(
-                "notification_payload_invalid",
-                extra={"channel": body.channel},
-                exc_info=exc,
-            )
-            raise HTTPException(
-                status_code=422, detail="schema_validation_failed"
-            ) from exc
-        try:
-            dispatch(body.channel, body.payload)
-        except RuntimeError as exc:  # pragma: no cover - thin wrapper around dispatcher
-            logger.warning(
-                "notification_dispatch_failed",
-                extra={"channel": body.channel},
-                exc_info=exc,
-            )
-            raise HTTPException(status_code=502, detail="publish_failed") from exc
-        return {"ok": True}
+        except NotificationError as error:
+            _raise_notification_error(error)
+        return result.payload
 
     return router
 

@@ -47,7 +47,10 @@ async def run_worker(name: str, *, log_level: str | None = None) -> None:
     for sig in _iter_signals():
         try:
             loop.add_signal_handler(sig, _request_stop, sig)
-        except (NotImplementedError, RuntimeError):  # pragma: no cover - Windows fallback
+        except (
+            NotImplementedError,
+            RuntimeError,
+        ):  # pragma: no cover - Windows fallback
             signal.signal(sig, lambda *_args, _sig=sig: _request_stop(_sig))
 
     logger.info("starting worker '%s'", name)
@@ -73,7 +76,9 @@ def _iter_signals() -> list[signal.Signals]:  # pragma: no cover - helper
 
 
 def _ensure_event_loop_policy() -> None:
-    if sys.platform.startswith("win") and hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+    if sys.platform.startswith("win") and hasattr(
+        asyncio, "WindowsSelectorEventLoopPolicy"
+    ):
         policy = asyncio.get_event_loop_policy()
         if not isinstance(policy, asyncio.WindowsSelectorEventLoopPolicy):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

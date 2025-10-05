@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import Any
 
@@ -13,6 +14,11 @@ from domains.product.achievements.domain.entities import (
 )
 from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryRepo
+
+logger = logging.getLogger(__name__)
 
 
 class SQLRepo(Repo):
@@ -291,4 +297,37 @@ class SQLRepo(Repo):
         return run_sync(_run())
 
 
-__all__ = ["SQLRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "achievements repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("achievements repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "achievements repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryRepo()
+    try:
+        return SQLRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryRepo()
+
+
+__all__ = [
+    "SQLRepo",
+    "create_repo",
+]

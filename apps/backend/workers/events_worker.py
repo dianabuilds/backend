@@ -16,8 +16,12 @@ def run(*, topics: str | None = None) -> None:
         )
 
     container = get_worker_container()
-    topic_source = topics or os.getenv("APP_EVENT_TOPICS") or str(container.settings.event_topics)
-    logging.getLogger("events.worker").info("Starting events worker; topics=%s", topic_source)
+    topic_source = (
+        topics or os.getenv("APP_EVENT_TOPICS") or str(container.settings.event_topics)
+    )
+    logging.getLogger("events.worker").info(
+        "Starting events worker; topics=%s", topic_source
+    )
     try:
         container.events.run(block_ms=5000, count=100)
     except KeyboardInterrupt:

@@ -11,7 +11,9 @@ class _StubNodesPort:
         self._nodes = list(nodes)
 
     def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0):
-        return [n for n in self._nodes if n["author_id"] == author_id][offset : offset + limit]
+        return [n for n in self._nodes if n["author_id"] == author_id][
+            offset : offset + limit
+        ]
 
     def get(self, node_id: int):
         for node in self._nodes:
@@ -57,7 +59,13 @@ def test_navigation_next_with_candidates(app_client):
     container = app_client.app.state.container
     original_nodes = container.navigation_service.nodes
     nodes = [
-        {"id": 1, "author_id": uid, "title": "First", "tags": ["caves"], "is_public": True},
+        {
+            "id": 1,
+            "author_id": uid,
+            "title": "First",
+            "tags": ["caves"],
+            "is_public": True,
+        },
         {
             "id": 2,
             "author_id": uid,
@@ -87,9 +95,15 @@ def test_navigation_next_with_candidates(app_client):
     candidates = body["decision"]["candidates"]
     assert candidates, "expected at least one candidate"
     sample = candidates[0]
-    assert {"id", "badge", "score", "probability", "reason", "explain", "provider"} <= set(
-        sample.keys()
-    )
+    assert {
+        "id",
+        "badge",
+        "score",
+        "probability",
+        "reason",
+        "explain",
+        "provider",
+    } <= set(sample.keys())
     assert sample["reason"]
     assert body["cache_seed"]
     assert body["limit_state"] == "normal"

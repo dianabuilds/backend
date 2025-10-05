@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 from sqlalchemy import text
@@ -12,12 +13,19 @@ from domains.product.quests.application.ports import (
 )
 from packages.core.async_utils import run_sync
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .repo_memory import MemoryQuestsRepo
+
+logger = logging.getLogger(__name__)
 
 
 class SQLQuestsRepo(Repo):
     def __init__(self, engine: AsyncEngine | str) -> None:
         self._engine: AsyncEngine = (
-            get_async_engine("quests", url=engine) if isinstance(engine, str) else engine
+            get_async_engine("quests", url=engine)
+            if isinstance(engine, str)
+            else engine
         )
 
     async def _aload_tags(self, quest_ids: list[str]) -> dict[str, list[str]]:
@@ -81,7 +89,9 @@ class SQLQuestsRepo(Repo):
 
         return run_sync(_run())
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[QuestDTO]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[QuestDTO]:
 
         async def _run() -> list[QuestDTO]:
             sql = text(
@@ -266,4 +276,37 @@ class SQLQuestsRepo(Repo):
         )
 
 
-__all__ = ["SQLQuestsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "quests repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("quests repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "quests repo: using memory backend (%s)", reason)
+
+
+def create_repo(settings) -> Repo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return MemoryQuestsRepo()
+    try:
+        return SQLQuestsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return MemoryQuestsRepo()
+
+
+__all__ = [
+    "SQLQuestsRepo",
+    "create_repo",
+]

@@ -90,7 +90,9 @@ class SQLSearchIndex(IndexPort, QueryPort):
             params["tags"] = tag_list
             operator = "@>" if match == "all" else "&&"
             base_conditions.append(f"sd.tags {operator} CAST(:tags AS text[])")
-        where_clause = "WHERE " + " AND ".join(base_conditions) if base_conditions else ""
+        where_clause = (
+            "WHERE " + " AND ".join(base_conditions) if base_conditions else ""
+        )
         order_clause = (
             "ORDER BY score DESC, sd.updated_at DESC, sd.id ASC"
             if q

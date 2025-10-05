@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -13,6 +14,11 @@ from domains.product.nodes.application.ports import (
     NodeCommentsRepo,
 )
 from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+from .comments_memory import MemoryNodeCommentsRepo
+
+logger = logging.getLogger(__name__)
 
 _DATETIME_FMT = 'YYYY-MM-DD""T""HH24:MI:SS""Z""'
 _MAX_DEPTH = 5
@@ -61,7 +67,11 @@ class SQLNodeCommentsRepo(NodeCommentsRepo):
                     """
                 )
                 parent_row = (
-                    (await conn.execute(parent_sql, {"parent_id": int(parent_comment_id)}))
+                    (
+                        await conn.execute(
+                            parent_sql, {"parent_id": int(parent_comment_id)}
+                        )
+                    )
                     .mappings()
                     .first()
                 )
@@ -429,7 +439,9 @@ class SQLNodeCommentsRepo(NodeCommentsRepo):
             node_id=int(row["node_id"]),
             author_id=str(row["author_id"]),
             parent_comment_id=(
-                int(row["parent_comment_id"]) if row.get("parent_comment_id") is not None else None
+                int(row["parent_comment_id"])
+                if row.get("parent_comment_id") is not None
+                else None
             ),
             depth=int(row["depth"]),
             content=str(row["content"]),
@@ -450,4 +462,39 @@ class SQLNodeCommentsRepo(NodeCommentsRepo):
         )
 
 
-__all__ = ["SQLNodeCommentsRepo"]
+def _log_fallback(reason: str | None, error: Exception | None = None) -> None:
+    if error is not None:
+        logger.warning(
+            "node comments repo: falling back to memory due to SQL error: %s", error
+        )
+        return
+    if not reason:
+        logger.debug("node comments repo: using memory backend")
+        return
+    level = logging.DEBUG
+    lowered = reason.lower()
+    if "invalid" in lowered or "empty" in lowered:
+        level = logging.WARNING
+    elif "not configured" in lowered or "helpers unavailable" in lowered:
+        level = logging.INFO
+    logger.log(level, "node comments repo: using memory backend (%s)", reason)
+
+
+def create_repo(
+    settings, *, memory_repo: MemoryNodeCommentsRepo | None = None
+) -> NodeCommentsRepo:
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        _log_fallback(decision.reason)
+        return memory_repo or MemoryNodeCommentsRepo()
+    try:
+        return SQLNodeCommentsRepo(decision.dsn)
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        _log_fallback(decision.reason or "engine initialization failed", error=exc)
+        return memory_repo or MemoryNodeCommentsRepo()
+
+
+__all__ = [
+    "SQLNodeCommentsRepo",
+    "create_repo",
+]

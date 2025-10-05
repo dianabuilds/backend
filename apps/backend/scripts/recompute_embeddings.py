@@ -18,12 +18,16 @@ from packages.core.config import Settings, load_settings, to_async_dsn
 async def _fetch_node_ids(engine) -> list[int]:
     async with engine.begin() as conn:
         rows = await conn.execute(
-            text("SELECT id FROM nodes WHERE status IS DISTINCT FROM 'deleted' ORDER BY id")
+            text(
+                "SELECT id FROM nodes WHERE status IS DISTINCT FROM 'deleted' ORDER BY id"
+            )
         )
         return [int(r[0]) for r in rows]
 
 
-async def _recompute_for_ids(service: NodeService, node_ids: Iterable[int]) -> tuple[int, int, int]:
+async def _recompute_for_ids(
+    service: NodeService, node_ids: Iterable[int]
+) -> tuple[int, int, int]:
     updated = 0
     skipped = 0
     failed = 0
@@ -54,9 +58,13 @@ async def _recompute_for_ids(service: NodeService, node_ids: Iterable[int]) -> t
 
 
 async def main(argv: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
     parser = argparse.ArgumentParser(description="Recompute node embeddings")
-    parser.add_argument("--limit", type=int, default=None, help="Process only the first N nodes")
+    parser.add_argument(
+        "--limit", type=int, default=None, help="Process only the first N nodes"
+    )
     args = parser.parse_args(argv)
 
     settings: Settings = load_settings()

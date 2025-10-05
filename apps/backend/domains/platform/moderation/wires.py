@@ -7,9 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from packages.core.config import Settings, load_settings
 from packages.core.db import get_async_engine
+from packages.core.testing import is_test_mode
 
-from .service import PlatformModerationService
-from .storage import ModerationStorage
+from .adapters.storage import ModerationStorage
+from .application.service import PlatformModerationService
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ class ModerationContainer:
 def build_container(settings: Settings | None = None) -> ModerationContainer:
     cfg = settings or load_settings()
     engine = None
-    if getattr(cfg, "database_url", None):
+    if not is_test_mode(cfg) and getattr(cfg, "database_url", None):
         try:
             engine = get_async_engine("platform-moderation", url=str(cfg.database_url))
         except (SQLAlchemyError, ValueError, TypeError) as exc:

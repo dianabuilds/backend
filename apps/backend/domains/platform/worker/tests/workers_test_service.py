@@ -52,12 +52,16 @@ class _FakeRepo:
     async def find_by_idempotency(self, job_type, key):
         return self.idempotent.get((job_type, key))
 
-    async def lease_jobs(self, *, worker_id, job_types, limit, lease_seconds, job_ids=None):
+    async def lease_jobs(
+        self, *, worker_id, job_types, limit, lease_seconds, job_ids=None
+    ):
         now = datetime.now(UTC)
         leased = []
         ids = list(job_ids or [])
         if not ids:
-            ids = [jid for jid, job in self.jobs.items() if job.status is JobStatus.QUEUED]
+            ids = [
+                jid for jid, job in self.jobs.items() if job.status is JobStatus.QUEUED
+            ]
         for jid in ids[:limit]:
             job = self.jobs.get(jid)
             if job and job.status is JobStatus.QUEUED and job.available_at <= now:
@@ -164,7 +168,9 @@ async def test_complete_updates_status() -> None:
     service = WorkerQueueService(cast(SQLWorkerJobRepository, repo))
     job = await service.enqueue(JobCreateCommand(type="test", input={}))
     completed = await service.complete(
-        JobCompletionCommand(job_id=job.job_id, worker_id="worker-1", result={"ok": True})
+        JobCompletionCommand(
+            job_id=job.job_id, worker_id="worker-1", result={"ok": True}
+        )
     )
     assert completed.status is JobStatus.SUCCEEDED
     assert completed.result == {"ok": True}

@@ -29,7 +29,9 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/stats/{topic}",
-        dependencies=([Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+        ),
     )
     def stats(
         topic: str, group: str | None = None, _admin: None = Depends(require_admin)
@@ -45,10 +47,14 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/dev/publish",
-        dependencies=([Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []),
+        dependencies=(
+            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
+        ),
         summary="Publish an event (dev)",
     )
-    def dev_publish(body: PubIn, req: Request, _admin: None = Depends(require_admin)) -> dict:
+    def dev_publish(
+        body: PubIn, req: Request, _admin: None = Depends(require_admin)
+    ) -> dict:
         try:
             c = get_container(req)
             c.events.publish(body.topic, body.payload, key=body.key)

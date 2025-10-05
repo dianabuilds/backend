@@ -127,12 +127,20 @@ class NodeService:
     ) -> None:
         if EMBEDDING_REQUESTS is not None:
             try:
-                EMBEDDING_REQUESTS.labels(status=status, provider=provider or "unknown").inc()
+                EMBEDDING_REQUESTS.labels(
+                    status=status, provider=provider or "unknown"
+                ).inc()
             except Exception as exc:
                 logger.debug("embedding_metric_emit_failed", exc_info=exc)
-        if duration_ms is not None and EMBEDDING_LATENCY is not None and status == "success":
+        if (
+            duration_ms is not None
+            and EMBEDDING_LATENCY is not None
+            and status == "success"
+        ):
             try:
-                EMBEDDING_LATENCY.labels(provider=provider or "unknown").observe(duration_ms)
+                EMBEDDING_LATENCY.labels(provider=provider or "unknown").observe(
+                    duration_ms
+                )
             except Exception as exc:
                 logger.debug("embedding_latency_emit_failed", exc_info=exc)
 
@@ -237,7 +245,11 @@ class NodeService:
         tags: Sequence[str] | None,
         content_html: str | None,
     ) -> list[float] | None:
-        provider = getattr(self.embedding, "provider", None) if self.embedding is not None else None
+        provider = (
+            getattr(self.embedding, "provider", None)
+            if self.embedding is not None
+            else None
+        )
         if self.embedding is None or not self.embedding.enabled:
             self._record_embedding_metric(status="disabled", provider=provider)
             return None
@@ -265,7 +277,9 @@ class NodeService:
                 status="empty", provider=provider, duration_ms=duration_ms
             )
             return None
-        self._record_embedding_metric(status="success", provider=provider, duration_ms=duration_ms)
+        self._record_embedding_metric(
+            status="success", provider=provider, duration_ms=duration_ms
+        )
         return [float(v) for v in vector]
 
     def get(self, node_id: int) -> NodeView | None:
@@ -280,11 +294,15 @@ class NodeService:
             return None
         return self._to_view(dto)
 
-    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0) -> list[NodeView]:
+    def list_by_author(
+        self, author_id: str, *, limit: int = 50, offset: int = 0
+    ) -> list[NodeView]:
         items = self.repo.list_by_author(author_id, limit=limit, offset=offset)
         return [self._to_view(item) for item in items]
 
-    def search_by_embedding(self, embedding: Sequence[float], *, limit: int = 64) -> list[NodeView]:
+    def search_by_embedding(
+        self, embedding: Sequence[float], *, limit: int = 64
+    ) -> list[NodeView]:
         if not isinstance(self.repo, _EmbeddingRepo):
             return []
         repo = cast(_EmbeddingRepo, self.repo)
@@ -318,7 +336,9 @@ class NodeService:
             "node.tags.updated.v1",
             {
                 "id": updated.id,
-                "author_id": (before.author_id if before is not None else updated.author_id),
+                "author_id": (
+                    before.author_id if before is not None else updated.author_id
+                ),
                 "tags": list(slugs),
                 "added": added,
                 "removed": removed,
@@ -615,7 +635,9 @@ class NodeService:
         )
 
     @with_trace
-    async def unlock_comments(self, node_id: int, *, actor_id: str | None = None) -> None:
+    async def unlock_comments(
+        self, node_id: int, *, actor_id: str | None = None
+    ) -> None:
         service = self._require_comments_service()
         await service.unlock_comments(node_id, actor_id=actor_id)
         self._safe_publish(
@@ -777,7 +799,9 @@ class NodeService:
             return self._to_view(dto)
         dto = await self.repo.update(node_id, embedding=vector)
         if reason:
-            logger.debug("embedding_recompute_done", extra={"node_id": node_id, "reason": reason})
+            logger.debug(
+                "embedding_recompute_done", extra={"node_id": node_id, "reason": reason}
+            )
         return self._to_view(dto)
 
     @with_trace

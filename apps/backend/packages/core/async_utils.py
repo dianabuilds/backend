@@ -35,7 +35,9 @@ def _ensure_background_loop() -> asyncio.AbstractEventLoop:
         return loop
 
 
-def run_sync(coro: Awaitable[_T], *, loop: asyncio.AbstractEventLoop | None = None) -> _T:
+def run_sync(
+    coro: Awaitable[_T], *, loop: asyncio.AbstractEventLoop | None = None
+) -> _T:
     """Execute an async coroutine on a background event loop synchronously."""
 
     target_loop = loop or _ensure_background_loop()
@@ -49,7 +51,9 @@ def run_sync(coro: Awaitable[_T], *, loop: asyncio.AbstractEventLoop | None = No
     return future.result()
 
 
-def submit_async(coro: Awaitable[Any], *, loop: asyncio.AbstractEventLoop | None = None) -> None:
+def submit_async(
+    coro: Awaitable[Any], *, loop: asyncio.AbstractEventLoop | None = None
+) -> None:
     """Schedule a coroutine on the background loop without waiting for completion."""
 
     target_loop = loop or _ensure_background_loop()

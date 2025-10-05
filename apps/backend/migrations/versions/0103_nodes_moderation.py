@@ -51,9 +51,15 @@ def upgrade() -> None:
             )
         )
     op.execute(
-        sa.text("UPDATE nodes SET moderation_status = COALESCE(moderation_status, 'pending')")
+        sa.text(
+            "UPDATE nodes SET moderation_status = COALESCE(moderation_status, 'pending')"
+        )
     )
-    op.execute(sa.text("ALTER TABLE nodes ALTER COLUMN moderation_status SET DEFAULT 'pending'"))
+    op.execute(
+        sa.text(
+            "ALTER TABLE nodes ALTER COLUMN moderation_status SET DEFAULT 'pending'"
+        )
+    )
     op.alter_column(
         "nodes",
         "moderation_status",
@@ -78,7 +84,9 @@ def upgrade() -> None:
             )
         )
 
-    op.execute("ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_moderation_status_chk")
+    op.execute(
+        "ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_moderation_status_chk"
+    )
     op.create_check_constraint(
         "nodes_moderation_status_chk",
         "nodes",
@@ -145,6 +153,8 @@ def downgrade() -> None:
     op.execute("DROP INDEX IF EXISTS ix_node_moderation_history_node")
     op.drop_table("node_moderation_history")
     op.execute("DROP INDEX IF EXISTS ix_nodes_moderation_status")
-    op.execute("ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_moderation_status_chk")
+    op.execute(
+        "ALTER TABLE nodes DROP CONSTRAINT IF EXISTS nodes_moderation_status_chk"
+    )
     op.drop_column("nodes", "moderation_status_updated_at")
     op.drop_column("nodes", "moderation_status")
