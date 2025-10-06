@@ -7,7 +7,7 @@ from uuid import UUID
 
 import pytest
 
-from domains.platform.worker.adapters.jobs_sql import SQLWorkerJobRepository
+from domains.platform.worker.adapters.sql.jobs import SQLWorkerJobRepository
 from domains.platform.worker.application.service import (
     JobCompletionCommand,
     JobCreateCommand,

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from packages.core.config import Settings, load_settings
 from packages.core.db import get_async_engine
 from packages.core.testing import is_test_mode
 
-from .adapters.storage import ModerationStorage
+from .adapters import create_storage
 from .application.service import PlatformModerationService
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def build_container(settings: Settings | None = None) -> ModerationContainer:
         except ImportError as exc:
             logger.warning("SQLAlchemy not available for moderation module: %s", exc)
             engine = None
-    storage = ModerationStorage(engine)
+    storage = create_storage(engine)
     svc = PlatformModerationService(storage=storage, seed_demo=cfg.env != "prod")
     return ModerationContainer(settings=cfg, service=svc)
 

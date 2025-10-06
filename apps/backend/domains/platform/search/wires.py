@@ -16,11 +16,11 @@ from domains.platform.search.adapters.cache_memory import (
 from domains.platform.search.adapters.cache_redis import (
     RedisSearchCache,
 )
-from domains.platform.search.adapters.index_sql import SQLSearchIndex
 from domains.platform.search.adapters.memory_index import InMemoryIndex
 from domains.platform.search.adapters.persist_file import (
     FileSearchPersistence,
 )
+from domains.platform.search.adapters.sql.index import SQLSearchIndex
 from domains.platform.search.application.service import SearchService
 from domains.platform.search.ports import Doc, SearchCache
 from packages.core.config import Settings, load_settings, to_async_dsn

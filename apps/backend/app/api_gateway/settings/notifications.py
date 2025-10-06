@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel
 
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
-from domains.platform.notifications.adapters.matrix_sql import SQLNotificationMatrixRepo
-from domains.platform.notifications.adapters.repo_sql import (
+from domains.platform.notifications.adapters.sql.matrix import SQLNotificationMatrixRepo
+from domains.platform.notifications.adapters.sql.preferences import (
     SQLNotificationPreferenceRepo,
 )
 from domains.platform.notifications.application.preference_service import (

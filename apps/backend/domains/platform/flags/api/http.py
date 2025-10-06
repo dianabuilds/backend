@@ -5,11 +5,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.flags.application.use_cases import (
     check_flag as check_flag_use_case,
@@ -28,6 +23,7 @@ from domains.platform.iam.security import (
     get_current_user,
     require_admin,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +31,7 @@ logger = logging.getLogger(__name__)
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/flags", tags=["flags"])
 
-    rate_limit = [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
+    rate_limit = optional_rate_limiter(times=60, seconds=60)
 
     @router.get("", dependencies=tuple(rate_limit))
     async def list_flags(
@@ -44,7 +40,7 @@ def make_router() -> APIRouter:
         container = get_container(req)
         return await list_flags_use_case(container.flags.service)
 
-    mutate_limit = [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
+    mutate_limit = optional_rate_limiter(times=20, seconds=60)
 
     @router.post("", dependencies=tuple(mutate_limit))
     async def upsert_flag(

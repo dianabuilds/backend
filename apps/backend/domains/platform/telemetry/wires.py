@@ -19,7 +19,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.telemetry.adapters.rum_memory import RumMemoryRepository
 from domains.platform.telemetry.adapters.rum_repository import RumRedisRepository
-from domains.platform.telemetry.adapters.rum_sql import RumSQLRepository
+from domains.platform.telemetry.adapters.sql.rum import RumSQLRepository
 from domains.platform.telemetry.application.rum_service import (
     RumMetricsService,
 )

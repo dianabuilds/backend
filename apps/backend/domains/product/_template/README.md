@@ -44,7 +44,7 @@ Do not import or run code from `_template` directly. Duplicate it for a new doma
 
 ### Адаптеры
 
-- `adapters/repo_sql.py` уже содержит минимально рабочую реализацию. Если передать DSN,
+- `adapters/sql/repository.py` уже содержит минимально рабочую реализацию. Если передать DSN,
   он создаст таблицу `product_template_items`; иначе будет хранить данные в памяти.
   Допишите схему/ORM, как только определите персистентный стор.
 - `adapters/iam_client.py` возвращает детерминированные заглушки. Замените вызовом

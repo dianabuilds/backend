@@ -177,15 +177,20 @@ async def _fetch_recent_nodes(engine: AsyncEngine, limit: int) -> list[dict[str,
     except SQLAlchemyError as exc:
         logger.exception("content analytics: recent nodes query failed", exc_info=exc)
         return []
-    return [
-        {
-            "id": int(row.get("id")),
-            "title": row.get("title"),
-            "author_id": row.get("author_id"),
-            "updated_at": row.get("updated_at"),
-        }
-        for row in rows
-    ]
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        node_id = row.get("id")
+        if node_id is None:
+            continue
+        items.append(
+            {
+                "id": int(node_id),
+                "title": row.get("title"),
+                "author_id": row.get("author_id"),
+                "updated_at": row.get("updated_at"),
+            }
+        )
+    return items
 
 
 async def _fetch_recent_quests(engine: AsyncEngine, limit: int) -> list[dict[str, Any]]:

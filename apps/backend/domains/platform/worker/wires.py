@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 from packages.core.config import Settings, load_settings, to_async_dsn
 
-from .adapters.jobs_sql import SQLWorkerJobRepository
 from .adapters.queue_redis import RedisWorkerQueue
+from .adapters.sql.jobs import SQLWorkerJobRepository
 from .application.service import WorkerQueueService
 
 logger = logging.getLogger(__name__)

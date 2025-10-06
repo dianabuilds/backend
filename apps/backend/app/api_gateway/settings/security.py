@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from domains.platform.iam.adapters.credentials_sql import SQLCredentialsAdapter
+from domains.platform.iam.adapters.sql.credentials import SQLCredentialsAdapter
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from packages.core.errors import ApiError
 

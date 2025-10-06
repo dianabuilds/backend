@@ -4,14 +4,14 @@ from dataclasses import dataclass
 
 import redis.asyncio as redis  # type: ignore
 
-from domains.platform.iam.adapters.credentials_sql import (
-    SQLCredentialsAdapter,
-)
 from domains.platform.iam.adapters.email_via_notifications import (
     EmailViaNotifications,
 )
 from domains.platform.iam.adapters.nonce_store_redis import (
     RedisNonceStore,
+)
+from domains.platform.iam.adapters.sql.credentials import (
+    SQLCredentialsAdapter,
 )
 from domains.platform.iam.adapters.token_jwt import JWTTokenAdapter
 from domains.platform.iam.adapters.verification_store_redis import (

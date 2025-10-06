@@ -4,12 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, model_validator
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
+from pydantic import BaseModel, field_validator, model_validator
 
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
@@ -41,6 +36,7 @@ from domains.platform.notifications.domain.broadcast import (
     BroadcastAudienceType,
     BroadcastStatus,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 class BroadcastAudiencePayload(BaseModel):
@@ -51,6 +47,7 @@ class BroadcastAudiencePayload(BaseModel):
     class Config:
         use_enum_values = True
 
+    @classmethod
     @model_validator(mode="before")
     def validate_payload(cls, values: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(values, dict):
@@ -90,12 +87,12 @@ class BroadcastCreateRequest(BaseModel):
     created_by: str
     scheduled_at: datetime | None = None
 
-    @model_validator(mode="after")
-    def ensure_timezone(cls, model: BroadcastCreateRequest) -> BroadcastCreateRequest:
-        scheduled_at = model.scheduled_at
-        if scheduled_at and scheduled_at.tzinfo is None:
+    @classmethod
+    @field_validator("scheduled_at")
+    def ensure_timezone(cls, value: datetime | None) -> datetime | None:
+        if value and value.tzinfo is None:
             raise ValueError("scheduled_at must be timezone-aware")
-        return model
+        return value
 
 
 class BroadcastUpdateRequest(BaseModel):
@@ -105,25 +102,23 @@ class BroadcastUpdateRequest(BaseModel):
     audience: BroadcastAudiencePayload
     scheduled_at: datetime | None = None
 
-    @model_validator(mode="after")
-    def ensure_timezone(cls, model: BroadcastUpdateRequest) -> BroadcastUpdateRequest:
-        scheduled_at = model.scheduled_at
-        if scheduled_at and scheduled_at.tzinfo is None:
+    @classmethod
+    @field_validator("scheduled_at")
+    def ensure_timezone(cls, value: datetime | None) -> datetime | None:
+        if value and value.tzinfo is None:
             raise ValueError("scheduled_at must be timezone-aware")
-        return model
+        return value
 
 
 class BroadcastScheduleRequest(BaseModel):
     scheduled_at: datetime
 
-    @model_validator(mode="after")
-    def ensure_timezone(
-        cls, model: BroadcastScheduleRequest
-    ) -> BroadcastScheduleRequest:
-        scheduled_at = model.scheduled_at
-        if scheduled_at and scheduled_at.tzinfo is None:
+    @classmethod
+    @field_validator("scheduled_at")
+    def ensure_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
             raise ValueError("scheduled_at must be timezone-aware")
-        return model
+        return value
 
 
 class BroadcastAudienceResponse(BaseModel):
@@ -186,9 +181,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/broadcasts",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
         response_model=BroadcastListResponse,
     )
     async def list_broadcasts(
@@ -213,9 +206,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
         response_model=BroadcastResponse,
     )
     async def create_broadcast(
@@ -235,9 +226,7 @@ def make_router() -> APIRouter:
 
     @router.put(
         "/broadcasts/{broadcast_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
         response_model=BroadcastResponse,
     )
     async def update_broadcast(
@@ -259,9 +248,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/send-now",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
         response_model=BroadcastResponse,
     )
     async def send_now(
@@ -281,9 +268,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/schedule",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
         response_model=BroadcastResponse,
     )
     async def schedule(
@@ -305,9 +290,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/cancel",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
         response_model=BroadcastResponse,
     )
     async def cancel(

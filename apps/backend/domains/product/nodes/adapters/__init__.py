@@ -1,8 +1,8 @@
-﻿from .comments_sql import SQLNodeCommentsRepo
-from .reactions_sql import SQLNodeReactionsRepo
-from .repo_memory import MemoryNodesRepo
+﻿from .memory.repository import MemoryNodesRepo
+from .sql.comments import SQLNodeCommentsRepo
+from .sql.reactions import SQLNodeReactionsRepo
+from .sql.views import SQLNodeViewsRepo
 from .views_redis import RedisNodeViewLimiter
-from .views_sql import SQLNodeViewsRepo
 
 __all__ = [
     "SQLNodeViewsRepo",

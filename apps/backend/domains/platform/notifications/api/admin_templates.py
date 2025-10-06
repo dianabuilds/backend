@@ -6,11 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.platform.notifications.application.template_use_cases import (
@@ -25,6 +20,7 @@ from domains.platform.notifications.application.template_use_cases import (
 from domains.platform.notifications.application.template_use_cases import (
     upsert_template as upsert_template_use_case,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 _TEMPLATE_NOT_FOUND = "template_not_found"
 
@@ -53,9 +49,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/templates",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def list_templates(
         req: Request,
@@ -69,9 +63,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/templates",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def upsert_template(
         req: Request,
@@ -94,9 +86,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/templates/{template_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def get_template(
         req: Request,
@@ -111,9 +101,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/templates/{template_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def delete_template(
         req: Request,

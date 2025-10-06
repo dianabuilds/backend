@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 
-from domains.product.profile.adapters.repo_memory import MemoryRepo
+from domains.product.profile.adapters.memory.repository import MemoryRepo
 from domains.product.profile.application.services import Service
 from domains.product.profile.domain.entities import Profile
 from packages.core import Flags

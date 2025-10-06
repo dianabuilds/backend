@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from domains.platform.worker.domain.models import JobStatus, WorkerJob
 
-from ..adapters.jobs_sql import SQLWorkerJobRepository
+from ..adapters.sql.jobs import SQLWorkerJobRepository
 
 
 @dataclass(slots=True)

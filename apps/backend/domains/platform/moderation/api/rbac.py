@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from collections.abc import Callable, Iterable
 from functools import lru_cache
 from typing import Any
@@ -38,7 +38,7 @@ SCOPES = {
 }
 
 
-# Simple role→scopes mapping. Adjust if your auth system differs.
+# Simple role>scopes mapping. Adjust if your auth system differs.
 ROLE_TO_SCOPES = {
     ROLE_ADMIN: {
         *SCOPES,

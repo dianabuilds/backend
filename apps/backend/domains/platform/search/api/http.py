@@ -3,11 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
 from pydantic import BaseModel, Field
 
 from apps.backend import get_container
@@ -16,6 +11,7 @@ from domains.platform.search.application.stats_service import (
     search_stats,
 )
 from domains.platform.search.ports import Doc
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 class IndexIn(BaseModel):
@@ -54,9 +50,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/search/index",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def index(
         req: Request,
@@ -72,9 +66,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/search/{doc_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def delete(
         req: Request,

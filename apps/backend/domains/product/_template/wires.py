@@ -8,7 +8,7 @@ from domains.platform.events.adapters.outbox_redis import (
 )
 
 from .adapters.iam_client import IamClientImpl as ProductIamClient
-from .adapters.repo_sql import SQLRepo as ProductSQLRepo
+from .adapters.sql.repository import SQLRepo as ProductSQLRepo
 from .application.ports import Flags
 
 # Note: In real domains import these from your shared packages, e.g.:

@@ -4,12 +4,6 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
@@ -18,6 +12,7 @@ from domains.platform.iam.security import (
     get_current_user,
     require_admin,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +28,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/checkout",
-        dependencies=(
-            [Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=5, seconds=60)),
     )
     async def checkout(
         req: Request,

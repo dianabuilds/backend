@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Any
 
-from ..adapters.storage import ModerationStorage
+from ..adapters.base import ModerationSnapshotStore
 from ..domain.records import (
     AIRuleRecord,
     AppealRecord,
@@ -67,7 +67,7 @@ from .content.queries import (
 from .content.queries import (
     list_content as _content_list_content,
 )
-from .overview import get_overview as _overview_get_overview
+from .overview.queries import get_overview as _overview_get_overview
 from .reports import (
     get_report as _reports_get_report,
 )
@@ -77,13 +77,13 @@ from .reports import (
 from .reports import (
     resolve_report as _reports_resolve_report,
 )
-from .sanctions import (
+from .sanctions.commands import (
     add_note as _sanctions_add_note,
 )
-from .sanctions import (
+from .sanctions.commands import (
     issue_sanction as _sanctions_issue_sanction,
 )
-from .sanctions import (
+from .sanctions.commands import (
     update_sanction as _sanctions_update_sanction,
 )
 from .seed import seed_demo
@@ -148,7 +148,7 @@ def _mutating_operation(func):
 
 class PlatformModerationService:
     def __init__(
-        self, storage: ModerationStorage | None = None, *, seed_demo: bool = True
+        self, storage: ModerationSnapshotStore | None = None, *, seed_demo: bool = True
     ):
         self._lock = asyncio.Lock()
         self._users: dict[str, UserRecord] = {}

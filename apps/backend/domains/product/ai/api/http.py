@@ -3,17 +3,12 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from httpx import HTTPError
 
 from apps.backend import get_container
 from domains.platform.iam.security import get_current_user
 from domains.product.ai.application.errors import ProviderError
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +30,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/generate",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=30, seconds=60)),
     )
     async def generate(
         body: dict,

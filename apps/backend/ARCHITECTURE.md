@@ -36,7 +36,7 @@ apps/backend/
 - `application/`: use‑cases, координация, транзакции, фича‑флаги, presenter‑модули для сериализации выходов, порты (интерфейсы). Здесь вызываем `domain` и
   `adapters` через порты; логика отвечает за готовые DTO и HTTP связки.
 - `domain/`: чистые сущности/правила/политики, без I/O и фреймворков.
-- `adapters/`: реализация портов (SQL/Redis/HTTP‑клиенты и т.д.).
+- dapters/: инфраструктурные реализации портов. SQL/Redis/etc адаптеры разнесены по подкаталогам dapters/sql и dapters/memory, а интеграции вроде Redis/File остаются рядом.
 - `schema/sql/`: Alembic per‑domain (схема БД = имя домена, `version_table_schema`).
 - `docs/`: DOMAIN/GLOSSARY/TESTPLAN/METRICS.
 

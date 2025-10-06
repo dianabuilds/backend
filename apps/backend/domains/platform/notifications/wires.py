@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from asyncio import TimeoutError as AsyncTimeoutError
-from collections.abc import Awaitable
+from collections.abc import Coroutine
 from concurrent.futures import Future as ThreadFuture
 from dataclasses import dataclass
 from typing import Any
@@ -65,10 +65,12 @@ def register_event_relays(
         if exc:
             logger.exception("Notifications delivery task failed", exc_info=exc)
 
-    def _submit_delivery(coro: Awaitable[None]) -> None:
+    def _submit_delivery(coro: Coroutine[Any, Any, None]) -> None:
         nonlocal target_loop
         if target_loop and not target_loop.is_closed():
-            future = asyncio.run_coroutine_threadsafe(coro, target_loop)
+            future: ThreadFuture[None] = asyncio.run_coroutine_threadsafe(
+                coro, target_loop
+            )
             future.add_done_callback(_log_future_result)
         else:
             try:

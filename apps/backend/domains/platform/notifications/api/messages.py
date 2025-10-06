@@ -4,11 +4,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.iam.security import (
     csrf_protect,
@@ -27,6 +22,7 @@ from domains.platform.notifications.application.messages_use_cases import (
 from domains.platform.notifications.application.messages_use_cases import (
     send_notification as send_notification_use_case,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 def _raise_notification_error(error: NotificationError) -> None:
@@ -41,9 +37,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def list_my_notifications(
         req: Request,
@@ -67,9 +61,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/read/{notif_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def mark_read(
         req: Request,
@@ -91,9 +83,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/admin/send",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     async def admin_send(
         req: Request,

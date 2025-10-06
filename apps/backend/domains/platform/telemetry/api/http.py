@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
+from fastapi import APIRouter, HTTPException, Request, Response
 
 try:  # optional dependency
     from prometheus_client import generate_latest  # type: ignore
@@ -34,6 +29,7 @@ from domains.platform.telemetry.application.ux_metrics_service import (
 from domains.platform.telemetry.application.worker_metrics_service import (
     worker_metrics,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 def make_router() -> APIRouter:
@@ -55,17 +51,13 @@ def make_router() -> APIRouter:
         )
         return Response(text, media_type="text/plain; version=0.0.4")
 
+    limiter_deps = ()
+    if FastAPILimiter is not None and getattr(FastAPILimiter, "redis", None):
+        limiter_deps = optional_rate_limiter(times=600, seconds=60)
+
     @router.post(
         "/metrics/rum",
-        dependencies=(
-            [Depends(RateLimiter(times=600, seconds=60))]
-            if (
-                RateLimiter
-                and FastAPILimiter
-                and getattr(FastAPILimiter, "redis", None)
-            )
-            else []
-        ),
+        dependencies=limiter_deps,
     )
     async def rum_metrics(req: Request) -> dict[str, Any]:
         container = get_container(req)

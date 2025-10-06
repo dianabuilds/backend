@@ -1,9 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import pytest
 
-from domains.product.nodes.adapters.repo_memory import MemoryNodesRepo
-from domains.product.nodes.adapters.tag_catalog_memory import MemoryTagCatalog
+from domains.product.nodes.adapters.memory.repository import MemoryNodesRepo
+from domains.product.nodes.adapters.memory.tag_catalog import MemoryTagCatalog
 from domains.product.nodes.application.service import NodeService
 
 

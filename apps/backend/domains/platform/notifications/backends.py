@@ -4,14 +4,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from domains.platform.flags.application.service import FlagService
-from domains.platform.notifications.adapters.audience_memory import (
-    InMemoryAudienceResolver,
-)
-from domains.platform.notifications.adapters.broadcast_sql import SQLBroadcastRepo
-from domains.platform.notifications.adapters.consent_audit_sql import (
-    SQLNotificationConsentAuditRepo,
-)
-from domains.platform.notifications.adapters.matrix_sql import SQLNotificationMatrixRepo
 from domains.platform.notifications.adapters.memory import (
     InMemoryBroadcastRepo,
     InMemoryNotificationConsentAuditRepo,
@@ -20,14 +12,22 @@ from domains.platform.notifications.adapters.memory import (
     InMemoryNotificationRepository,
     InMemoryTemplateRepo,
 )
-from domains.platform.notifications.adapters.notification_repository_sql import (
-    NotificationRepository,
+from domains.platform.notifications.adapters.memory.audience import (
+    InMemoryAudienceResolver,
 )
 from domains.platform.notifications.adapters.pusher_ws import WebSocketPusher
-from domains.platform.notifications.adapters.repo_sql import (
+from domains.platform.notifications.adapters.sql.broadcasts import SQLBroadcastRepo
+from domains.platform.notifications.adapters.sql.consent_audit import (
+    SQLNotificationConsentAuditRepo,
+)
+from domains.platform.notifications.adapters.sql.matrix import SQLNotificationMatrixRepo
+from domains.platform.notifications.adapters.sql.notifications import (
+    NotificationRepository,
+)
+from domains.platform.notifications.adapters.sql.preferences import (
     SQLNotificationPreferenceRepo,
 )
-from domains.platform.notifications.adapters.repos_sql import SQLTemplateRepo
+from domains.platform.notifications.adapters.sql.templates import SQLTemplateRepo
 from domains.platform.notifications.adapters.ws_manager import WebSocketManager
 from domains.platform.notifications.application.audience_resolver import (
     BroadcastAudienceResolver,

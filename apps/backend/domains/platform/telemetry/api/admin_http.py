@@ -4,11 +4,6 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.iam.security import require_admin
 from domains.platform.telemetry.application.event_metrics_service import event_metrics
@@ -18,6 +13,7 @@ from domains.platform.telemetry.application.transition_metrics_service import (
 )
 from domains.platform.telemetry.application.ux_metrics_service import ux_metrics
 from domains.platform.telemetry.application.worker_metrics_service import worker_metrics
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 try:
     from prometheus_client import REGISTRY  # type: ignore
@@ -32,9 +28,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/rum",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def list_rum_events(
         req: Request,
@@ -51,9 +45,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/rum/summary",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     async def rum_summary(
         req: Request,
@@ -90,23 +82,23 @@ def make_router() -> APIRouter:
         # Collect samples
         for metric in REGISTRY.collect():  # type: ignore[attr-defined]
             if metric.name == "http_requests_total":
-                for s in metric.samples:
-                    method = s.labels.get("method", "GET")
-                    path = s.labels.get("path", "unknown")
-                    status = s.labels.get("status", "200")
+                for sample in metric.samples:
+                    method = sample.labels.get("method", "GET")
+                    path = sample.labels.get("path", "unknown")
+                    status = sample.labels.get("status", "200")
                     reqs[(method, path, status)] = reqs.get(
                         (method, path, status), 0.0
-                    ) + float(s.value)
+                    ) + float(sample.value)
             elif metric.name == "http_request_duration_ms":
-                for s in metric.samples:
-                    if s.name.endswith("_sum"):
-                        method = s.labels.get("method", "GET")
-                        path = s.labels.get("path", "unknown")
-                        d_sum[(method, path)] = float(s.value)
-                    elif s.name.endswith("_count"):
-                        method = s.labels.get("method", "GET")
-                        path = s.labels.get("path", "unknown")
-                        d_cnt[(method, path)] = float(s.value)
+                for sample in metric.samples:
+                    if sample.name.endswith("_sum"):
+                        method = sample.labels.get("method", "GET")
+                        path = sample.labels.get("path", "unknown")
+                        d_sum[(method, path)] = float(sample.value)
+                    elif sample.name.endswith("_count"):
+                        method = sample.labels.get("method", "GET")
+                        path = sample.labels.get("path", "unknown")
+                        d_cnt[(method, path)] = float(sample.value)
         # Aggregate per (method,path)
         rows: list[dict[str, Any]] = []
         seen_keys: set[tuple[str, str]] = set()

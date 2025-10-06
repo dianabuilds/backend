@@ -5,18 +5,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
-
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.product.tags.adapters.admin_repo_sql import (
     create_repo as create_admin_repo,
 )
 from domains.product.tags.application.admin_service import TagAdminService
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -102,9 +97,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/{tag_id}/aliases",
         summary="Add tag alias",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=30, seconds=60)),
     )
     def post_alias(
         tag_id: UUID,
@@ -142,9 +135,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/blacklist",
         summary="Add tag to blacklist",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=30, seconds=60)),
     )
     def add_blacklist(
         payload: dict,
@@ -164,9 +155,7 @@ def make_router() -> APIRouter:
     @router.delete(
         "/blacklist/{slug}",
         summary="Remove tag from blacklist",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=30, seconds=60)),
     )
     def delete_blacklist(
         slug: str,
@@ -182,9 +171,7 @@ def make_router() -> APIRouter:
     @router.post(
         "",
         summary="Create tag",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     def create_tag(
         body: dict,
@@ -215,9 +202,7 @@ def make_router() -> APIRouter:
     @router.delete(
         "/{tag_id}",
         summary="Delete tag",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     def delete_tag(
         tag_id: UUID,
@@ -233,9 +218,7 @@ def make_router() -> APIRouter:
     @router.post(
         "/merge",
         summary="Merge tags (dry-run/apply)",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     def merge_tags(
         body: dict,

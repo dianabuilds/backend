@@ -5,10 +5,10 @@ from dataclasses import replace
 
 import pytest
 
-from domains.platform.notifications.adapters.consent_audit_sql import (
+from domains.platform.notifications.adapters.sql.consent_audit import (
     SQLNotificationConsentAuditRepo,
 )
-from domains.platform.notifications.adapters.repo_sql import (
+from domains.platform.notifications.adapters.sql.preferences import (
     SQLNotificationPreferenceRepo,
 )
 from domains.platform.notifications.application.preference_service import (

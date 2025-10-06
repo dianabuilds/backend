@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 
-from domains.platform.notifications.adapters.notification_repository_sql import (
+from domains.platform.notifications.adapters.sql.notifications import (
     NotificationRepository,
 )
 

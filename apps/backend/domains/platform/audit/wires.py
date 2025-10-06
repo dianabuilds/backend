@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from domains.platform.audit.adapters.repo_memory import InMemoryAuditRepo
-from domains.platform.audit.adapters.repo_sql import SQLAuditRepo
+from domains.platform.audit.adapters.memory.repository import InMemoryAuditRepo
+from domains.platform.audit.adapters.sql.repository import SQLAuditRepo
 from domains.platform.audit.application.service import AuditService
 from domains.platform.audit.ports.repo import AuditLogRepository
 from packages.core.config import Settings, load_settings, to_async_dsn

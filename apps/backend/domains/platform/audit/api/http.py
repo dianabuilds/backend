@@ -8,14 +8,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
-# from apps.backend import get_container
 from app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
+
+# from apps.backend import get_container
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 def _parse_csv(value: str | None) -> list[str]:
@@ -286,9 +283,7 @@ def make_router() -> APIRouter:
     @router.post("")
     @router.post(
         "",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def log_event(
         req: Request,

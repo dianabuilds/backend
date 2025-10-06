@@ -7,7 +7,7 @@
 - Сервис: `application/service.py`
 - Адаптеры:
   - In-memory: `adapters/repo_memory.py`
-  - SQL (Postgres): `adapters/repo_sql.py` — использует SQLAlchemy Core (async)
+  - SQL (Postgres): `adapters/sql/repository.py` — использует SQLAlchemy Core (async)
 - API: `api/http.py`
   - `GET /v1/audit?page=1&page_size=20`
   - `POST /v1/audit` (для внутренних вызовов/демо)
@@ -22,7 +22,7 @@ psql $DATABASE_URL -f apps/backend/domains/platform/audit/schema/sql/001_create_
 2) Соберите контейнер домена с SQL репозиторием (пример DI):
 
 from sqlalchemy.ext.asyncio import create_async_engine
-from apps.backend.domains.platform.audit.adapters.repo_sql import SQLAuditRepo
+from apps.backend.domains.platform.audit.adapters.sql.repository import SQLAuditRepo
 from apps.backend.domains.platform.audit.application.service import AuditService
 
 engine = create_async_engine(str(settings.database_url))

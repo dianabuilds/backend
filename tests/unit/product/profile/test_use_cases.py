@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from domains.product.profile.adapters.repo_memory import MemoryRepo
+from domains.product.profile.adapters.memory.repository import MemoryRepo
 from domains.product.profile.application.exceptions import ProfileError
 from domains.product.profile.application.profile_presenter import profile_to_dict
 from domains.product.profile.application.profile_use_cases import (

@@ -409,10 +409,12 @@ from domains.product.moderation.api.http import (
 from domains.product.navigation.api.http import (
     make_router as navigation_router,
 )  # noqa: E402
-from domains.product.nodes.api.admin_http import (
-    make_router as nodes_admin_router,
+from domains.product.nodes.api import (
+    make_admin_router as nodes_admin_router,
 )  # noqa: E402
-from domains.product.nodes.api.http import make_router as nodes_router  # noqa: E402
+from domains.product.nodes.api import (
+    make_public_router as nodes_router,
+)
 from domains.product.premium.api.http import make_router as premium_router  # noqa: E402
 from domains.product.profile.api.http import make_router as profile_router  # noqa: E402
 from domains.product.quests.api.http import make_router as quests_router  # noqa: E402

@@ -10,6 +10,18 @@ This repository hosts two major applications:
 All backend sources and configuration live under `apps/backend`:
 
 ```
+### Domain layout
+
+Bounded contexts under `apps/backend/domains/` share a layered layout so use-cases stay infrastructure-agnostic:
+
+- `api/` contains transport adapters (FastAPI routers, task handlers, CLI).
+- `application/` hosts the use-case layer (commands, queries, services, DTOs).
+- `adapters/sql/` and `adapters/memory/` provide infrastructure for Postgres and deterministic fallbacks respectively; other adapter families (Redis, files) live alongside.
+- `domain/` keeps entities, value objects, and policies.
+
+Use-cases talk only to ports defined in `application` / `domain`, which keeps swapping adapters a configuration detail.
+
+
 apps/backend/
   +-- app/                # FastAPI entrypoints and wiring
   +-- domains/            # DDD modules (platform, product, ...)

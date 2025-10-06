@@ -5,13 +5,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-try:  # optional rate limit
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 def make_router() -> APIRouter:
@@ -20,9 +16,7 @@ def make_router() -> APIRouter:
     # Playground: quick prompt test
     @router.post(
         "/playground",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def playground(
         req: Request,
@@ -53,9 +47,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/models",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def upsert_model(
         req: Request,
@@ -69,9 +61,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/models/{model_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def delete_model(
         req: Request,
@@ -96,9 +86,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/providers",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def upsert_provider(
         req: Request,
@@ -116,9 +104,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/providers/{slug}",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def delete_provider(
         req: Request,
@@ -141,9 +127,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/fallbacks",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def upsert_fallback(
         req: Request,
@@ -157,9 +141,7 @@ def make_router() -> APIRouter:
 
     @router.delete(
         "/fallbacks/{rule_id}",
-        dependencies=(
-            [Depends(RateLimiter(times=20, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=20, seconds=60)),
     )
     async def delete_fallback(
         req: Request,

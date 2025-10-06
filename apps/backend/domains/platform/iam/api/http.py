@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 import logging
+from secrets import token_urlsafe
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-from secrets import token_urlsafe
-
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend import get_container
 from domains.platform.iam.application.auth_service import AuthError, LoginIn
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -57,14 +52,11 @@ DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 def make_router() -> APIRouter:
     router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
-    token_body = Body(default_factory=Token)
     # auth header placeholder removed; not used
 
     @router.post(
         "/login",
-        dependencies=(
-            [Depends(RateLimiter(times=5, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=5, seconds=60)),
     )
     async def login(
         req: Request, payload: LoginSchema, response: Response
@@ -145,54 +137,48 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/refresh",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     async def refresh(
-        req: Request, payload: Token = token_body, response: Response = None
+        req: Request, response: Response, payload: Token
     ) -> dict[str, Any]:
         c = get_container(req)
         pair = await c.iam.service.refresh(payload.token)
         s = c.settings
-        if response is not None:
+        response.set_cookie(
+            "access_token",
+            pair.access_token,
+            max_age=int(s.auth_jwt_expires_min) * 60,
+            path="/",
+            httponly=True,
+            samesite="lax",
+            secure=(s.env == "prod"),
+        )
+        if pair.refresh_token:
             response.set_cookie(
-                "access_token",
-                pair.access_token,
-                max_age=int(s.auth_jwt_expires_min) * 60,
+                "refresh_token",
+                pair.refresh_token,
+                max_age=int(s.auth_jwt_refresh_expires_days) * 86400,
                 path="/",
                 httponly=True,
                 samesite="lax",
                 secure=(s.env == "prod"),
             )
-            if pair.refresh_token:
-                response.set_cookie(
-                    "refresh_token",
-                    pair.refresh_token,
-                    max_age=int(s.auth_jwt_refresh_expires_days) * 86400,
-                    path="/",
-                    httponly=True,
-                    samesite="Lax",
-                    secure=(s.env == "prod"),
-                )
-            # Rotate CSRF
-            csrf_value = token_urlsafe(32)
-            response.set_cookie(
-                s.auth_csrf_cookie_name,
-                csrf_value,
-                max_age=int(s.auth_jwt_expires_min) * 60,
-                path="/",
-                httponly=False,
-                samesite="Lax",
-                secure=(s.env == "prod"),
-            )
+        csrf_value = token_urlsafe(32)
+        response.set_cookie(
+            s.auth_csrf_cookie_name,
+            csrf_value,
+            max_age=int(s.auth_jwt_expires_min) * 60,
+            path="/",
+            httponly=False,
+            samesite="lax",
+            secure=(s.env == "prod"),
+        )
         return {"access_token": pair.access_token, "refresh_token": pair.refresh_token}
 
     @router.post(
         "/signup",
-        dependencies=(
-            [Depends(RateLimiter(times=3, seconds=3600))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=3, seconds=3600)),
     )
     async def signup(req: Request, payload: SignupSchema) -> dict[str, Any]:
         c = get_container(req)
@@ -214,9 +200,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/evm/nonce",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     async def evm_nonce(req: Request, user_id: str = Query(...)) -> dict[str, Any]:
         c = get_container(req)
@@ -224,9 +208,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/evm/verify",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     async def evm_verify(
         req: Request, payload: EVMVerify, response: Response
@@ -253,7 +235,7 @@ def make_router() -> APIRouter:
                 max_age=int(s.auth_jwt_refresh_expires_days) * 86400,
                 path="/",
                 httponly=True,
-                samesite="Lax",
+                samesite="lax",
                 secure=(s.env == "prod"),
             )
         csrf_value = token_urlsafe(32)
@@ -263,7 +245,7 @@ def make_router() -> APIRouter:
             max_age=int(s.auth_jwt_expires_min) * 60,
             path="/",
             httponly=False,
-            samesite="Lax",
+            samesite="lax",
             secure=(s.env == "prod"),
         )
         return {

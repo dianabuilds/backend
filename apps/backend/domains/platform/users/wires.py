@@ -7,7 +7,7 @@ import redis.asyncio as redis  # type: ignore
 from redis.exceptions import RedisError  # type: ignore[import]
 
 from domains.platform.users.adapters.repos_cached import CachedUsersRepo
-from domains.platform.users.adapters.repos_sql import SQLUsersRepo
+from domains.platform.users.adapters.sql.repositories import SQLUsersRepo
 from domains.platform.users.application.service import UsersService
 from domains.platform.users.ports import UsersRepo
 from packages.core.config import Settings, load_settings, to_async_dsn

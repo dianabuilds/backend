@@ -8,16 +8,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except ImportError:  # pragma: no cover
-    RateLimiter = None  # type: ignore
-
 from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user
 from domains.platform.media.application.storage_service import (
     StorageService,
 )
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +23,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/media",
-        dependencies=(
-            [Depends(RateLimiter(times=10, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=10, seconds=60)),
     )
     async def upload_media(
         req: Request,

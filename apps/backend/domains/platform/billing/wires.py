@@ -4,10 +4,10 @@ from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from domains.platform.billing.adapters.contracts_sql import SQLContractsRepo
-from domains.platform.billing.adapters.crypto_config_sql import SQLCryptoConfigRepo
 from domains.platform.billing.adapters.provider_mock import MockProvider
-from domains.platform.billing.adapters.repos_sql import (
+from domains.platform.billing.adapters.sql.contracts import SQLContractsRepo
+from domains.platform.billing.adapters.sql.crypto_config import SQLCryptoConfigRepo
+from domains.platform.billing.adapters.sql.repositories import (
     SQLGatewaysRepo,
     SQLLedgerRepo,
     SQLPlanRepo,

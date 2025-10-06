@@ -7,11 +7,7 @@ from apps.backend import get_container
 from domains.platform.events.adapters.redis_bus import RedisBus
 from domains.platform.iam.security import require_admin
 from packages.core.config import load_settings
-
-try:
-    from fastapi_limiter.depends import RateLimiter  # type: ignore
-except Exception:  # pragma: no cover
-    RateLimiter = None  # type: ignore
+from packages.fastapi_rate_limit import optional_rate_limiter
 
 
 class PubIn(BaseModel):
@@ -29,9 +25,7 @@ def make_router() -> APIRouter:
 
     @router.get(
         "/stats/{topic}",
-        dependencies=(
-            [Depends(RateLimiter(times=60, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=60, seconds=60)),
     )
     def stats(
         topic: str, group: str | None = None, _admin: None = Depends(require_admin)
@@ -47,9 +41,7 @@ def make_router() -> APIRouter:
 
     @router.post(
         "/dev/publish",
-        dependencies=(
-            [Depends(RateLimiter(times=30, seconds=60))] if RateLimiter else []
-        ),
+        dependencies=(optional_rate_limiter(times=30, seconds=60)),
         summary="Publish an event (dev)",
     )
     def dev_publish(
