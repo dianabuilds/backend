@@ -69,7 +69,7 @@ def add_auth(client: TestClient, token: str) -> None:
 @pytest.fixture(scope="session")
 def app_client() -> Generator[TestClient, None, None]:
     _ensure_backend_on_path()
-    from app.api_gateway.main import app as fastapi_app
+    from apps.backend.app.api_gateway.main import app as fastapi_app
 
     with TestClient(fastapi_app) as client:
         yield client

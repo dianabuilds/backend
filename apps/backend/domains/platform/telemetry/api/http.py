@@ -13,8 +13,7 @@ try:  # optional dependency
 except ImportError:  # pragma: no cover - optional import
     FastAPILimiter = None  # type: ignore
 
-from app.api_gateway.routers import get_container
-
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.telemetry.application.event_metrics_service import (
     event_metrics,
 )

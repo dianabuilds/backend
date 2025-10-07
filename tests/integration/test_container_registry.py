@@ -1,4 +1,4 @@
-﻿from app.api_gateway.container_registry import container_registry
+﻿from apps.backend.app.api_gateway.container_registry import container_registry
 
 # Keys covering domains migrated to adapters.sql/memory layout.
 _RESOLUTION_KEYS = [

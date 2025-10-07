@@ -5,13 +5,11 @@ from datetime import UTC, datetime
 from io import StringIO
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
+from app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
-
-# from app.api_gateway.routers import get_container
 from packages.fastapi_rate_limit import optional_rate_limiter
 
 

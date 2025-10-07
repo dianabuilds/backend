@@ -2,8 +2,9 @@
 
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+from apps.backend.app.api_gateway.routers import get_container
 
 from ...application.content import commands as content_commands
 from ...application.content import queries as content_queries

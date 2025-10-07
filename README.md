@@ -2,8 +2,8 @@
 
 This repository hosts two major applications:
 
-- `apps/backend` – FastAPI service with domain-driven modules, Alembic migrations, tasks, and tooling.
-- `apps/web` – React frontend (Vite) that consumes the backend APIs.
+- `apps/backend`  FastAPI service with domain-driven modules, Alembic migrations, tasks, and tooling.
+- `apps/web`  React frontend (Vite) that consumes the backend APIs.
 
 ## Backend
 
@@ -24,9 +24,9 @@ Use-cases talk only to ports defined in `application` / `domain`, which keeps sw
 
 ### Billing domain snapshot
 
-- `domains/platform/billing/application/use_cases` содержит фасад `BillingUseCases` с подпакетами `public`, `admin`, а также фасад настроек `settings.BillingSettingsUseCase`, через который `app/api_gateway/settings/billing.py` собирает payload без прямых обращений к контейнеру.
-- Инфраструктура вынесена в `domains/platform/billing/infrastructure/sql`: отдельные адаптеры собирают summary/history и метрики; сервисы работают только через порты `BillingSummaryRepo`/`BillingHistoryRepo`.
-- Дополнительные unit-тесты лежат в `tests/unit/billing`, smoke-эндпоинты покрыты `tests/smoke/test_api_billing.py`.
+- `domains/platform/billing/application/use_cases`   `BillingUseCases`   `public`, `admin`,     `settings.BillingSettingsUseCase`,   `apps/backend/app/api_gateway/settings/billing.py`  payload     .
+-    `domains/platform/billing/infrastructure/sql`:    summary/history  ;      `BillingSummaryRepo`/`BillingHistoryRepo`.
+-  unit-   `tests/unit/billing`, smoke-  `tests/smoke/test_api_billing.py`.
 
 apps/backend/
   +-- app/                # FastAPI entrypoints and wiring
@@ -52,8 +52,9 @@ echo APP_DATABASE_URL=... >> .env
 python -m alembic -c alembic.ini upgrade head
 
 # Launch the API
-uvicorn app.api_gateway.main:app --reload
+uvicorn apps.backend.app.api_gateway.main:app --reload
 ```
+Backend РјРѕР¶РЅРѕ РѕС‚РєСЂС‹РІР°С‚СЊ РІ IDE РїСЂСЏРјРѕ РёР· РєР°С‚Р°Р»РѕРіР° apps/backend: shim apps.backend (СЃРј. apps/backend/apps/backend/__init__.py) РґРµСЂР¶РёС‚ РёРјРїРѕСЂС‚С‹ apps.backend.* Р±РµР· РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РґРѕР±Р°РІР»СЏС‚СЊ СЂРѕРґРёС‚РµР»СЊСЃРєСѓСЋ РґРёСЂРµРєС‚РѕСЂРёСЋ РІ PYTHONPATH.
 
 Hooks and linters:
 

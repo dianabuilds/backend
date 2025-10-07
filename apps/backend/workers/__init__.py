@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
-from app.api_gateway.wires import Container, build_container
+from apps.backend.app.api_gateway.wires import Container, build_container
 
 
 @lru_cache(maxsize=1)

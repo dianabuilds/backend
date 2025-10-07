@@ -3,8 +3,9 @@
 from collections.abc import Mapping
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+from apps.backend.app.api_gateway.routers import get_container
 
 from ...application.users import commands as user_commands
 from ...application.users import queries as user_queries

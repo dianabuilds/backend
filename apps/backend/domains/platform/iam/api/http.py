@@ -4,11 +4,11 @@ import logging
 from secrets import token_urlsafe
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.exc import SQLAlchemyError
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.audit.infrastructure import AuditLogPayload, safe_audit_log
 from domains.platform.iam.application.auth_service import AuthError, LoginIn
 from packages.fastapi_rate_limit import optional_rate_limiter

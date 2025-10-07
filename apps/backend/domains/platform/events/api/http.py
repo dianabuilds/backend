@@ -1,9 +1,9 @@
 ﻿from __future__ import annotations
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.events.adapters.redis_bus import RedisBus
 from domains.platform.iam.security import require_admin
 from packages.core.config import load_settings

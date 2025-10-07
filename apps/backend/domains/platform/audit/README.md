@@ -29,7 +29,7 @@ engine = create_async_engine(str(settings.database_url))
 repo = SQLAuditRepo(engine)
 service = AuditService(repo)
 
-3) Подключите в `app/api_gateway/wires.py` вместо in-memory (по желанию).
+3) Подключите в `apps/backend/app/api_gateway/wires.py` вместо in-memory (по желанию).
 
 ## TODO
 - Фильтры в API (actor/action/resource/period)

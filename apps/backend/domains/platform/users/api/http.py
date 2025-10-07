@@ -3,12 +3,12 @@
 import logging
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import (
     get_current_user,
     require_admin,

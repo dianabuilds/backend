@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from app.api_gateway.routers import get_container
 from fastapi import Request
 
+from apps.backend.app.api_gateway.routers import get_container
 from packages.fastapi_rate_limit import optional_rate_limiter
 
 from ..application.use_cases import (

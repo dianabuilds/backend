@@ -3,10 +3,10 @@
 from datetime import datetime
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, field_validator, model_validator
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.platform.notifications.application.broadcast_exceptions import (
     BroadcastError,

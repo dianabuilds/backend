@@ -4,7 +4,7 @@
 
 ## Обзор
 
-- **API Gateway**: модуль `app/api_gateway` на FastAPI. Он отвечает только за сборку DI-контейнера, регистрацию роутеров доменов и глобальные middleware/метрики.
+- **API Gateway**: модуль `apps/backend/app/api_gateway` на FastAPI. Он отвечает только за сборку DI-контейнера, регистрацию роутеров доменов и глобальные middleware/метрики.
 - **Домены**: в каталоге `apps/backend/domains/<kind>/<name>` с единым шаблоном слоёв `api → application → domain → adapters`.
 - **Платформа**: общие сервисы (уведомления, moderation, flags, events, telemetry и т.д.) — живут в `platform.*` и предоставляют узкие порты для продуктовых команд.
 - **Контракты**: JSON Schema / OpenAPI в `apps/backend/packages/schemas` и unit/integration тесты в `tests/**` — единственный источник правды для публичных интерфейсов.
@@ -13,7 +13,7 @@
 ## Дерево (основные каталоги)
 
 ```
-app/
+apps/backend/app/
   api_gateway/               # FastAPI, DI, routers, middleware
 apps/backend/
   domains/
@@ -49,7 +49,7 @@ stubs/slugify/               # локальный typeshed для mypy
 
 - Все домены переведены на typed presenters + `commands/queries` (вместо временных фасадов и `UseCaseResult`). API-слой теперь работает напрямую с готовыми структурами.
 - Библиотека `slugify` закрыта локальным stub`ом (`stubs/slugify/__init__.pyi`), что позволило включить строгий mypy без игноров.
-- Раскладка `app/api_gateway` вынесена из `apps/backend/app` в отдельный пакет `app/`, чтобы устранить дублирование путей (`__main__` vs `apps.backend.app`).
+- API Gateway снова находится в apps/backend/app/api_gateway, чтобы бэкенд оставался самодостаточным пакетом.
 - sql/adapters возвращают строго типизированные `dict[str, Any]` (например, `redis_bus.to_payload`, `moderation/adapters/sql/storage`).
 - Добавлены тесты уровня `tests/integration` для проверки новых маршрутов и миграций (notifications, moderation, flags и т.д.).
 

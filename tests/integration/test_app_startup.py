@@ -12,7 +12,7 @@ def test_app_startup_without_external_services(monkeypatch):
     monkeypatch.delenv("APP_REDIS_URL", raising=False)
     monkeypatch.delenv("REDIS_URL", raising=False)
 
-    module_name = "app.api_gateway.main"
+    module_name = "apps.backend.app.api_gateway.main"
     sys.modules.pop(module_name, None)
     main_module = importlib.import_module(module_name)
 

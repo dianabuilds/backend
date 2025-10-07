@@ -91,7 +91,7 @@ Responses include `node_id`, `target_user_id`, `set_by`, `reason`, `created_at`.
 
 ## Tests and references
 - `apps/backend/app/tests/test_nodes_api.py::test_node_engagement_endpoints` for end-to-end flow.
-- Local smoke: `poetry run uvicorn app.api_gateway.main:app --reload` and call endpoints with Postman or HTTPie.
+- Local smoke: `poetry run uvicorn apps.backend.app.api_gateway.main:app --reload` and call endpoints with Postman or HTTPie.
 
 ## Admin Endpoints
 
@@ -163,9 +163,9 @@ Soft deletes by default; pass `hard=true` to remove permanently. Optional query 
 
 ### Comment Ban Management
 
-- `GET /v1/admin/nodes/{id}/comment-bans` – list active bans (target id, set_by, reason, created_at).
-- `POST /v1/admin/nodes/{id}/comment-bans` – upsert a ban: `{ "target_user_id": "uuid", "reason": "spam" }`.
-- `DELETE /v1/admin/nodes/{id}/comment-bans/{user_id}` – remove a ban.
+- `GET /v1/admin/nodes/{id}/comment-bans`  list active bans (target id, set_by, reason, created_at).
+- `POST /v1/admin/nodes/{id}/comment-bans`  upsert a ban: `{ "target_user_id": "uuid", "reason": "spam" }`.
+- `DELETE /v1/admin/nodes/{id}/comment-bans/{user_id}`  remove a ban.
 
 All ban endpoints require valid UUIDs for `target_user_id` and the acting admin.
 

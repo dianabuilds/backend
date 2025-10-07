@@ -3,9 +3,9 @@
 from functools import wraps
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import (  # type: ignore[import-not-found]
     csrf_protect,
     require_admin,

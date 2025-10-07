@@ -2,8 +2,6 @@
 
 from typing import Any
 
-from app.api_gateway.idempotency import require_idempotency_key
-from app.api_gateway.routers import get_container
 from fastapi import (
     APIRouter,
     Depends,
@@ -16,6 +14,8 @@ from fastapi import (
 )
 from pydantic import BaseModel, Field
 
+from apps.backend.app.api_gateway.idempotency import require_idempotency_key
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.platform.media.application.storage_service import StorageService
 from domains.product.profile.application.commands import (

@@ -34,7 +34,7 @@ jobs:
         run: |
           python - <<'PYTHON'
           from fastapi.openapi.utils import get_openapi
-          from app.api_gateway.main import app
+          from apps.backend.app.api_gateway.main import app
           import json, pathlib
 
           schema = get_openapi(

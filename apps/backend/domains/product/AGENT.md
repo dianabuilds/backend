@@ -21,7 +21,7 @@
 1) Создайте `domains/product/<name>/{api,application,domain,adapters}`.
 2) Опишите порты в `application/ports.py` и модели в `domain/*`.
 3) Реализуйте адаптеры и `wires.py` под DI контейнер (если нужен).
-4) Подключите роутер в `app/api_gateway/main.py` и зависимости в `wires.py`.
+4) Подключите роутер в `apps/backend/app/api_gateway/main.py` и зависимости в `wires.py`.
 5) При необходимости добавьте схемы в `packages/schemas/**` и DDL в `schema/sql/*`.
 
 Links

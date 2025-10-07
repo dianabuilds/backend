@@ -4,13 +4,13 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from apps.backend.app.api_gateway.routers import get_container
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
 

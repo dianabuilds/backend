@@ -47,7 +47,7 @@ typecheck:
 	mypy . --config-file pyproject.toml
 
 run:
-	uvicorn app.api_gateway.main:app --reload
+	uvicorn apps.backend.app.api_gateway.main:app --reload
 
 run-relay:
 	python -c "from apps.backend.domains.platform.events.logic.relay import RedisRelay; import os; topics=os.getenv('EVENT_TOPICS','profile.updated.v1').split(','); from apps.backend.packages.core.config import load_settings; s=load_settings(); RedisRelay(s.redis_url, topics).loop(routes={t: (lambda t,p: print('event',t,p)) for t in topics})"

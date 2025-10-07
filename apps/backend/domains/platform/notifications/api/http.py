@@ -3,10 +3,10 @@
 import logging
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.platform.notifications.application.dispatch_use_cases import (
     preview_channel_notification as preview_channel_notification_use_case,

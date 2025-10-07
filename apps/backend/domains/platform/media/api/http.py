@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user
 from domains.platform.media.application.storage_service import (
     StorageService,

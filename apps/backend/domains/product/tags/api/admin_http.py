@@ -3,9 +3,9 @@
 import logging
 from uuid import UUID
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.product.tags.adapters import create_admin_repo
 from domains.product.tags.application.admin_service import TagAdminService

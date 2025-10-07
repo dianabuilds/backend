@@ -1,8 +1,8 @@
 ﻿from __future__ import annotations
 
-from app.api_gateway.routers import get_container
 from fastapi import Depends
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.product.nodes.application.use_cases import (
     build_catalog_mutations_service,
     build_comments_service,

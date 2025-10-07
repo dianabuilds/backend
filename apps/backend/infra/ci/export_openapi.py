@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from app.api_gateway.main import app
+from apps.backend.app.api_gateway.main import app
 
 
 def main() -> None:

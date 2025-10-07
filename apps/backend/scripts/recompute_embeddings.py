@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from app.api_gateway.wires import build_container
+from apps.backend.app.api_gateway.wires import build_container
 
 logger = logging.getLogger(__name__)
 from domains.product.nodes.application.service import NodeService

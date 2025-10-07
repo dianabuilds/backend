@@ -19,8 +19,7 @@ QUOTA_HIT = (
     else None
 )
 
-from app.api_gateway.routers import get_container
-
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.iam.security import require_admin
 from packages.fastapi_rate_limit import optional_rate_limiter
 

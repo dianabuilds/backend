@@ -3,9 +3,9 @@
 import logging
 from typing import Any
 
-from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.flags.application.commands import (
     delete_flag as delete_flag_command,
 )
