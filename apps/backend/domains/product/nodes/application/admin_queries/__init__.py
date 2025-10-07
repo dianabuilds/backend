@@ -2,9 +2,13 @@
 
 from .commands import (
     SYSTEM_ACTOR_ID,
+    AdminEvent,
+    AuditLogPayload,
     _emit_admin_activity,
     _extract_actor_id,
     logger,
+    make_event_context,
+    make_event_payload,
 )
 from .exceptions import AdminQueryError
 from .presenter import (
@@ -63,6 +67,10 @@ __all__ = [
     "_comment_dto_to_dict",
     "_decision_to_status",
     "_emit_admin_activity",
+    "AdminEvent",
+    "AuditLogPayload",
+    "make_event_context",
+    "make_event_payload",
     "_ensure_engine",
     "_ensure_utc",
     "_extract_actor_id",

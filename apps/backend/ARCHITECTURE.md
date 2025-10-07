@@ -43,6 +43,10 @@ stubs/slugify/               # локальный typeshed для mypy
 
 ## Решения последнего рефакторинга
 
+- **Nodes API**: HTTP слой (`domains/product/nodes/api/http.py`) теперь только регистрирует публичные модули (`public/catalog.py`, `public/catalog_mutations.py`, `public/engagement.py`, `public/comments.py`). Бизнес-логика и валидация вынесены в use-case сервисы (`application/use_cases/**`) и инфраструктурные репозитории (`infrastructure/catalog_repository.py`, `engagement_repository.py`, `comments_repository.py`, `saved_views_repository.py`).
+- **Navigation API**: та же схема – `navigation/api/http.py` является тонкой обёрткой над `public` и `admin` пакетами. Логику переходов и админских отчётов обслуживают `application/use_cases/transition.py`, `relations_admin.py`, а SQL-интеграцию инкапсулируют `infrastructure/engine.py`, `relations.py`.
+
+
 - Все домены переведены на typed presenters + `commands/queries` (вместо временных фасадов и `UseCaseResult`). API-слой теперь работает напрямую с готовыми структурами.
 - Библиотека `slugify` закрыта локальным stub`ом (`stubs/slugify/__init__.pyi`), что позволило включить строгий mypy без игноров.
 - Раскладка `app/api_gateway` вынесена из `apps/backend/app` в отдельный пакет `app/`, чтобы устранить дублирование путей (`__main__` vs `apps.backend.app`).
@@ -66,4 +70,5 @@ stubs/slugify/               # локальный typeshed для mypy
 - `docs/feature_flags_sql_plan.md` — подробный playbook по SQL флагам.
 - `docs/worker-platform.md` — запуск воркеров/cron.
 - ADR (в `adr/`) фиксируют ключевые архитектурные решения и эволюцию доменов.
+
 

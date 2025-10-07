@@ -16,6 +16,18 @@ class CheckoutResult:
     external_id: str
 
 
+@dataclass
+class BillingSummary:
+    plan: JsonDict | None
+    subscription: JsonDict | None
+
+
+@dataclass
+class BillingHistory:
+    items: JsonDictList
+    coming_soon: bool = False
+
+
 class PaymentProvider(Protocol):
     async def checkout(self, user_id: str, plan: Plan) -> CheckoutResult: ...
     async def verify_webhook(self, payload: bytes, signature: str | None) -> bool: ...
@@ -77,6 +89,20 @@ class CryptoConfigRepo(Protocol):
     async def set(self, slug: str, cfg: JsonDict) -> JsonDict: ...
 
 
+class BillingAnalyticsRepo(Protocol):
+    async def kpi(self) -> JsonDict: ...
+    async def subscription_metrics(self) -> JsonDict: ...
+    async def revenue_timeseries(self, days: int = 30) -> JsonDictList: ...
+
+
+class BillingSummaryRepo(Protocol):
+    async def get_summary(self, user_id: str) -> BillingSummary: ...
+
+
+class BillingHistoryRepo(Protocol):
+    async def get_history(self, user_id: str, limit: int = 20) -> BillingHistory: ...
+
+
 __all__ = [
     "PaymentProvider",
     "CheckoutResult",
@@ -86,4 +112,9 @@ __all__ = [
     "GatewayRepo",
     "ContractsRepo",
     "CryptoConfigRepo",
+    "BillingAnalyticsRepo",
+    "BillingSummary",
+    "BillingHistory",
+    "BillingSummaryRepo",
+    "BillingHistoryRepo",
 ]

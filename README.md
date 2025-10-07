@@ -22,6 +22,12 @@ Bounded contexts under `apps/backend/domains/` share a layered layout so use-cas
 Use-cases talk only to ports defined in `application` / `domain`, which keeps swapping adapters a configuration detail.
 
 
+### Billing domain snapshot
+
+- `domains/platform/billing/application/use_cases` содержит фасад `BillingUseCases` с подпакетами `public`, `admin`, а также фасад настроек `settings.BillingSettingsUseCase`, через который `app/api_gateway/settings/billing.py` собирает payload без прямых обращений к контейнеру.
+- Инфраструктура вынесена в `domains/platform/billing/infrastructure/sql`: отдельные адаптеры собирают summary/history и метрики; сервисы работают только через порты `BillingSummaryRepo`/`BillingHistoryRepo`.
+- Дополнительные unit-тесты лежат в `tests/unit/billing`, smoke-эндпоинты покрыты `tests/smoke/test_api_billing.py`.
+
 apps/backend/
   +-- app/                # FastAPI entrypoints and wiring
   +-- domains/            # DDD modules (platform, product, ...)

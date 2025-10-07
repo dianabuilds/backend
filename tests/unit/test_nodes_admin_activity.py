@@ -1,4 +1,4 @@
-﻿import importlib
+import importlib
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -9,6 +9,10 @@ with patch("prometheus_client.Counter"), patch("prometheus_client.Histogram"):
         "domains.product.nodes.application.admin_queries"
     )
 _emit_admin_activity = _admin_queries._emit_admin_activity
+AdminEvent = _admin_queries.AdminEvent
+AuditLogPayload = _admin_queries.AuditLogPayload
+make_event_context = _admin_queries.make_event_context
+make_event_payload = _admin_queries.make_event_payload
 
 
 class DummySafePublisher:
@@ -44,10 +48,12 @@ async def test_emit_admin_activity_prefers_safe_publish() -> None:
 
     await _emit_admin_activity(
         container,
-        event="node.updated.v1",
-        payload={"id": 42},
-        key="node:42",
-        event_context={"node_id": 42},
+        event=AdminEvent(
+            event="node.updated.v1",
+            payload=make_event_payload(base={"id": 42}),
+            key="node:42",
+            context=make_event_context(node_id=42),
+        ),
     )
 
     assert events.calls == []
@@ -65,9 +71,11 @@ async def test_emit_admin_activity_falls_back_to_events() -> None:
 
     await _emit_admin_activity(
         container,
-        event="node.updated.v1",
-        payload={"id": 7},
-        key="node:7",
+        event=AdminEvent(
+            event="node.updated.v1",
+            payload=make_event_payload(base={"id": 7}),
+            key="node:7",
+        ),
     )
 
     assert events.calls == [
@@ -87,12 +95,14 @@ async def test_emit_admin_activity_writes_audit_log() -> None:
 
     await _emit_admin_activity(
         container,
-        audit_action="product.nodes.test",
-        audit_actor="actor",
-        audit_resource_type="node",
-        audit_resource_id="42",
-        audit_reason="test",
-        audit_extra={"foo": "bar"},
+        audit=AuditLogPayload(
+            actor_id="actor",
+            action="product.nodes.test",
+            resource_type="node",
+            resource_id="42",
+            reason="test",
+            extra={"foo": "bar"},
+        ),
     )
 
     assert calls == [
@@ -101,6 +111,10 @@ async def test_emit_admin_activity_writes_audit_log() -> None:
             "action": "product.nodes.test",
             "resource_type": "node",
             "resource_id": "42",
+            "before": None,
+            "after": None,
+            "ip": None,
+            "user_agent": None,
             "reason": "test",
             "extra": {"foo": "bar"},
         }

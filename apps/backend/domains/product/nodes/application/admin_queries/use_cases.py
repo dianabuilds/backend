@@ -16,7 +16,11 @@ from domains.product.nodes.adapters.memory.utils import (
 
 from .commands import (
     SYSTEM_ACTOR_ID,
+    AdminEvent,
+    AuditLogPayload,
     _emit_admin_activity,
+    make_event_context,
+    make_event_payload,
 )
 from .commands import (
     logger as _base_logger,
@@ -241,24 +245,27 @@ async def create_comment_ban(
     )
     await _emit_admin_activity(
         container,
-        event="node.comments.user_banned.admin",
-        payload={
-            "node_id": ban.node_id,
-            "target_user_id": ban.target_user_id,
-            "reason": reason,
-        },
-        key=f"node:{ban.node_id}:comments:ban:{ban.target_user_id}:admin",
-        event_context={
-            "node_id": ban.node_id,
-            "target_user_id": ban.target_user_id,
-            "source": "admin_comment_ban",
-        },
-        audit_action="product.nodes.comments.ban",
-        audit_actor=actor,
-        audit_resource_type="node",
-        audit_resource_id=str(ban.node_id),
-        audit_reason=reason,
-        audit_extra={"target_user_id": ban.target_user_id},
+        event=AdminEvent(
+            event="node.comments.user_banned.admin",
+            payload=make_event_payload(
+                node_id=ban.node_id,
+                extra={"target_user_id": ban.target_user_id, "reason": reason},
+            ),
+            key=f"node:{ban.node_id}:comments:ban:{ban.target_user_id}:admin",
+            context=make_event_context(
+                node_id=ban.node_id,
+                extra={"target_user_id": ban.target_user_id},
+                source="admin_comment_ban",
+            ),
+        ),
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action="product.nodes.comments.ban",
+            resource_type="node",
+            resource_id=str(ban.node_id),
+            reason=reason,
+            extra={"target_user_id": ban.target_user_id},
+        ),
     )
     return _ban_to_dict(ban)
 
@@ -284,18 +291,25 @@ async def delete_comment_ban(
     actor = actor_id or SYSTEM_ACTOR_ID
     await _emit_admin_activity(
         container,
-        event="node.comments.user_unbanned.admin",
-        payload={"node_id": resolved_id, "target_user_id": target_user_id},
-        key=f"node:{resolved_id}:comments:ban:{target_user_id}:admin",
-        event_context={
-            "node_id": resolved_id,
-            "target_user_id": target_user_id,
-            "source": "admin_comment_unban",
-        },
-        audit_action="product.nodes.comments.unban",
-        audit_actor=actor,
-        audit_resource_type="node",
-        audit_resource_id=str(resolved_id),
+        event=AdminEvent(
+            event="node.comments.user_unbanned.admin",
+            payload=make_event_payload(
+                node_id=resolved_id,
+                extra={"target_user_id": target_user_id},
+            ),
+            key=f"node:{resolved_id}:comments:ban:{target_user_id}:admin",
+            context=make_event_context(
+                node_id=resolved_id,
+                extra={"target_user_id": target_user_id},
+                source="admin_comment_unban",
+            ),
+        ),
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action="product.nodes.comments.unban",
+            resource_type="node",
+            resource_id=str(resolved_id),
+        ),
     )
     return {"ok": True}
 
@@ -569,27 +583,37 @@ async def apply_moderation_decision(
     }
     await _emit_admin_activity(
         container,
-        event="node.moderation.decision.v1",
-        payload=event_payload,
-        key=f"node:{resolved_id}:moderation",
-        event_context={
-            "node_id": resolved_id,
-            "action": action,
-            "status": moderation_status,
-        },
-        audit_action="product.nodes.moderation.decision",
-        audit_actor=actor,
-        audit_resource_type="node",
-        audit_resource_id=str(resolved_id),
-        audit_reason=reason,
-        audit_extra=audit_extra,
+        event=AdminEvent(
+            event="node.moderation.decision.v1",
+            payload=make_event_payload(base=event_payload),
+            key=f"node:{resolved_id}:moderation",
+            context=make_event_context(
+                node_id=resolved_id,
+                extra={"action": action, "status": moderation_status},
+            ),
+        ),
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action="product.nodes.moderation.decision",
+            resource_type="node",
+            resource_id=str(resolved_id),
+            reason=reason,
+            extra=audit_extra,
+        ),
     )
     await _emit_admin_activity(
         container,
-        event="node.updated.v1",
-        payload={"id": resolved_id, "fields": node_update_fields},
-        key=f"node:{resolved_id}",
-        event_context={"node_id": resolved_id, "fields": node_update_fields},
+        event=AdminEvent(
+            event="node.updated.v1",
+            payload=make_event_payload(
+                base={"id": resolved_id, "fields": node_update_fields},
+            ),
+            key=f"node:{resolved_id}",
+            context=make_event_context(
+                node_id=resolved_id,
+                extra={"fields": node_update_fields},
+            ),
+        ),
     )
     return detail or {"ok": True, "status": moderation_status}
 
@@ -613,19 +637,32 @@ async def set_comments_lock(
         await svc.unlock_comments(resolved_id, actor_id=actor)
     await _emit_admin_activity(
         container,
-        event=(
-            "node.comments.locked.admin" if locked else "node.comments.unlocked.admin"
+        event=AdminEvent(
+            event=(
+                "node.comments.locked.admin"
+                if locked
+                else "node.comments.unlocked.admin"
+            ),
+            payload=make_event_payload(
+                base={"id": resolved_id, "locked": locked, "actor_id": actor},
+            ),
+            key=f"node:{resolved_id}:comments:lock",
+            context=make_event_context(
+                node_id=resolved_id,
+                source="admin_comments_lock",
+            ),
         ),
-        payload={"id": resolved_id, "locked": locked, "actor_id": actor},
-        key=f"node:{resolved_id}:comments:lock",
-        event_context={"node_id": resolved_id, "source": "admin_comments_lock"},
-        audit_action=(
-            "product.nodes.comments.lock" if locked else "product.nodes.comments.unlock"
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action=(
+                "product.nodes.comments.lock"
+                if locked
+                else "product.nodes.comments.unlock"
+            ),
+            resource_type="node",
+            resource_id=str(resolved_id),
+            reason=reason,
         ),
-        audit_actor=actor,
-        audit_resource_type="node",
-        audit_resource_id=str(resolved_id),
-        audit_reason=reason,
     )
     comments_summary = None
     if engine is not None:
@@ -656,23 +693,32 @@ async def set_comments_disabled(
         await svc.enable_comments(resolved_id, actor_id=actor)
     await _emit_admin_activity(
         container,
-        event=(
-            "node.comments.disabled.admin"
-            if disabled
-            else "node.comments.enabled.admin"
+        event=AdminEvent(
+            event=(
+                "node.comments.disabled.admin"
+                if disabled
+                else "node.comments.enabled.admin"
+            ),
+            payload=make_event_payload(
+                base={"id": resolved_id, "disabled": disabled, "actor_id": actor},
+            ),
+            key=f"node:{resolved_id}:comments:disable",
+            context=make_event_context(
+                node_id=resolved_id,
+                source="admin_comments_disable",
+            ),
         ),
-        payload={"id": resolved_id, "disabled": disabled, "actor_id": actor},
-        key=f"node:{resolved_id}:comments:disable",
-        event_context={"node_id": resolved_id, "source": "admin_comments_disable"},
-        audit_action=(
-            "product.nodes.comments.disable"
-            if disabled
-            else "product.nodes.comments.enable"
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action=(
+                "product.nodes.comments.disable"
+                if disabled
+                else "product.nodes.comments.enable"
+            ),
+            resource_type="node",
+            resource_id=str(resolved_id),
+            reason=reason,
         ),
-        audit_actor=actor,
-        audit_resource_type="node",
-        audit_resource_id=str(resolved_id),
-        audit_reason=reason,
     )
     comments_summary = None
     if engine is not None:
@@ -714,24 +760,30 @@ async def update_comment_status(
 
     await _emit_admin_activity(
         container,
-        event="node.comment.status.admin",
-        payload={
-            "id": updated.id,
-            "node_id": updated.node_id,
-            "status": updated.status,
-        },
-        key=f"node:{updated.node_id}:comment:{updated.id}:status:admin",
-        event_context={
-            "node_id": updated.node_id,
-            "comment_id": updated.id,
-            "source": "admin_comment_status",
-        },
-        audit_action="product.nodes.comments.status",
-        audit_actor=actor,
-        audit_resource_type="comment",
-        audit_resource_id=str(updated.id),
-        audit_reason=reason,
-        audit_extra={"status": updated.status},
+        event=AdminEvent(
+            event="node.comment.status.admin",
+            payload=make_event_payload(
+                base={
+                    "id": updated.id,
+                    "node_id": updated.node_id,
+                    "status": updated.status,
+                },
+            ),
+            key=f"node:{updated.node_id}:comment:{updated.id}:status:admin",
+            context=make_event_context(
+                node_id=updated.node_id,
+                comment_id=updated.id,
+                source="admin_comment_status",
+            ),
+        ),
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action="product.nodes.comments.status",
+            resource_type="comment",
+            resource_id=str(updated.id),
+            reason=reason,
+            extra={"status": updated.status},
+        ),
     )
     response: dict[str, Any] = {"comment": _comment_dto_to_dict(updated)}
     if comments_summary is not None:
@@ -759,24 +811,30 @@ async def delete_comment(
         raise AdminQueryError(404, "not_found")
     await _emit_admin_activity(
         container,
-        event="node.comment.deleted.admin",
-        payload={
-            "id": comment.id,
-            "node_id": comment.node_id,
-            "hard": bool(hard),
-            "actor_id": actor,
-        },
-        key=f"node:{comment.node_id}:comment:{comment.id}:delete",
-        event_context={
-            "node_id": comment.node_id,
-            "comment_id": comment.id,
-            "source": "admin_comment_delete",
-        },
-        audit_action="product.nodes.comments.delete",
-        audit_actor=actor,
-        audit_resource_type="comment",
-        audit_resource_id=str(comment.id),
-        audit_reason=reason,
+        event=AdminEvent(
+            event="node.comment.deleted.admin",
+            payload=make_event_payload(
+                base={
+                    "id": comment.id,
+                    "node_id": comment.node_id,
+                    "hard": bool(hard),
+                    "actor_id": actor,
+                },
+            ),
+            key=f"node:{comment.node_id}:comment:{comment.id}:delete",
+            context=make_event_context(
+                node_id=comment.node_id,
+                comment_id=comment.id,
+                source="admin_comment_delete",
+            ),
+        ),
+        audit=AuditLogPayload(
+            actor_id=actor,
+            action="product.nodes.comments.delete",
+            resource_type="comment",
+            resource_id=str(comment.id),
+            reason=reason,
+        ),
     )
     engine = await _ensure_engine(container)
     response: dict[str, Any] = {"ok": True}
@@ -1085,11 +1143,13 @@ async def delete_node(
         raise AdminQueryError(404, "not_found")
     await _emit_admin_activity(
         container,
-        audit_action="product.nodes.delete",
-        audit_actor=actor_id or SYSTEM_ACTOR_ID,
-        audit_resource_type="node",
-        audit_resource_id=str(node_id),
-        audit_extra={"source": "admin_delete"},
+        audit=AuditLogPayload(
+            actor_id=actor_id or SYSTEM_ACTOR_ID,
+            action="product.nodes.delete",
+            resource_type="node",
+            resource_id=str(node_id),
+            extra={"source": "admin_delete"},
+        ),
     )
     return {"ok": True}
 
@@ -1145,27 +1205,36 @@ async def bulk_update_status(
     for nid in ids:
         await _emit_admin_activity(
             container,
-            event="node.updated.v1",
-            payload={
-                "id": int(nid),
-                "fields": ["status", "publish_at", "unpublish_at"],
-            },
-            key=f"node:{int(nid)}",
-            event_context={"node_id": int(nid), "source": "bulk_status"},
+            event=AdminEvent(
+                event="node.updated.v1",
+                payload=make_event_payload(
+                    base={
+                        "id": int(nid),
+                        "fields": ["status", "publish_at", "unpublish_at"],
+                    },
+                ),
+                key=f"node:{int(nid)}",
+                context=make_event_context(
+                    node_id=int(nid),
+                    source="bulk_status",
+                ),
+            ),
         )
     await _emit_admin_activity(
         container,
-        audit_action="product.nodes.bulk_status",
-        audit_actor=actor_id or SYSTEM_ACTOR_ID,
-        audit_resource_type="node",
-        audit_resource_id=None,
-        audit_extra={
-            "ids": ids,
-            "status": status,
-            "publish_at": publish_at,
-            "unpublish_at": unpublish_at,
-            "count": len(ids),
-        },
+        audit=AuditLogPayload(
+            actor_id=actor_id or SYSTEM_ACTOR_ID,
+            action="product.nodes.bulk_status",
+            resource_type="node",
+            resource_id=None,
+            extra={
+                "ids": ids,
+                "status": status,
+                "publish_at": publish_at,
+                "unpublish_at": unpublish_at,
+                "count": len(ids),
+            },
+        ),
     )
     return {"ok": True}
 
@@ -1220,27 +1289,32 @@ async def bulk_update_tags(
     for nid in ids:
         await _emit_admin_activity(
             container,
-            event="node.tags.updated.v1",
-            payload={"id": nid, "tags": slugs, "action": action_norm},
-            key=f"node:{nid}:tags",
-            event_context={
-                "node_id": nid,
-                "source": "bulk_tags",
-                "action": action_norm,
-            },
+            event=AdminEvent(
+                event="node.tags.updated.v1",
+                payload=make_event_payload(
+                    base={"id": nid, "tags": slugs, "action": action_norm},
+                ),
+                key=f"node:{nid}:tags",
+                context=make_event_context(
+                    node_id=nid,
+                    extra={"source": "bulk_tags", "action": action_norm},
+                ),
+            ),
         )
     await _emit_admin_activity(
         container,
-        audit_action="product.nodes.bulk_tags",
-        audit_actor=actor_id or SYSTEM_ACTOR_ID,
-        audit_resource_type="node",
-        audit_resource_id=None,
-        audit_extra={
-            "ids": ids,
-            "action": action_norm,
-            "tags": slugs,
-            "updated": updated,
-        },
+        audit=AuditLogPayload(
+            actor_id=actor_id or SYSTEM_ACTOR_ID,
+            action="product.nodes.bulk_tags",
+            resource_type="node",
+            resource_id=None,
+            extra={
+                "ids": ids,
+                "action": action_norm,
+                "tags": slugs,
+                "updated": updated,
+            },
+        ),
     )
     return {"ok": True, "updated": updated}
 
@@ -1272,21 +1346,35 @@ async def restore_node(
         raise AdminQueryError(404, "not_found")
     await _emit_admin_activity(
         container,
-        event="node.updated.v1",
-        payload={
-            "id": int(node_id),
-            "fields": ["status", "publish_at", "unpublish_at", "is_public"],
-        },
-        key=f"node:{int(node_id)}",
-        event_context={"node_id": int(node_id), "source": "restore_node"},
+        event=AdminEvent(
+            event="node.updated.v1",
+            payload=make_event_payload(
+                base={
+                    "id": int(node_id),
+                    "fields": [
+                        "status",
+                        "publish_at",
+                        "unpublish_at",
+                        "is_public",
+                    ],
+                },
+            ),
+            key=f"node:{int(node_id)}",
+            context=make_event_context(
+                node_id=int(node_id),
+                source="restore_node",
+            ),
+        ),
     )
     await _emit_admin_activity(
         container,
-        audit_action="product.nodes.restore",
-        audit_actor=actor_id or SYSTEM_ACTOR_ID,
-        audit_resource_type="node",
-        audit_resource_id=str(node_id),
-        audit_extra={"source": "restore_node"},
+        audit=AuditLogPayload(
+            actor_id=actor_id or SYSTEM_ACTOR_ID,
+            action="product.nodes.restore",
+            resource_type="node",
+            resource_id=str(node_id),
+            extra={"source": "restore_node"},
+        ),
     )
     return {"ok": True}
 

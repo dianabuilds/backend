@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from domains.platform.billing.domain.models import Plan
 from domains.platform.billing.ports import (
+    BillingHistoryRepo,
+    BillingSummaryRepo,
     CheckoutResult,
     LedgerRepo,
     PaymentProvider,
@@ -22,8 +21,8 @@ class BillingService:
     subs: SubscriptionRepo
     ledger: LedgerRepo
     provider: PaymentProvider
-
-    _log = logging.getLogger(__name__)
+    summary_repo: BillingSummaryRepo
+    history_repo: BillingHistoryRepo
 
     async def list_plans(self) -> list[Plan]:
         return await self.plans.list_active()
@@ -48,9 +47,10 @@ class BillingService:
         return None if not sub else sub.__dict__
 
     async def get_summary_for_user(self, user_id: str) -> dict[str, Any]:
-        summary: dict[str, Any] = {
-            "plan": None,
-            "subscription": None,
+        summary = await self.summary_repo.get_summary(user_id)
+        return {
+            "plan": summary.plan,
+            "subscription": summary.subscription,
             "payment": {
                 "mode": "evm_wallet",
                 "title": "EVM wallet",
@@ -58,54 +58,13 @@ class BillingService:
                 "coming_soon": True,
             },
         }
-        sub = await self.subs.get_active_for_user(user_id)
-        if sub:
-            summary["subscription"] = {
-                "plan_id": sub.plan_id,
-                "status": sub.status,
-                "auto_renew": sub.auto_renew,
-                "started_at": sub.started_at,
-                "ends_at": sub.ends_at,
-            }
-            plan = await self.plans.get_by_id(sub.plan_id)
-            if plan:
-                summary["plan"] = {
-                    "id": plan.id,
-                    "slug": plan.slug,
-                    "title": plan.title,
-                    "price_cents": plan.price_cents,
-                    "currency": plan.currency,
-                    "features": plan.features,
-                }
-        return summary
 
     async def get_history_for_user(
         self, user_id: str, limit: int = 20
     ) -> dict[str, Any]:
-        try:
-            rows = await self.ledger.list_for_user(user_id, limit=limit)
-        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
-            self._log.warning(
-                "billing_history_unavailable", extra={"user_id": user_id}, exc_info=exc
-            )
-            return {"items": [], "coming_soon": True}
-        items: list[dict[str, Any]] = []
-        for row in rows:
-            gross = row.get("gross_cents")
-            amount = float(gross) / 100.0 if isinstance(gross, (int, float)) else None
-            items.append(
-                {
-                    "id": row.get("id"),
-                    "status": row.get("status"),
-                    "created_at": row.get("created_at"),
-                    "amount": amount,
-                    "currency": row.get("currency"),
-                    "provider": row.get("gateway_slug"),
-                    "product_type": row.get("product_type"),
-                    "meta": row.get("meta") or {},
-                }
-            )
-        return {"items": items, "coming_soon": False}
+        safe_limit = int(max(1, min(limit, 100)))
+        history = await self.history_repo.get_history(user_id, limit=safe_limit)
+        return {"items": history.items, "coming_soon": history.coming_soon}
 
 
 __all__ = ["BillingService"]

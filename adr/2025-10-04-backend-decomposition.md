@@ -139,4 +139,10 @@
    - ќбновить `ARCHITECTURE.md`, README и ADR по итогам этапов; удалить устаревшие `storage.py` и DTO.
    - ѕосле каждого блока прогон€ть линтеры, mypy и тесты; выпускать промежуточные релизы с changelog и обновл€ть ADR 2025-10-04.
 
+## —татус на 2025-10-07
+
+- Nodes API распилена по сло€м: HTTP-фасад `domains/product/nodes/api/http.py` делегирует в `public/` модули, бизнес-правила вынесены в `application/use_cases/**`, SQL-интеграци€ Ч в `infrastructure/*`. ƒобавлены unit-тесты `tests/unit/nodes/test_use_cases.py`.
+- Navigation API приведена к тому же шаблону: `navigation/api/http.py` регистрирует `public`/`admin` пакеты, use-case слой (`transition.py`, `relations_admin.py`) отделЄн от FastAPI, инфраструктура закрыта в `infrastructure/engine.py` и `relations.py`. Unit-тесты лежат в `tests/unit/navigation`.
+- ƒокументаци€ (`apps/backend/ARCHITECTURE.md`) обновлена, отража€ новую структуру и распределение ответственности.
+- Billing: слой use-case переведЄн на фасад `BillingUseCases` со вспомогательными портами `BillingSettingsUseCase`, SQL-инфраструктура вынесена в `infrastructure/sql`, настройки потребл€ют только портовые зависимости. ƒобавлены unit-/smoke-тесты (`tests/unit/billing`, `tests/smoke/test_api_billing.py`).
 

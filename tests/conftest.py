@@ -10,12 +10,19 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_BACKEND_ROOT = _PROJECT_ROOT / "apps/backend"
+for candidate in (_PROJECT_ROOT, _BACKEND_ROOT):
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+        sys.path.insert(0, candidate_str)
 pytest_plugins = [
     "domains.platform.moderation.tests.fixtures",
 ]
 
 
-_BACKEND_PATH = Path(__file__).resolve().parents[1] / "apps/backend"
+_BACKEND_PATH = _BACKEND_ROOT
 
 
 def _ensure_backend_on_path() -> str:

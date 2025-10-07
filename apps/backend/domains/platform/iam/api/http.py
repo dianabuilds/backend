@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import logging
 from secrets import token_urlsafe
@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.exc import SQLAlchemyError
 
+from domains.platform.audit.infrastructure import AuditLogPayload, safe_audit_log
 from domains.platform.iam.application.auth_service import AuthError, LoginIn
 from packages.fastapi_rate_limit import optional_rate_limiter
 
@@ -107,19 +108,21 @@ def make_router() -> APIRouter:
             secure=(s.env == "prod"),
         )
         # Audit login
-        try:
-            await c.audit.service.log(
+        await safe_audit_log(
+            getattr(c.audit, "service", None),
+            AuditLogPayload(
                 actor_id=str(identity.id),
                 action="auth.login",
                 resource_type="user",
                 resource_id=str(identity.id),
                 ip=req.client.host if req and req.client else None,
                 user_agent=req.headers.get("user-agent"),
-            )
-        except (SQLAlchemyError, RuntimeError, ValueError) as exc:
-            logger.warning(
-                "auth_login_audit_failed", extra={"user_id": identity.id}, exc_info=exc
-            )
+            ),
+            logger=logger,
+            error_slug="auth_login_audit_failed",
+            log_extra={"user_id": identity.id},
+            suppressed=(SQLAlchemyError, RuntimeError, ValueError),
+        )
         return {
             "access_token": pair.access_token,
             "refresh_token": pair.refresh_token,

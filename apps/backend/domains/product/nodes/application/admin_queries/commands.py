@@ -1,9 +1,18 @@
-﻿"""Command-side utilities for admin node flows."""
+"""Command-side utilities for admin node flows."""
 
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from typing import Any
+
+from domains.platform.audit.infrastructure import AuditLogPayload
+from domains.product.nodes.infrastructure import (
+    AdminEvent,
+    emit_admin_activity,
+    make_event_context,
+    make_event_payload,
+)
 
 logger = logging.getLogger("domains.product.nodes.application.admin_queries")
 
@@ -32,56 +41,26 @@ def _extract_actor_id(request: Any) -> str | None:
 async def _emit_admin_activity(
     container,
     *,
-    event: str | None = None,
-    payload: dict[str, Any] | None = None,
-    key: str | None = None,
-    event_context: dict[str, Any] | None = None,
-    audit_action: str | None = None,
-    audit_actor: str | None = None,
-    audit_resource_type: str | None = None,
-    audit_resource_id: str | None = None,
-    audit_reason: str | None = None,
-    audit_extra: dict[str, Any] | None = None,
+    event: AdminEvent | None = None,
+    audit: AuditLogPayload | None = None,
+    suppressed: Iterable[type[Exception]] | None = None,
 ) -> None:
-    if event and payload is not None:
-        nodes_service = getattr(container, "nodes_service", None)
-        safe_publish = (
-            getattr(nodes_service, "_safe_publish", None) if nodes_service else None
-        )
-        context_payload: dict[str, Any] = {"source": "nodes_admin_api"}
-        if event_context:
-            context_payload.update(event_context)
-        if callable(safe_publish):
-            safe_publish(event, payload, key=key, context=context_payload)
-        else:
-            try:
-                container.events.publish(event, payload, key=key)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "nodes_admin_event_publish_failed",
-                    extra={"event": event, "key": key, "context": context_payload},
-                    exc_info=exc,
-                )
-    if audit_action:
-        audit_container = getattr(container, "audit", None)
-        service = getattr(audit_container, "service", None) if audit_container else None
-        log_fn = getattr(service, "log", None) if service else None
-        if callable(log_fn):
-            try:
-                await log_fn(
-                    actor_id=audit_actor,
-                    action=audit_action,
-                    resource_type=audit_resource_type,
-                    resource_id=audit_resource_id,
-                    reason=audit_reason,
-                    extra=audit_extra,
-                )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "nodes_admin_audit_failed",
-                    extra={"action": audit_action, "resource_id": audit_resource_id},
-                    exc_info=exc,
-                )
+    await emit_admin_activity(
+        container,
+        event=event,
+        audit=audit,
+        suppressed=suppressed,
+        log=logger,
+    )
 
 
-__all__ = ["SYSTEM_ACTOR_ID", "_emit_admin_activity", "_extract_actor_id", "logger"]
+__all__ = [
+    "SYSTEM_ACTOR_ID",
+    "_emit_admin_activity",
+    "_extract_actor_id",
+    "logger",
+    "AuditLogPayload",
+    "AdminEvent",
+    "make_event_context",
+    "make_event_payload",
+]
