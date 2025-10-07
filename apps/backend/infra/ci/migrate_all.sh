@@ -73,3 +73,12 @@ for f in "${FILES[@]}"; do
   psql "$DB_URL" -v ON_ERROR_STOP=1 -f "$f"
 done
 echo "Done." >&2
+# Alembic sanity check (generates SQL, does not apply)
+if command -v python >/dev/null 2>&1; then
+  pushd "$APP_ROOT" >/dev/null
+  PYTHONPATH=..:.:$PYTHONPATH \
+    python -m alembic upgrade head -x dburl="$DB_URL" --sql >/dev/null
+  popd >/dev/null
+fi
+
+

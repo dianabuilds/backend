@@ -1,12 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.platform.notifications.application.template_use_cases import (
     delete_template as delete_template_use_case,

@@ -1,4 +1,4 @@
-import importlib
+﻿import importlib
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -6,7 +6,7 @@ import pytest
 
 with patch("prometheus_client.Counter"), patch("prometheus_client.Histogram"):
     _admin_queries = importlib.import_module(
-        "apps.backend.domains.product.nodes.application.admin_queries"
+        "domains.product.nodes.application.admin_queries"
     )
 _emit_admin_activity = _admin_queries._emit_admin_activity
 

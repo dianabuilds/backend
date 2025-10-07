@@ -12,6 +12,19 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, cast
+
+if TYPE_CHECKING:  # pragma: no cover - typing only imports
+    from opentelemetry.exporter.prometheus import (
+        PrometheusMetricReader as PrometheusMetricReaderType,
+    )
+else:  # pragma: no cover - fallback stub keeps type checkers happy when OTEL is absent
+
+    class PrometheusMetricReaderType:
+        """Lightweight stand-in for optional OpenTelemetry reader."""
+
+        ...
+
 
 try:  # pragma: no cover - the happy path is exercised in environments with OTEL
     from opentelemetry import metrics, trace
@@ -22,8 +35,8 @@ try:  # pragma: no cover - the happy path is exercised in environments with OTEL
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
 except ModuleNotFoundError:  # pragma: no cover - executed when OTEL isn't installed
-    metrics = trace = OTLPSpanExporter = PrometheusMetricReader = None  # type: ignore[assignment]
-    MeterProvider = Resource = TracerProvider = BatchSpanProcessor = None  # type: ignore[assignment]
+    metrics = trace = OTLPSpanExporter = PrometheusMetricReader = None
+    MeterProvider = Resource = TracerProvider = BatchSpanProcessor = None
 
 
 def _all_present(modules: Iterable[object]) -> bool:
@@ -36,11 +49,11 @@ def _parse_headers(header_str: str) -> Sequence[tuple[str, str]]:
         if "=" not in part:
             continue
         key, value = part.split("=", 1)
-        headers.append((key, value))
+        headers.append((key.strip(), value.strip()))
     return tuple(headers)
 
 
-def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:
+def setup_otel(service_name: str = "backend") -> PrometheusMetricReaderType | None:
     """Configure OpenTelemetry tracing and metrics if the packages are available."""
     required = (
         metrics,
@@ -76,6 +89,7 @@ def setup_otel(service_name: str = "backend") -> PrometheusMetricReader | None:
     trace.set_tracer_provider(tracer_provider)
 
     reader = PrometheusMetricReader()
-    meter_provider = MeterProvider(metric_readers=[reader], resource=resource)
+    typed_reader = cast(PrometheusMetricReaderType, reader)
+    meter_provider = MeterProvider(metric_readers=[typed_reader], resource=resource)
     metrics.set_meter_provider(meter_provider)
-    return reader
+    return typed_reader

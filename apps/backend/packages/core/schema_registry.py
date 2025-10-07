@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-try:  # optional dependency for JSON Schema
-    import json
 
-    from jsonschema import Draft202012Validator
-    from jsonschema import validate as jsonschema_validate
-except Exception:  # pragma: no cover
-    jsonschema_validate = None
-    Draft202012Validator = None
+def _load_jsonschema_validator() -> Callable[..., None] | None:
+    try:  # optional dependency for JSON Schema
+        from jsonschema import validate as _validate
+    except Exception:  # pragma: no cover
+        return None
+    return _validate
+
+
+jsonschema_validate: Callable[..., None] | None = _load_jsonschema_validator()
 
 
 def read_schema(path: str) -> str:

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Mapping
+from collections.abc import Mapping as TypingMapping
 from typing import Any
 
 from sqlalchemy import text
@@ -47,10 +48,14 @@ class SQLModerationStorage:
             if not row:
                 return {}
             try:
-                return json.loads(row["payload"])
+                raw = json.loads(row["payload"])
             except (json.JSONDecodeError, TypeError) as exc:
                 logger.warning("Failed to decode moderation snapshot: %s", exc)
                 return {}
+            if isinstance(raw, TypingMapping):
+                return dict(raw)
+            logger.warning("Unexpected moderation snapshot payload type: %s", type(raw))
+            return {}
 
     async def save(self, payload: Mapping[str, Any]) -> None:
         if self._engine is None:

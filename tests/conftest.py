@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 import sys
@@ -9,6 +9,11 @@ from pathlib import Path
 import jwt
 import pytest
 from fastapi.testclient import TestClient
+
+pytest_plugins = [
+    "domains.platform.moderation.tests.fixtures",
+]
+
 
 _BACKEND_PATH = Path(__file__).resolve().parents[1] / "apps/backend"
 

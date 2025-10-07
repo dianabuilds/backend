@@ -10,10 +10,30 @@ from ...domain.dtos import (
 from ...domain.records import UserRecord
 from ..common import paginate, parse_iso_datetime
 from ..sanctions import get_sanctions_for_user
-from .presenter import user_to_detail, user_to_summary
+from .exceptions import UserNotFoundError
+from .presenter import (
+    UserDetailPayload,
+    UsersListResponse,
+    build_detail_response,
+    build_list_response,
+    user_to_detail,
+    user_to_summary,
+)
+from .repository import ModerationUsersRepository, create_repository
 
 if TYPE_CHECKING:  # pragma: no cover
     from .service import PlatformModerationService
+
+
+def _resolve_repository(
+    settings: Any | None,
+    repository: ModerationUsersRepository | None,
+) -> ModerationUsersRepository | None:
+    if repository is not None:
+        return repository
+    if settings is None:
+        return None
+    return create_repository(settings)
 
 
 async def warnings_count_recent(
@@ -23,6 +43,7 @@ async def warnings_count_recent(
     days: int = 10,
 ) -> int:
     """Count active warnings for user_id issued within the last days."""
+
     async with service._lock:
         user = service._users.get(user_id)
         if not user:
@@ -52,6 +73,8 @@ async def list_users(
     limit: int = 50,
     cursor: str | None = None,
 ) -> dict[str, Any]:
+    """Return UserSummary DTOs from the in-memory snapshot."""
+
     async with service._lock:
         users = list(service._users.values())
 
@@ -99,6 +122,8 @@ async def get_user(
     service: PlatformModerationService,
     user_id: str,
 ):
+    """Return a UserDetail DTO from the in-memory snapshot."""
+
     async with service._lock:
         record = service._users.get(user_id)
         if not record:
@@ -106,8 +131,76 @@ async def get_user(
         return user_to_detail(service, record)
 
 
+async def list_users_view(
+    service: PlatformModerationService,
+    *,
+    settings: Any | None = None,
+    repository: ModerationUsersRepository | None = None,
+    status: str | None = None,
+    role: str | None = None,
+    registered_from: str | None = None,
+    registered_to: str | None = None,
+    q: str | None = None,
+    limit: int = 50,
+    cursor: str | None = None,
+) -> UsersListResponse:
+    repo = _resolve_repository(settings, repository)
+    if repo is not None:
+        sql_result = await repo.list_users(
+            status=status,
+            role=role,
+            registered_from=registered_from,
+            registered_to=registered_to,
+            q=q,
+            limit=limit,
+            cursor=cursor,
+        )
+        if sql_result is not None:
+            return build_list_response(
+                sql_result.get("items", []),
+                next_cursor=sql_result.get("next_cursor"),
+            )
+
+    fallback = await list_users(
+        service,
+        status=status,
+        role=role,
+        registered_from=registered_from,
+        registered_to=registered_to,
+        q=q,
+        limit=limit,
+        cursor=cursor,
+    )
+    return build_list_response(
+        fallback.get("items", []),
+        next_cursor=fallback.get("next_cursor"),
+    )
+
+
+async def get_user_view(
+    service: PlatformModerationService,
+    user_id: str,
+    *,
+    settings: Any | None = None,
+    repository: ModerationUsersRepository | None = None,
+) -> UserDetailPayload:
+    repo = _resolve_repository(settings, repository)
+    if repo is not None:
+        sql_payload = await repo.get_user(user_id)
+        if sql_payload is not None:
+            return build_detail_response(sql_payload)
+
+    try:
+        detail = await get_user(service, user_id)
+    except KeyError as exc:
+        raise UserNotFoundError() from exc
+    return build_detail_response(detail)
+
+
 __all__ = [
-    "warnings_count_recent",
-    "list_users",
     "get_user",
+    "get_user_view",
+    "list_users",
+    "list_users_view",
+    "warnings_count_recent",
 ]

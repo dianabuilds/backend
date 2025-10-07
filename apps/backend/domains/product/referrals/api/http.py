@@ -1,15 +1,15 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 from datetime import datetime
 from io import StringIO
 from uuid import UUID
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from apps.backend import get_container
 from domains.platform.iam.security import (
     csrf_protect,
     get_current_user,

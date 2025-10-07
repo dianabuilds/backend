@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import UTC, datetime
 
 import pytest
 
-from apps.backend.domains.platform.moderation.application.content import commands
-from apps.backend.domains.platform.moderation.application.content.repository import (
+from domains.platform.moderation.application.content import commands
+from domains.platform.moderation.application.content.repository import (
     ContentRepository,
 )
 

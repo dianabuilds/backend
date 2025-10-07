@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from apps.backend.domains.platform.moderation.application.tickets.repository import (
+from domains.platform.moderation.application.tickets.repository import (
     TicketsRepository,
 )
 

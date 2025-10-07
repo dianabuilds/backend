@@ -10,10 +10,13 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 from datetime import datetime
+from typing import cast
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql as pg
+from sqlalchemy.engine import Connection
+from sqlalchemy.engine.reflection import Inspector
 
 revision = "0101_feature_flags_sql"
 down_revision = "0100_squashed_base"
@@ -26,7 +29,10 @@ KNOWN_PAYLOAD_KEYS = {"description", "rollout", "users", "roles", "meta", "segme
 
 def upgrade() -> None:
     bind = op.get_bind()
-    inspector = sa.inspect(bind)
+    if bind is None:
+        raise RuntimeError("Alembic connection is unavailable")
+    connection = cast(Connection, bind)
+    inspector: Inspector = sa.inspect(connection)
 
     flag_status = pg.ENUM(
         "disabled",
@@ -46,18 +52,18 @@ def upgrade() -> None:
         create_type=False,
     )
 
-    flag_status.create(bind, checkfirst=True)
-    rule_type.create(bind, checkfirst=True)
+    flag_status.create(connection, checkfirst=True)
+    rule_type.create(connection, checkfirst=True)
 
     migrated_legacy = False
     if inspector.has_table("feature_flags"):
         columns = {column["name"] for column in inspector.get_columns("feature_flags")}
         if LEGACY_FLAG_SIGNATURE.issubset(columns):
-            _migrate_legacy_flags(bind, flag_status, rule_type)
+            _migrate_legacy_flags(connection, flag_status, rule_type)
             migrated_legacy = True
 
     if migrated_legacy:
-        inspector = sa.inspect(bind)
+        inspector = sa.inspect(connection)
 
     if not inspector.has_table("feature_flags"):
         _create_feature_flags_table(flag_status)
@@ -66,22 +72,25 @@ def upgrade() -> None:
     if not inspector.has_table("feature_flag_audit"):
         _create_feature_flag_audit_table()
 
-    _ensure_feature_flags_index(bind)
-    _ensure_feature_flag_rules_indexes(bind)
-    _ensure_feature_flag_audit_index(bind)
+    _ensure_feature_flags_index(connection)
+    _ensure_feature_flag_rules_indexes(connection)
+    _ensure_feature_flag_audit_index(connection)
 
 
 def downgrade() -> None:
     bind = op.get_bind()
-    inspector = sa.inspect(bind)
+    if bind is None:
+        raise RuntimeError("Alembic connection is unavailable")
+    connection = cast(Connection, bind)
+    inspector: Inspector = sa.inspect(connection)
 
     flag_rows: list[dict[str, object]] = []
     rule_rows: list[dict[str, object]] = []
 
     if inspector.has_table("feature_flags"):
-        flags_table = sa.Table("feature_flags", sa.MetaData(), autoload_with=bind)
+        flags_table = sa.Table("feature_flags", sa.MetaData(), autoload_with=connection)
         flag_rows = list(
-            bind.execute(
+            connection.execute(
                 sa.select(
                     flags_table.c.slug,
                     flags_table.c.description,
@@ -96,9 +105,11 @@ def downgrade() -> None:
             ).mappings()
         )
     if inspector.has_table("feature_flag_rules"):
-        rules_table = sa.Table("feature_flag_rules", sa.MetaData(), autoload_with=bind)
+        rules_table = sa.Table(
+            "feature_flag_rules", sa.MetaData(), autoload_with=connection
+        )
         rule_rows = list(
-            bind.execute(
+            connection.execute(
                 sa.select(
                     rules_table.c.flag_slug,
                     rules_table.c.type,
@@ -136,8 +147,8 @@ def downgrade() -> None:
         name="feature_flag_status",
         create_type=False,
     )
-    rule_type.drop(bind, checkfirst=True)
-    flag_status.drop(bind, checkfirst=True)
+    rule_type.drop(connection, checkfirst=True)
+    flag_status.drop(connection, checkfirst=True)
 
     legacy_table = op.create_table(
         "feature_flags",
@@ -167,7 +178,7 @@ def downgrade() -> None:
     )
 
     if legacy_rows:
-        bind.execute(legacy_table.insert(), legacy_rows)
+        connection.execute(legacy_table.insert(), legacy_rows)
 
 
 def _create_feature_flags_table(flag_status: pg.ENUM) -> None:
@@ -267,10 +278,10 @@ def _create_feature_flag_audit_table() -> None:
     op.create_index("ix_feature_flag_audit_flag", "feature_flag_audit", ["flag_slug"])
 
 
-def _ensure_feature_flags_index(bind: sa.engine.Connection) -> None:
-    if not sa.inspect(bind).has_table("feature_flags"):
+def _ensure_feature_flags_index(connection: Connection) -> None:
+    if not sa.inspect(connection).has_table("feature_flags"):
         return
-    bind.execute(
+    connection.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_feature_flags_status "
             "ON feature_flags (status)"
@@ -278,16 +289,16 @@ def _ensure_feature_flags_index(bind: sa.engine.Connection) -> None:
     )
 
 
-def _ensure_feature_flag_rules_indexes(bind: sa.engine.Connection) -> None:
-    if not sa.inspect(bind).has_table("feature_flag_rules"):
+def _ensure_feature_flag_rules_indexes(connection: Connection) -> None:
+    if not sa.inspect(connection).has_table("feature_flag_rules"):
         return
-    bind.execute(
+    connection.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_feature_flag_rules_flag_type "
             "ON feature_flag_rules (flag_slug, type)"
         )
     )
-    bind.execute(
+    connection.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_feature_flag_rules_priority "
             "ON feature_flag_rules (flag_slug, priority)"
@@ -295,10 +306,10 @@ def _ensure_feature_flag_rules_indexes(bind: sa.engine.Connection) -> None:
     )
 
 
-def _ensure_feature_flag_audit_index(bind: sa.engine.Connection) -> None:
-    if not sa.inspect(bind).has_table("feature_flag_audit"):
+def _ensure_feature_flag_audit_index(connection: Connection) -> None:
+    if not sa.inspect(connection).has_table("feature_flag_audit"):
         return
-    bind.execute(
+    connection.execute(
         sa.text(
             "CREATE INDEX IF NOT EXISTS ix_feature_flag_audit_flag "
             "ON feature_flag_audit (flag_slug)"
@@ -307,7 +318,7 @@ def _ensure_feature_flag_audit_index(bind: sa.engine.Connection) -> None:
 
 
 def _migrate_legacy_flags(
-    bind: sa.engine.Connection,
+    connection: Connection,
     flag_status: pg.ENUM,
     rule_type: pg.ENUM,
 ) -> None:
@@ -318,7 +329,7 @@ def _migrate_legacy_flags(
     _create_feature_flag_rules_table(rule_type)
     _create_feature_flag_audit_table()
 
-    legacy_table = sa.Table(legacy_table_name, sa.MetaData(), autoload_with=bind)
+    legacy_table = sa.Table(legacy_table_name, sa.MetaData(), autoload_with=connection)
 
     flags_table = sa.table(
         "feature_flags",
@@ -348,7 +359,7 @@ def _migrate_legacy_flags(
     flag_rows: list[dict[str, object]] = []
     rule_rows: list[dict[str, object]] = []
 
-    for row in bind.execute(
+    for row in connection.execute(
         sa.select(
             legacy_table.c.key,
             legacy_table.c.enabled,
@@ -414,9 +425,9 @@ def _migrate_legacy_flags(
             )
 
     if flag_rows:
-        bind.execute(sa.insert(flags_table), flag_rows)
+        connection.execute(sa.insert(flags_table), flag_rows)
     if rule_rows:
-        bind.execute(sa.insert(rules_table), rule_rows)
+        connection.execute(sa.insert(rules_table), rule_rows)
 
     op.drop_table(legacy_table_name)
 

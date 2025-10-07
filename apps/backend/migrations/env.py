@@ -13,6 +13,7 @@ import importlib
 import logging
 import os
 import sys
+from collections.abc import Sequence
 from logging.config import fileConfig
 from pathlib import Path
 from types import ModuleType
@@ -127,6 +128,8 @@ def get_database_url() -> str:
     env_url = dburl or _choose_env_url() or config.get_main_option("sqlalchemy.url")
     url = _normalize_url_for_alembic(env_url)
     if not url:
+        raise RuntimeError("Database URL is not configured for Alembic")
+    if not url:
         raise RuntimeError(
             "Database URL not configured. Set APP_DATABASE_URL/DATABASE_URL in .env or use -x dburl="
         )
@@ -204,7 +207,7 @@ def _import_all_domain_modules() -> None:
                 logger.warning("Skip root %s: %s", root, e)
 
 
-def _collect_all_metadatas() -> MetaData | list[MetaData] | None:
+def _collect_all_metadatas() -> MetaData | Sequence[MetaData] | None:
     metadatas: list[MetaData] = []
     seen = set()
     for mod_name, mod in list(sys.modules.items()):
@@ -243,7 +246,7 @@ _import_all_domain_modules()
 _tm = _collect_all_metadatas()
 if not _tm:
     logger.warning("Alembic: no MetaData discovered; autogenerate may be empty.")
-    target_metadata = MetaData()
+    target_metadata: MetaData | Sequence[MetaData] = MetaData()
 else:
     target_metadata = _tm
 

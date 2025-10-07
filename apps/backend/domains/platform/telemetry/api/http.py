@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -13,7 +13,8 @@ try:  # optional dependency
 except ImportError:  # pragma: no cover - optional import
     FastAPILimiter = None  # type: ignore
 
-from apps.backend import get_container
+from app.api_gateway.routers import get_container
+
 from domains.platform.telemetry.application.event_metrics_service import (
     event_metrics,
 )

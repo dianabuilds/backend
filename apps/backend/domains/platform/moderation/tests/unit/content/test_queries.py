@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
@@ -70,7 +70,13 @@ class DummyContentRepository:
     async def list_queue(self, **params):
         self.queue_params.append(params)
         return {
-            "items": [{"id": "db-item"}],
+            "items": [
+                {
+                    "id": "db-item",
+                    "type": ContentType.node,
+                    "author_id": "db-author",
+                }
+            ],
             "next_cursor": "cursor-1",
         }
 
@@ -110,4 +116,7 @@ async def test_list_queue_delegates_to_repository():
     result = await content.list_queue(repo, status="pending", limit=5, cursor="0")
 
     assert repo.queue_params[0]["status"] == "pending"
-    assert result == {"items": [{"id": "db-item"}], "next_cursor": "cursor-1"}
+    assert result["items"][0]["id"] == "db-item"
+    assert result["items"][0]["type"] == ContentType.node
+    assert result["items"][0]["author_id"] == "db-author"
+    assert result["next_cursor"] == "cursor-1"

@@ -1,4 +1,4 @@
-# Tags (Product) — AGENT Guide
+﻿# Tags (Product) вЂ” AGENT Guide
 
 Purpose
 - Manage tag catalog (slugs, aliases, blacklist) and expose usage counters for UI.
@@ -14,7 +14,7 @@ Storage
 - Projection: `tag_usage_counters(author_id, content_type, slug, count, updated_at)`.
 
 Feature Flags
-- `FF_TAGS_V1_ENABLED` (bool, default True) — router and wiring.
+- `FF_TAGS_V1_ENABLED` (bool, default True) вЂ” router and wiring.
 
 Cutover Model
 - Read usage from projection only (no JOINs with nodes).
@@ -23,7 +23,7 @@ Cutover Model
 How to run
 - Migrations: `alembic -c alembic.ini upgrade head` (includes `tag_usage_counters` and `content_type`).
 - Backfill: `python apps/backend/scripts/backfill_tag_usage_counters.py [--dry-run]`.
-- Consumer: `python -m apps.backend.app.workers.tag_usage_projection_consumer` (handles node+quest).
+- Consumer: `python -m app.workers.tag_usage_projection_consumer` (handles node+quest).
 
 Contracts
 - Event payloads:
@@ -34,6 +34,7 @@ Contracts
 Tests
 - Add integration that updates node/quest tags and asserts projection + `/v1/tags`.
 
-Do/Don’t
+Do/DonвЂ™t
 - Do keep tag catalog neutral; split by `content_type` only in projection.
-- Don’t add FKs from tags to content tables.
+- DonвЂ™t add FKs from tags to content tables.
+

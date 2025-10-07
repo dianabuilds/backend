@@ -4,7 +4,18 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from slugify import slugify  # type: ignore[import]
+try:
+    from slugify import slugify as _slugify_fn
+except ImportError:  # pragma: no cover - optional dependency
+
+    def _slugify(value: str, *, lowercase: bool = True, separator: str = "-") -> str:
+        return value.lower().replace(" ", separator) if lowercase else value
+
+else:
+
+    def _slugify(value: str, *, lowercase: bool = True, separator: str = "-") -> str:
+        return str(_slugify_fn(value, lowercase=lowercase, separator=separator))
+
 
 from domains.platform.notifications.domain.template import Template
 from domains.platform.notifications.ports import TemplateRepo
@@ -99,10 +110,10 @@ class TemplateService:
     ) -> str:
         raw = str(data.get("slug") or "").strip()
         if raw:
-            base = slugify(raw, lowercase=True, separator="-")
+            base = _slugify(raw, lowercase=True, separator="-")
         else:
             source = str(data.get("name") or data.get("subject") or "").strip()
-            base = slugify(source, lowercase=True, separator="-")
+            base = _slugify(source, lowercase=True, separator="-")
         if not base:
             base = _DEFAULT_SLUG
         return await self._ensure_unique_slug(base, existing.id if existing else None)

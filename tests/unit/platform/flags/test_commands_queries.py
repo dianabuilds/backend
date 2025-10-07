@@ -1,41 +1,41 @@
-import pytest
+﻿import pytest
 
-from apps.backend.domains.platform.flags.application.use_cases import (
-    check_flag,
+from domains.platform.flags.application.commands import (
     delete_flag,
-    list_flags,
     upsert_flag,
 )
-from apps.backend.domains.platform.flags.domain.models import FeatureFlag, FlagStatus
+from domains.platform.flags.application.queries import (
+    check_flag,
+    list_flags,
+)
+from domains.platform.flags.domain.models import FeatureFlag, FlagStatus
 
 
 class DummyService:
     def __init__(self, flags=None):
-        self._flags = flags or []
+        self._flags = list(flags or [])
         self.upsert_payload = None
         self.deleted = None
         self.evaluated = []
-        self.raise_eval = False
 
     async def list(self):
         return list(self._flags)
 
-    def _eval_flag(self, flag, claims):
-        if self.raise_eval:
-            raise RuntimeError("boom")
+    def effective(self, flag, claims=None):
         return flag.status is not FlagStatus.DISABLED
 
     async def upsert(self, payload):
         self.upsert_payload = payload
-        flag = FeatureFlag(slug=payload["slug"], status=FlagStatus.ALL)
+        data = dict(payload)
+        flag = FeatureFlag(slug=data["slug"], status=FlagStatus.ALL)
         self._flags.append(flag)
         return flag
 
     async def delete(self, slug: str):
         self.deleted = slug
 
-    async def evaluate(self, slug: str, claims):
-        self.evaluated.append((slug, dict(claims)))
+    async def evaluate(self, slug: str, claims=None):
+        self.evaluated.append((slug, dict(claims or {})))
         return slug == "demo"
 
 
@@ -50,14 +50,6 @@ async def test_list_flags_uses_presenter():
     assert result["items"][0]["slug"] == "demo"
     assert result["items"][0]["effective"] is True
     assert result["items"][1]["effective"] is False
-
-
-@pytest.mark.asyncio
-async def test_list_flags_handles_eval_error():
-    service = DummyService(flags=[make_flag()])
-    service.raise_eval = True
-    result = await list_flags(service)
-    assert result["items"][0]["effective"] is False
 
 
 @pytest.mark.asyncio

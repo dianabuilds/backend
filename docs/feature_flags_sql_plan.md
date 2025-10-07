@@ -4,6 +4,8 @@
 
 Key platform slugs: `content.nodes`, `content.quests`, `notifications.broadcasts`, `billing.revenue`, `observability.core`, `moderation.guardrails`. The admin API now returns an `audience` hint (all/premium/testers/custom/disabled) and an `effective` boolean for every flag.
 
+The FastAPI routes rely on application-level commands and queries: `domains.platform.flags.application.commands` handles mutations while `domains.platform.flags.application.queries` serves read checks; `application.presenter` remains responsible for DTO assembly only.
+
 Feature flags use PostgreSQL as the single source of truth (`feature_flags`, `feature_flag_rules`, `feature_flag_audit`). The FastAPI service exposes structured flag data (status, rollout %, testers/roles/segments, audience) and `/v1/settings/features` returns a detailed map consumed by the web app.
 
 ## Schema

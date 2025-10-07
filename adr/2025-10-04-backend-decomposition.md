@@ -72,10 +72,10 @@
 
 - Добавлены юнит-тесты `tests/unit/platform/moderation/test_presenters.py`, проверяющие фабрику enricher и доменные presenter’ы на merge metadata/history.
 - Тесты use-case слоёв (`domains/platform/moderation/tests`) расширены stub-репозиториями, чтобы фиксировать интеграцию use-case - presenter - repository без реальной БД.
-- Домен platform.flags переведён на слой presenter/use_cases; HTTP теперь делегирует в `application.use_cases`, сериализация вынесена в `application.presenter`, добавлены юнит-тесты `tests/unit/platform/flags/test_use_cases.py`.
+- Домен platform.flags переведён на слой presenter/use_cases; HTTP теперь делегирует в `application.commands`/`application.queries`, сериализация вынесена в `application.presenter`, добавлены юнит-тесты `tests/unit/platform/flags/test_commands_queries.py`.
 - У admin templates из platform.notifications выделены use-case и presenter, добавлены unit-тесты `tests/unit/platform/notifications/test_template_use_cases.py`.
 
-- В `domains/product/profile` выделены presenter/use-case модули; сервис возвращает `ProfileView`, HTTP-слой и настройки используют единый `UseCaseResult` с ETag/ошибками.
+- В `domains/product/profile` переведён на commands/queries и typed presenter; HTTP больше не зависит от `UseCaseResult`.
 
 - В `notifications/admin broadcast` HTTP слой переключён на use-case/presenter, ошибки и сериализация унифицированы.
 
@@ -85,7 +85,7 @@
 - Домен moderation.users переведён на пакет `application/users` (commands/queries/use_cases/presenter/repository); HTTP-эндпоинты делегируют в use-case слой, а service остаётся тонким фасадом.
 - Вернули совместимость по импортам через прокси-модуль `domains.platform.moderation.dtos` и alias-хелперы в presenter’ах (content/appeals), чтобы снять ModuleNotFound без массового правки клиентов.
 - Presenter `appeals` и `content` обновлён для возврата типизированных ответов с поддержкой attribute access и unit-тестов; добавлены `_AttrDict` и alias `build_appeals_list_response`.
-- Добавлены юнит-тесты `tests/unit/platform/moderation/test_users_use_cases.py` и пакетные маркеры `tests/unit/__init__.py`/`product/__init__.py` для устранения конфликтов имён при сборке pytest.
+- Добавлены юнит-тесты `tests/unit/platform/moderation/test_users_commands_queries.py` и пакетные маркеры `tests/unit/__init__.py`/`product/__init__.py` для устранения конфликтов имён при сборке pytest.
 - Для product-доменов внедрены create_repo-фабрики с проверкой DSN и окружения (packages.core.sql_fallback.evaluate_sql_backend) и ручками для in-memory fallback.
 - DI-контейнер и admin HTTP в product.tags используют фабрики, деля in-memory TagUsageStore и безопасно работая без Postgres.
 - AI-регистрию добавлена create_registry(settings, dsn=...), которая логирует и переключает репозиторий на память при недоступной БД.

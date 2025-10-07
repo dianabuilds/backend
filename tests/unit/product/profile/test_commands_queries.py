@@ -4,18 +4,18 @@ import io
 from typing import Any
 
 import pytest
+import pytest_asyncio
 
 from domains.product.profile.adapters.memory.repository import MemoryRepo
-from domains.product.profile.application.exceptions import ProfileError
-from domains.product.profile.application.profile_presenter import profile_to_dict
-from domains.product.profile.application.profile_use_cases import (
-    UseCaseResult,
+from domains.product.profile.application.commands import (
     bind_wallet,
-    get_profile_me,
     request_email_change,
     update_profile,
     upload_avatar,
 )
+from domains.product.profile.application.exceptions import ProfileError
+from domains.product.profile.application.profile_presenter import profile_to_dict
+from domains.product.profile.application.queries import get_profile_me
 from domains.product.profile.application.services import Service
 from domains.product.profile.domain.entities import Profile
 from domains.platform.media.application.storage_service import StorageService
@@ -54,30 +54,25 @@ class DummyStorage:
         return f"https://cdn.local/{filename}"
 
 
-@pytest.fixture()
-def service() -> Service:
+@pytest_asyncio.fixture()
+async def service() -> Service:
     repo = MemoryRepo()
-    return Service(repo=repo, outbox=DummyOutbox(), iam=DummyIam(), flags=Flags())
+    svc = Service(repo=repo, outbox=DummyOutbox(), iam=DummyIam(), flags=Flags())
+    _seed_profile(svc)
+    await svc.update_profile("u1", {"username": "user"}, subject={"user_id": "u1"})
+    return svc
 
 
 @pytest.mark.asyncio
 async def test_get_profile_me_returns_payload_and_etag(service: Service) -> None:
-    subject = {"user_id": "u1"}
-    _seed_profile(service)
-    await service.update_profile("u1", {"username": "user"}, subject=subject)
-
-    result = await get_profile_me(service, "u1")
-    assert isinstance(result, UseCaseResult)
-    assert result.etag is not None
-    assert result.payload["username"] == "user"
+    payload, meta = await get_profile_me(service, "u1")
+    assert meta.etag is not None
+    assert payload["username"] == "user"
 
 
 @pytest.mark.asyncio
 async def test_update_profile_requires_if_match(service: Service) -> None:
     subject = {"user_id": "u1"}
-    _seed_profile(service)
-    await service.update_profile("u1", {"username": "user"}, subject=subject)
-    current = await get_profile_me(service, "u1")
 
     with pytest.raises(ProfileError) as exc:
         await update_profile(
@@ -89,37 +84,34 @@ async def test_update_profile_requires_if_match(service: Service) -> None:
         )
     assert exc.value.code == "E_ETAG_REQUIRED"
 
-    result = await update_profile(
+    _, current_meta = await get_profile_me(service, "u1")
+
+    payload, meta = await update_profile(
         service,
         "u1",
         {"bio": "new"},
         subject=subject,
-        if_match=current.etag,
+        if_match=current_meta.etag,
     )
-    assert result.payload["bio"] == "new"
-    assert result.etag is not None and result.etag != current.etag
+    assert payload["bio"] == "new"
+    assert meta.etag is not None and meta.etag != current_meta.etag
 
 
 @pytest.mark.asyncio
 async def test_request_email_change_returns_token(service: Service) -> None:
     subject = {"user_id": "u1"}
-    _seed_profile(service)
-    await service.update_profile("u1", {"username": "user"}, subject=subject)
-
-    result = await request_email_change(
+    payload, meta = await request_email_change(
         service, "u1", "test@example.com", subject=subject
     )
-    assert result.payload["status"] == "pending"
-    assert "token" in result.payload
+    assert meta.status_code == 200
+    assert payload["status"] == "pending"
+    assert "token" in payload
 
 
 @pytest.mark.asyncio
 async def test_bind_wallet_strips_whitespace(service: Service) -> None:
     subject = {"user_id": "u1"}
-    _seed_profile(service)
-    await service.update_profile("u1", {"username": "user"}, subject=subject)
-
-    result = await bind_wallet(
+    payload, _ = await bind_wallet(
         service,
         "u1",
         {"address": " 0xabc ", "chain_id": " 1 ", "signature": None},
@@ -128,7 +120,7 @@ async def test_bind_wallet_strips_whitespace(service: Service) -> None:
     profile = profile_to_dict(await service.get_profile("u1"))
     assert profile["wallet"]["address"] == "0xabc"
     assert profile["wallet"]["chain_id"] == "1"
-    assert result.payload["wallet"]["address"] == "0xabc"
+    assert payload["wallet"]["address"] == "0xabc"
 
 
 @pytest.mark.asyncio
@@ -147,7 +139,7 @@ async def test_upload_avatar_validates_input(service: Service) -> None:
         )
     assert exc.value.code == "unsupported_media_type"
 
-    result = await upload_avatar(
+    payload, meta = await upload_avatar(
         storage,
         file_name="avatar.png",
         content=b"data",
@@ -155,5 +147,6 @@ async def test_upload_avatar_validates_input(service: Service) -> None:
         max_size=10,
         allowed_types={"image/png"},
     )
-    assert result.payload["success"] == 1
+    assert payload["success"] == 1
+    assert meta.status_code == 200
     assert storage_backend.saved[0][1] == "avatar.png"

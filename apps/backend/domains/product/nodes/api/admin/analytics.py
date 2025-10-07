@@ -1,10 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from functools import wraps
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
-from apps.backend import get_container
 from domains.platform.iam.security import require_admin  # type: ignore[import-not-found]
 from domains.product.nodes.adapters.memory.utils import resolve_memory_node
 from domains.product.nodes.application.admin_queries import (

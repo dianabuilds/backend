@@ -1,10 +1,10 @@
-import pytest
-from apps.backend.domains.platform.moderation.domain.dtos import (
+﻿import pytest
+from domains.platform.moderation.domain.dtos import (
     ContentType,
     SanctionStatus,
     SanctionType,
 )
-from apps.backend.domains.platform.moderation.application.service import (
+from domains.platform.moderation.application.service import (
     PlatformModerationService,
 )
 

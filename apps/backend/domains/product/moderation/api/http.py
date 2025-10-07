@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from apps.backend import get_container
 from domains.platform.iam.security import (
     csrf_protect,
     get_current_user,

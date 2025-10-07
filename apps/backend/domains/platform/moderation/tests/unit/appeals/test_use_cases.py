@@ -4,8 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from ....application import appeals
-from ....domain.dtos import SanctionStatus
+from ....application.appeals import commands as appeal_commands
+from ....application.appeals import queries as appeal_queries
+from ....domain.dtos import AppealDTO, SanctionStatus
 
 
 @pytest.mark.asyncio
@@ -14,10 +15,10 @@ async def test_decide_appeal_cancels_sanction(moderation_service, moderation_dat
     appeal_id = moderation_data["appeals"]["pending"]
     sanction_id = moderation_data["sanctions"]["ban"]
 
-    result = await appeals.decide_appeal(
+    result = await appeal_commands.decide_appeal(
         service,
-        appeal_id=appeal_id,
-        body={"result": "approved", "reason": "evidence updated"},
+        appeal_id,
+        {"result": "approved", "reason": "evidence updated"},
         actor_id="mod-lena",
     )
 
@@ -31,7 +32,7 @@ async def test_decide_appeal_cancels_sanction(moderation_service, moderation_dat
 async def test_get_appeal_missing_raises(moderation_service):
     service = moderation_service
     with pytest.raises(KeyError):
-        await appeals.get_appeal(service, "missing")
+        await appeal_queries.get_appeal(service, "missing")
 
 
 class DummyAppealsRepository:
@@ -85,12 +86,14 @@ async def test_list_appeals_merges_repository(moderation_service):
     service = moderation_service
     repo = DummyAppealsRepository()
 
-    result = await appeals.list_appeals(service, repository=repo)
+    result = await appeal_queries.list_appeals(service, repository=repo)
 
     assert repo.fetch_calls
-    assert all(item.status == "approved" for item in result["items"])
-    assert all(item.decided_by == "repo-mod" for item in result["items"])
-    assert all(item.meta.get("history") == ["repo"] for item in result["items"])
+    assert all(item["status"] == "approved" for item in result["items"])
+    assert all(item["decided_by"] == "repo-mod" for item in result["items"])
+    assert all(
+        item.get("meta", {}).get("history") == ["repo"] for item in result["items"]
+    )
 
 
 @pytest.mark.asyncio
@@ -99,10 +102,10 @@ async def test_decide_appeal_uses_repository(moderation_service, moderation_data
     repo = DummyAppealsRepository()
     appeal_id = moderation_data["appeals"]["pending"]
 
-    result = await appeals.decide_appeal(
+    result = await appeal_commands.decide_appeal(
         service,
         appeal_id,
-        body={"result": "approved", "reason": "ok"},
+        {"result": "approved", "reason": "ok"},
         actor_id="mod-lena",
         repository=repo,
     )
@@ -113,3 +116,29 @@ async def test_decide_appeal_uses_repository(moderation_service, moderation_data
         "decided_by": "mod-lena",
     }
     assert result["db_state"]["decided_by"] == "mod-lena"
+
+
+@pytest.mark.asyncio
+async def test_get_appeal_returns_dto_without_repository(
+    moderation_service, moderation_data
+):
+    service = moderation_service
+    appeal_id = moderation_data["appeals"]["pending"]
+
+    result = await appeal_queries.get_appeal(service, appeal_id)
+
+    assert isinstance(result, AppealDTO)
+    assert result.id == appeal_id
+
+
+@pytest.mark.asyncio
+async def test_get_appeal_uses_repository(moderation_service, moderation_data):
+    service = moderation_service
+    appeal_id = moderation_data["appeals"]["pending"]
+    repo = DummyAppealsRepository()
+
+    result = await appeal_queries.get_appeal(service, appeal_id, repository=repo)
+
+    assert isinstance(result, dict)
+    assert result["status"] == "approved"
+    assert result.get("db_state")

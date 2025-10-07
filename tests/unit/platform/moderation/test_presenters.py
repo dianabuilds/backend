@@ -1,38 +1,38 @@
-import datetime as dt
+﻿import datetime as dt
 
 import pytest
 
-from apps.backend.domains.platform.moderation.application.presenters import (
+from domains.platform.moderation.application.presenters import (
     build_list_response,
     merge_history_prepend,
     merge_metadata,
 )
-from apps.backend.domains.platform.moderation.application.content.presenter import (
+from domains.platform.moderation.application.content.presenter import (
     build_decision_response as build_content_decision,
     merge_summary_with_db,
 )
-from apps.backend.domains.platform.moderation.application.reports.presenter import (
+from domains.platform.moderation.application.reports.presenter import (
     build_reports_list_response,
     build_resolution_response,
     merge_report_with_db,
 )
-from apps.backend.domains.platform.moderation.application.tickets.presenter import (
+from domains.platform.moderation.application.tickets.presenter import (
     build_messages_response,
     build_tickets_list_response,
     merge_ticket_with_db,
     message_from_db,
 )
-from apps.backend.domains.platform.moderation.application.appeals.presenter import (
+from domains.platform.moderation.application.appeals.presenter import (
     build_appeals_list_response,
     build_decision_response as build_appeal_decision,
     merge_appeal_with_db,
 )
-from apps.backend.domains.platform.moderation.application.ai_rules.presenter import (
+from domains.platform.moderation.application.ai_rules.presenter import (
     build_history_response,
     build_rules_list_response,
     build_test_response,
 )
-from apps.backend.domains.platform.moderation.domain.dtos import (
+from domains.platform.moderation.domain.dtos import (
     AIRuleDTO,
     AppealDTO,
     ContentStatus,
@@ -123,10 +123,14 @@ def test_merge_report_with_db_prepend_history(sample_report: ReportDTO) -> None:
         "meta": {"source": "db"},
     }
     merged = merge_report_with_db(sample_report, db_info)
-    assert merged.status == ReportStatus.valid
-    assert merged.decision == "ban"
-    assert merged.resolved_at is not None
-    assert merged.resolved_at.endswith("Z")
+    assert merged.status == ReportStatus.valid
+
+    assert merged.decision == "ban"
+
+    assert merged.resolved_at is not None
+
+    assert merged.resolved_at.endswith("Z")
+
     assert merged.updates and merged.updates[0]["actor"] == "moderator"
     assert merged.meta["source"] == "db"
 

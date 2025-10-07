@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -30,10 +30,15 @@ class FlagRule:
     meta: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
+        raw_type = self.type
         try:
-            self.type = FlagRuleType(self.type)  # type: ignore[assignment]
+            self.type = (
+                raw_type
+                if isinstance(raw_type, FlagRuleType)
+                else FlagRuleType(raw_type)
+            )
         except (ValueError, TypeError) as exc:  # pragma: no cover - defensive
-            raise ValueError(f"invalid rule type: {self.type}") from exc
+            raise ValueError(f"invalid rule type: {raw_type}") from exc
         self.value = str(self.value)
         if self.rollout is not None:
             self.rollout = int(self.rollout)
@@ -55,10 +60,15 @@ class FeatureFlag:
     def __post_init__(self) -> None:
         if not self.slug:
             raise ValueError("flag slug is required")
+        raw_status = self.status
         try:
-            self.status = FlagStatus(self.status)  # type: ignore[assignment]
+            self.status = (
+                raw_status
+                if isinstance(raw_status, FlagStatus)
+                else FlagStatus(raw_status)
+            )
         except (ValueError, TypeError) as exc:
-            raise ValueError(f"invalid flag status: {self.status}") from exc
+            raise ValueError(f"invalid flag status: {raw_status}") from exc
         if self.rollout is not None:
             self.rollout = max(0, min(100, int(self.rollout)))
         if not isinstance(self.rules, tuple):

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 
 from datetime import UTC, datetime
@@ -20,7 +20,6 @@ from domains.platform.notifications.application.broadcast_service import (
 )
 
 from domains.platform.notifications.application.broadcast_use_cases import (
-    UseCaseResult,
     cancel_broadcast,
     create_broadcast,
     list_broadcasts,
@@ -113,9 +112,7 @@ async def test_list_broadcasts_returns_payload_and_normalizes_statuses() -> None
         query="launch",
     )
 
-    assert isinstance(result, UseCaseResult)
-
-    assert result.payload["items"][0]["id"] == "b-1"
+    assert result["items"][0]["id"] == "b-1"
 
     assert service.received is not None
 
@@ -176,7 +173,7 @@ async def test_create_broadcast_passes_payload_and_returns_dict() -> None:
 
     result = await create_broadcast(service, payload)
 
-    assert result.payload["title"] == "Launch"
+    assert result["title"] == "Launch"
 
     assert service.received.title == "Launch"
 
@@ -296,7 +293,7 @@ async def test_schedule_broadcast_returns_payload() -> None:
 
     result = await schedule_broadcast(service, "b-1", scheduled_at)
 
-    assert result.payload["id"] == "b-1"
+    assert result["id"] == "b-1"
 
     assert service.received == ("schedule", "b-1", scheduled_at)
 
@@ -322,6 +319,6 @@ async def test_cancel_broadcast_returns_payload() -> None:
 
     result = await cancel_broadcast(service, "b-1")
 
-    assert result.payload["id"] == "b-1"
+    assert result["id"] == "b-1"
 
     assert service.received == ("cancel", "b-1")

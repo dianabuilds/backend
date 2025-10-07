@@ -1,15 +1,15 @@
-import datetime as dt
+﻿import datetime as dt
 
 import pytest
 
-from apps.backend.domains.platform.notifications.application import template_presenter
-from apps.backend.domains.platform.notifications.application.template_use_cases import (
+from domains.platform.notifications.application import template_presenter
+from domains.platform.notifications.application.template_use_cases import (
     delete_template,
     get_template,
     list_templates,
     upsert_template,
 )
-from apps.backend.domains.platform.notifications.domain.template import Template
+from domains.platform.notifications.domain.template import Template
 
 
 class DummyTemplateService:

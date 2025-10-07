@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Request
 from httpx import HTTPError
 
-from apps.backend import get_container
 from domains.platform.iam.security import get_current_user
 from domains.product.ai.application.errors import ProviderError
 from packages.fastapi_rate_limit import optional_rate_limiter

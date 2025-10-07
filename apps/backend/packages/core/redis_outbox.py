@@ -1,50 +1,53 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from importlib import import_module
+from typing import Any, Protocol, cast
 
 try:
-    # redis-py provides asyncio and sync clients. We use sync for simplicity here.
-    import redis  # type: ignore
-except Exception:  # pragma: no cover - import guard
-    redis = None  # type: ignore
+    _redis_module = import_module("redis")
+except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard
+    raise RuntimeError("redis package is required for Redis outbox") from exc
+
+RedisFactory = _redis_module.Redis
+
+
+class RedisStreamWriter(Protocol):
+    """Subset of Redis Stream commands used by the outbox."""
+
+    def xadd(self, name: str, fields: dict[str, Any]) -> str: ...
 
 
 class RedisOutboxCore:
-    """Low-level Redis Streams outbox.
+    """Low-level Redis Streams outbox."""
 
-    Uses a stream per topic: key = f"events:{topic}". Writes entries with fields
-    {"key": key, "payload": json, "ts": epoch_ms}.
-    """
-
-    def __init__(self, redis_url: str, client: Any | None = None):
-        if redis is None:  # pragma: no cover
-            raise RuntimeError("redis-py is required for Redis outbox")
-        # Allow injecting a pre-configured Redis client (e.g. fakeredis) for tests.
-        self._r = client or redis.Redis.from_url(redis_url, decode_responses=True)
+    def __init__(self, redis_url: str, client: RedisStreamWriter | None = None):
+        if client is not None:
+            self._client = client
+        else:
+            self._client = cast(
+                RedisStreamWriter,
+                RedisFactory.from_url(redis_url, decode_responses=True),
+            )
 
     def publish(self, topic: str, payload: dict, key: str | None = None) -> str:
         stream = f"events:{topic}"
         data: dict[str, Any] = {"payload": json.dumps(payload)}
         if key is not None:
             data["key"] = key
-        # Simple retry with backoff for transient network hiccups
         delay = 0.05
         last_err: Exception | None = None
         for _ in range(5):
             try:
-                msg_id = self._r.xadd(stream, data)
-                return msg_id
-            except Exception as e:  # pragma: no cover - network transient
-                last_err = e
-                import time as _t
+                return self._client.xadd(stream, data)
+            except Exception as exc:  # pragma: no cover - network transient
+                last_err = exc
+                import time as _time
 
-                _t.sleep(delay)
+                _time.sleep(delay)
                 delay = min(delay * 2, 0.5)
-        # Exhausted retries
-        if last_err:
+        if last_err is not None:
             raise last_err
-        # Fallback should never reach here
         raise RuntimeError("failed to publish to redis outbox")
 
 

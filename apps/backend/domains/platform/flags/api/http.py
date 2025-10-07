@@ -1,22 +1,22 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from apps.backend import get_container
-from domains.platform.flags.application.use_cases import (
-    check_flag as check_flag_use_case,
+from domains.platform.flags.application.commands import (
+    delete_flag as delete_flag_command,
 )
-from domains.platform.flags.application.use_cases import (
-    delete_flag as delete_flag_use_case,
+from domains.platform.flags.application.commands import (
+    upsert_flag as upsert_flag_command,
 )
-from domains.platform.flags.application.use_cases import (
-    list_flags as list_flags_use_case,
+from domains.platform.flags.application.queries import (
+    check_flag as check_flag_query,
 )
-from domains.platform.flags.application.use_cases import (
-    upsert_flag as upsert_flag_use_case,
+from domains.platform.flags.application.queries import (
+    list_flags as list_flags_query,
 )
 from domains.platform.iam.security import (
     csrf_protect,
@@ -38,7 +38,7 @@ def make_router() -> APIRouter:
         req: Request, _admin: None = Depends(require_admin)
     ) -> dict[str, Any]:
         container = get_container(req)
-        return await list_flags_use_case(container.flags.service)
+        return await list_flags_query(container.flags.service)
 
     mutate_limit = optional_rate_limiter(times=20, seconds=60)
 
@@ -55,7 +55,7 @@ def make_router() -> APIRouter:
             raise HTTPException(status_code=400, detail="slug_required")
         container = get_container(req)
         try:
-            return await upsert_flag_use_case(container.flags.service, body)
+            return await upsert_flag_command(container.flags.service, body)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -67,14 +67,14 @@ def make_router() -> APIRouter:
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         container = get_container(req)
-        return await delete_flag_use_case(container.flags.service, slug)
+        return await delete_flag_command(container.flags.service, slug)
 
     @router.get("/check/{slug}")
     async def check_flag(
         req: Request, slug: str, claims=Depends(get_current_user)
     ) -> dict[str, Any]:
         container = get_container(req)
-        return await check_flag_use_case(container.flags.service, slug, claims or {})
+        return await check_flag_query(container.flags.service, slug, claims or {})
 
     return router
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 import re
@@ -6,13 +6,13 @@ import uuid as _uuid
 from datetime import UTC, datetime
 from html import unescape
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine

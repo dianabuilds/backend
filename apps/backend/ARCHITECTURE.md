@@ -1,116 +1,69 @@
-# Архитектура backend (демо)
+﻿# Архитектура backend
 
-Цель: монорепо‑каркас для безопасной разработки с ИИ‑агентом. Явные границы, контракт‑центричность, платформенные
-сервисы, типизированные настройки и «рельсы» CI.
+Проект организован как моно‑репозиторий для сервисов FastAPI и доменных пакетов. Главная цель – изолировать домены, строго описать контракты и упростить сопровождение (CI, миграции, тесты) без неявных зависимостей.
 
 ## Обзор
 
-- Приложение: FastAPI gateway, монтирует роутеры доменов.
-- Домены: единый шаблон слоёв `api → application → domain → adapters`, per‑domain миграции.
-- Платформа: инфраструктурные способности (напр., события через Redis Streams) с узким API и политиками.
-- Контракты: публичные OpenAPI/JSON Schema событий — один источник в `packages/schemas`.
-- Настройки: pydantic‑settings, `.env(.local)` для dev, ENV в CI/Prod.
+- **API Gateway**: модуль `app/api_gateway` на FastAPI. Он отвечает только за сборку DI-контейнера, регистрацию роутеров доменов и глобальные middleware/метрики.
+- **Домены**: в каталоге `apps/backend/domains/<kind>/<name>` с единым шаблоном слоёв `api → application → domain → adapters`.
+- **Платформа**: общие сервисы (уведомления, moderation, flags, events, telemetry и т.д.) — живут в `platform.*` и предоставляют узкие порты для продуктовых команд.
+- **Контракты**: JSON Schema / OpenAPI в `apps/backend/packages/schemas` и unit/integration тесты в `tests/**` — единственный источник правды для публичных интерфейсов.
+- **Настройки**: Pydantic settings (`packages/core/config.py`), многоуровневые `.env` + строгая типизация mypy.
 
-## Дерево (главное)
+## Дерево (основные каталоги)
 
 ```
+app/
+  api_gateway/               # FastAPI, DI, routers, middleware
 apps/backend/
-  app/api_gateway/           # FastAPI + DI (lifespan)
-  domains/                   # все домены
-    profile/                 # пример продуктового домена
+  domains/
     platform/
-      events/                # платформенный домен «события» (Redis Streams)
-      _template/             # шаблон для новых платформенных доменов
+      notifications/
+      moderation/
+      ...
+    product/
+      profile/
+      navigation/
+      ...
   packages/
-    core/                    # ядро (config/settings, errors, http, redis_outbox)
-    domain-registry/         # манифесты доменов (опц.)
-    schemas/                 # публичные контракты API/Events
-  infra/                     # docker-compose, CI‑скрипты, otel
-  AGENTS.md                  # общие инструкции для агента
-  ARCHITECTURE.md            # этот документ
+    core/                    # общие утилиты (config, db, redis, errors)
+    schemas/                 # контракты API/Events
+  infra/                     # docker-compose, CI скрипты, observability
+  docs/                      # внутренняя документация
+  migrations/                # Alembic миграции по доменам
+stubs/slugify/               # локальный typeshed для mypy
 ```
 
 ## Слои домена
 
-- `api/`: тонкие контроллеры FastAPI, валидация DTO, без бизнес‑логики.
-- `application/`: use‑cases, координация, транзакции, фича‑флаги, presenter‑модули для сериализации выходов, порты (интерфейсы). Здесь вызываем `domain` и
-  `adapters` через порты; логика отвечает за готовые DTO и HTTP связки.
-- `domain/`: чистые сущности/правила/политики, без I/O и фреймворков.
-- dapters/: инфраструктурные реализации портов. SQL/Redis/etc адаптеры разнесены по подкаталогам dapters/sql и dapters/memory, а интеграции вроде Redis/File остаются рядом.
-- `schema/sql/`: Alembic per‑domain (схема БД = имя домена, `version_table_schema`).
-- `docs/`: DOMAIN/GLOSSARY/TESTPLAN/METRICS.
+- `api/` — тонкие контроллеры FastAPI, только валидация запрос/ответ, без бизнес-логики.
+- `application/` — команды и запросы (use-case функции), typed presenters и порты. В application-слое больше нет `UseCaseResult`: функции возвращают итоговые DTO/TypedDict.
+- `domain/` — чистые сущности, value-objects, политики. Нет I/O и внешних зависимостей.
+- `adapters/` — инфраструктура (SQL, Redis, внешние API). Каждый адаптер реализует интерфейсы из `application`.
 
-Границы: запрещены импорты «вверх» и кросс‑доменные — междоменно только через публичные клиенты/события.
+## Решения последнего рефакторинга
 
-## Платформенные домены
+- Все домены переведены на typed presenters + `commands/queries` (вместо временных фасадов и `UseCaseResult`). API-слой теперь работает напрямую с готовыми структурами.
+- Библиотека `slugify` закрыта локальным stub`ом (`stubs/slugify/__init__.pyi`), что позволило включить строгий mypy без игноров.
+- Раскладка `app/api_gateway` вынесена из `apps/backend/app` в отдельный пакет `app/`, чтобы устранить дублирование путей (`__main__` vs `apps.backend.app`).
+- sql/adapters возвращают строго типизированные `dict[str, Any]` (например, `redis_bus.to_payload`, `moderation/adapters/sql/storage`).
+- Добавлены тесты уровня `tests/integration` для проверки новых маршрутов и миграций (notifications, moderation, flags и т.д.).
 
-Пример: `domains/platform/events`
+## Mypy и качество
 
-- Транспорт: Redis Streams (`events:<topic>`), consumer groups.
-- Политики: идемпотентность (ключ по `topic,key,payload_hash`), rate‑limit per topic, DLQ (`events:dlq:*`).
-- API: `/v1/events/health`, `/v1/events/stats/{topic}`.
-- Релей: чтение XREADGROUP → обработчик → ACK; при ошибке → DLQ → ACK.
+- mypy запускается в строгом режиме (`strict = true`, `explicit_package_bases = true`, `namespace_packages = true`).
+- Добавлены точечные stubs вместо глобальных `ignore_missing_imports`.
+- Архитектурные правила контролируются `importlinter.ini` и unit/integration тестами.
 
-## События
+## Тесты
 
-- Публикация: доменные сервисы вызывают порт Outbox → адаптер `adapters/outbox_redis.py` →
-  `packages/core/redis_outbox.py` (XADD).
-- Контракты: `packages/schemas/events/<domain>/*.json`, `additionalProperties` по политике. Совместимость —
-  additive‑only для MINOR/PATCH.
-- Релей: `domains/platform/events/logic/relay.py`. Запуск: `make run-relay`.
+- `tests/unit/**` — покрытие application/presenter/adapter логики.
+- `tests/integration/**` — быстрые smoke-тесты API Gateway, Redis/SQL адаптеров.
+- `tests/platform/moderation/**` — доменные сценарии (appeals, tickets, content) без HTTP слоя.
 
-## Настройки
+## Хранилище знаний
 
-- `packages/core/config.py` (pydantic‑settings):
-    - базовые: `APP_ENV`, `APP_DATABASE_URL`, `APP_REDIS_URL`;
-    - события: `APP_EVENT_TOPICS`, `APP_EVENT_GROUP`, `APP_EVENT_RATE_QPS`, `APP_EVENT_IDEMPOTENCY_TTL`.
-- Источники по приоритету: ENV > `.env.local` > `.env` > дефолты. Пример — `.env.example`.
+- `docs/feature_flags_sql_plan.md` — подробный playbook по SQL флагам.
+- `docs/worker-platform.md` — запуск воркеров/cron.
+- ADR (в `adr/`) фиксируют ключевые архитектурные решения и эволюцию доменов.
 
-## DI и точка входа
-
-- Gateway: `app/api_gateway/main.py` — контейнер в lifespan, `include_router(make_router())` для доменов.
-- Сборка зависимостей: `app/api_gateway/wires.py` — `load_settings()`, адаптеры и сервисы доменов.
-
-## Контракты и клиенты
-
-- Контракты хранятся централизованно. В CI: валидация и дифф (OpenAPI / JSON Schema событий). Клиенты генерируются из
-  схем (скрипт‑плейсхолдер `infra/ci/clients-gen.sh`).
-
-## Тестирование
-
-- Юнит: `domains/<d>/tests/unit` (pytest, hypothesis опц.).
-- Контрактные: `tests/contract` (валидация payload/фикстур против схем, Pact опц.).
-- Интеграция: Testcontainers (pg/redis), миграции всех доменов (`infra/ci/migrate_all.sh`).
-- Evals: сценарные проверки ключевых флоу (`evals/`).
-
-## CI (набросок стадий)
-
-- lint/types → unit → contracts → integration → security → quality → benchmarks → release.
-- Гейты: покрытие, дифф контрактов, импорты, security‑сканы, SBOM.
-
-## Шаблоны
-
-- Продуктовый домен: `templates/domain_product/*` (consumers/routes, outbox/subscriber redis, контрактные тесты).
-- Платформа: `domains/platform/_template/*` — начинать платформенные домены копированием шаблона (см.
-  `domains/platform/AGENT.md`).
-
-## Правила для агента
-
-- Следуй `AGENTS.md`: PLAN → TESTS → CODE → SELF‑REVIEW; держи логику в правильном слое; контракты через PR.
-- Любое отступление от границ — через блок `WAIVER` в PR с владельцем и сроком.
-
-## Дальнейшие шаги
-
-- Подключить реальные проверки совместимости контрактов (oasdiff/jsonschema‑diff) и import‑linter в CI.
-- Добавить интеграционные тесты для платформенного релея и доменных обработчиков.
-- Ввести кодоген клиентов из OpenAPI/событий.
-### Moderation layering update
-
-- Moderation use-cases (`application/content`, `reports`, `tickets`, `appeals`, `ai_rules`) expose pure orchestration functions; HTTP routers build repositories via `create_repository(container.settings)` и держат транспорт тонким.
-- Shared presenter utilities live in `application/presenters`; `merge_model`/`merge_metadata` дают единый способ обогащения DTO метаданными и историей.
-- SQL-ready repositories (`application/*/repository.py`) инкапсулируют persistence и покрыты async unit-тестами (`tests/unit/platform/moderation`).
-- Юнит-тесты `tests/unit/platform/moderation/test_presenters.py` и сценарии в `domains/platform/moderation/tests` проверяют связку use-case ↔ presenter ↔ repository, используя заглушки БД.
-
-- Домен `platform.flags` переведён на presenter/use-case слой: API вызывает `application.use_cases`, сериализацию выполняет `application.presenter`, в HTTP больше нет бизнес-логики.
-- Домен `platform.notifications` (admin templates) теперь опирается на `template_use_cases` и `template_presenter`, HTTP возвращает готовые payload’ы без `asdict`.
-- CI гарантирует минимум 80% покрытия для `reports/tickets/appeals` репозиториев модерации (pytest + pytest-cov) и сохраняет `coverage.xml` для интеграций.

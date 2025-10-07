@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -9,6 +8,8 @@ from domains.platform.notifications.application.broadcast_exceptions import (
     BroadcastError,
 )
 from domains.platform.notifications.application.broadcast_presenter import (
+    BroadcastListResponse,
+    BroadcastPayload,
     broadcast_to_dict,
     build_broadcast_list_response,
 )
@@ -25,12 +26,6 @@ from domains.platform.notifications.domain.broadcast import (
     BroadcastAudienceType,
     BroadcastStatus,
 )
-
-
-@dataclass(slots=True)
-class UseCaseResult:
-    payload: dict[str, Any]
-    status_code: int = 200
 
 
 def _to_broadcast_error(error: Exception) -> BroadcastError:
@@ -209,7 +204,7 @@ async def list_broadcasts(
     offset: int,
     statuses: Sequence[BroadcastStatus | str] | None = None,
     query: str | None = None,
-) -> UseCaseResult:
+) -> BroadcastListResponse:
     normalized_statuses = _normalize_statuses(statuses)
     collection = await service.list(
         limit=limit,
@@ -218,13 +213,13 @@ async def list_broadcasts(
         query=query,
     )
     payload = build_broadcast_list_response(collection, limit=limit, offset=offset)
-    return UseCaseResult(payload=payload)
+    return payload
 
 
 async def create_broadcast(
     service: BroadcastService,
     payload: Any,
-) -> UseCaseResult:
+) -> BroadcastPayload:
     data = _require_mapping(payload)
     audience = _build_audience(data.get("audience"))
     title = _require_str(data, "title")
@@ -244,14 +239,14 @@ async def create_broadcast(
         broadcast = await service.create(input_data)
     except BroadcastValidationError as exc:
         raise _to_broadcast_error(exc) from exc
-    return UseCaseResult(payload=broadcast_to_dict(broadcast))
+    return broadcast_to_dict(broadcast)
 
 
 async def update_broadcast(
     service: BroadcastService,
     broadcast_id: str,
     payload: Any,
-) -> UseCaseResult:
+) -> BroadcastPayload:
     data = _require_mapping(payload)
     audience = _build_audience(data.get("audience"))
     title = _require_str(data, "title")
@@ -273,25 +268,25 @@ async def update_broadcast(
         BroadcastValidationError,
     ) as exc:
         raise _to_broadcast_error(exc) from exc
-    return UseCaseResult(payload=broadcast_to_dict(broadcast))
+    return broadcast_to_dict(broadcast)
 
 
 async def send_broadcast_now(
     service: BroadcastService,
     broadcast_id: str,
-) -> UseCaseResult:
+) -> BroadcastPayload:
     try:
         broadcast = await service.send_now(broadcast_id)
     except (BroadcastNotFoundError, BroadcastStatusError) as exc:
         raise _to_broadcast_error(exc) from exc
-    return UseCaseResult(payload=broadcast_to_dict(broadcast))
+    return broadcast_to_dict(broadcast)
 
 
 async def schedule_broadcast(
     service: BroadcastService,
     broadcast_id: str,
     scheduled_at: datetime,
-) -> UseCaseResult:
+) -> BroadcastPayload:
     if not isinstance(scheduled_at, datetime):
         raise BroadcastError(
             code="invalid_broadcast",
@@ -306,22 +301,21 @@ async def schedule_broadcast(
         BroadcastValidationError,
     ) as exc:
         raise _to_broadcast_error(exc) from exc
-    return UseCaseResult(payload=broadcast_to_dict(broadcast))
+    return broadcast_to_dict(broadcast)
 
 
 async def cancel_broadcast(
     service: BroadcastService,
     broadcast_id: str,
-) -> UseCaseResult:
+) -> BroadcastPayload:
     try:
         broadcast = await service.cancel(broadcast_id)
     except (BroadcastNotFoundError, BroadcastStatusError) as exc:
         raise _to_broadcast_error(exc) from exc
-    return UseCaseResult(payload=broadcast_to_dict(broadcast))
+    return broadcast_to_dict(broadcast)
 
 
 __all__ = [
-    "UseCaseResult",
     "cancel_broadcast",
     "create_broadcast",
     "list_broadcasts",

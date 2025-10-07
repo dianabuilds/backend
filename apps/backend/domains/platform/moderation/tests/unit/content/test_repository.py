@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -7,11 +7,11 @@ from typing import Any
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from apps.backend.domains.platform.moderation.application.content.repository import (
+from domains.platform.moderation.application.content.repository import (
     ContentRepository,
     coerce_status,
 )
-from apps.backend.domains.platform.moderation.domain.dtos import ContentStatus
+from domains.platform.moderation.domain.dtos import ContentStatus
 
 
 class FakeResult:
@@ -87,7 +87,7 @@ class FakeEngine:
 
 @pytest.fixture(autouse=True)
 def reset_schema_flags(monkeypatch):
-    from apps.backend.domains.platform.moderation.application import content
+    from domains.platform.moderation.application import content
 
     repo_mod = content.repository
     monkeypatch.setattr(repo_mod, "_SCHEMA_READY", False)

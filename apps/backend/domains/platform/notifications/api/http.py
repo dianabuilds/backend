@@ -1,12 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.platform.notifications.application.dispatch_use_cases import (
     preview_channel_notification as preview_channel_notification_use_case,
@@ -36,7 +36,12 @@ from packages.fastapi_rate_limit import optional_rate_limiter
 try:
     from jsonschema.exceptions import ValidationError as JsonSchemaValidationError  # type: ignore
 except ImportError:  # pragma: no cover
-    JsonSchemaValidationError = ValueError  # type: ignore[assignment]
+
+    class JsonSchemaValidationError(ValueError):  # type: ignore[no-redef]
+        """Fallback validation error when jsonschema is unavailable."""
+
+        pass
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +85,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     @router.put("/preferences", dependencies=[Depends(csrf_protect)])
     async def set_preferences(
@@ -98,7 +103,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     @router.get(
         "",
@@ -122,7 +127,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     @router.post(
         "/read/{notif_id}",
@@ -144,7 +149,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     @router.post(
         "/test",
@@ -163,7 +168,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     @router.post(
         "/send",
@@ -187,7 +192,7 @@ def make_router() -> APIRouter:
             )
         except NotificationError as error:
             _raise_notification_error(error)
-        return result.payload
+        return result
 
     return router
 

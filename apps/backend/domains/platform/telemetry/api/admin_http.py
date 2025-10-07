@@ -1,10 +1,10 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, Query, Request
 
-from apps.backend import get_container
 from domains.platform.iam.security import require_admin
 from domains.platform.telemetry.application.event_metrics_service import event_metrics
 from domains.platform.telemetry.application.metrics_registry import llm_metrics

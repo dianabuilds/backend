@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from typing import Any
@@ -56,7 +56,7 @@ async def test_get_preferences_returns_payload() -> None:
         context={"sub": "external"},
     )
 
-    assert result.payload["preferences"]["email"]["inbox"]["opt_in"] is True
+    assert result["preferences"]["email"]["inbox"]["opt_in"] is True
     assert service.get_calls[0][0] == "user-42"
 
 
@@ -81,7 +81,7 @@ async def test_set_preferences_persists_changes() -> None:
         preferences={"email": {"inbox": {"opt_in": False}}},
     )
 
-    assert result.payload["ok"] is True
+    assert result["ok"] is True
     assert service.set_calls == [("user-42", {"email": {"inbox": {"opt_in": False}}})]
 
 
@@ -113,7 +113,7 @@ def test_send_channel_notification_validates_schema() -> None:
         validation_errors=(ValueError,),
     )
 
-    assert result.payload == {"ok": True}
+    assert result == {"ok": True}
     assert dispatched == [("log", {"ok": True})]
 
 

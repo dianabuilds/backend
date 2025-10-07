@@ -1,11 +1,11 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import asdict
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from packages.fastapi_rate_limit import optional_rate_limiter
 

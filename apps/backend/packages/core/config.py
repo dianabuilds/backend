@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Any, Literal, cast
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pydantic import AliasChoices, AnyUrl, Field, ValidationError, field_validator
@@ -104,16 +104,20 @@ class Settings(BaseSettings):
 
     @field_validator("database_url", mode="before")
     @classmethod
-    def _normalize_database_url(cls, value):  # type: ignore[override]
+    def _normalize_database_url(cls, value: Any) -> Any:
+        if value is None:
+            return None
         try:
-            return sanitize_async_dsn(value)
+            return sanitize_async_dsn(str(value))
         except Exception:
             return value
 
     # base
     env: Literal["dev", "test", "prod"] = "dev"
-    database_url: AnyUrl = Field(default="postgresql://app:app@localhost:5432/app")
-    redis_url: AnyUrl = Field(default="redis://localhost:6379/0")
+    database_url: AnyUrl = Field(
+        default=cast(AnyUrl, "postgresql://app:app@localhost:5432/app")
+    )
+    redis_url: AnyUrl = Field(default=cast(AnyUrl, "redis://localhost:6379/0"))
     database_allow_remote: bool = Field(
         default=False,
         validation_alias=AliasChoices(
@@ -246,14 +250,14 @@ class Settings(BaseSettings):
     # normalize optional URL envs: empty string -> None
     @field_validator("notify_webhook_url", mode="before")
     @classmethod
-    def _empty_url_to_none(cls, v):  # type: ignore[override]
-        if v is None:
+    def _empty_url_to_none(cls, value: Any) -> Any:
+        if value is None:
             return None
         try:
-            sv = str(v).strip()
+            text_value = str(value).strip()
         except Exception:
-            return v
-        return None if sv == "" else v
+            return value
+        return value if text_value else None
 
     # experimental routers (can be disabled for cutover)
     nodes_enabled: bool = True
@@ -265,7 +269,7 @@ class Settings(BaseSettings):
     moderation_enabled: bool = True
 
 
-def to_async_dsn(url: AnyUrl) -> str:
+def to_async_dsn(url: AnyUrl | str) -> str:
     return sanitize_async_dsn(url)
 
 

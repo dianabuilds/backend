@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from ...domain.dtos import TicketDTO, TicketMessageDTO, TicketPriority, TicketStatus
 from ..common import isoformat_utc
@@ -28,7 +28,7 @@ def _coerce_priority(value: Any, fallback: TicketPriority) -> TicketPriority:
 def merge_ticket_with_db(
     ticket: TicketDTO, db_info: dict[str, Any] | None
 ) -> TicketDTO:
-    return merge_model(
+    merged = merge_model(
         ticket,
         db_info,
         field_map={
@@ -49,6 +49,7 @@ def merge_ticket_with_db(
             ),
         },
     )
+    return cast(TicketDTO, merged)
 
 
 def build_tickets_list_response(

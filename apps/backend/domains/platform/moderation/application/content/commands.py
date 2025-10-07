@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from ...domain.dtos import ContentStatus
 from ..common import isoformat_utc
-from .presenter import build_decision_response
+from .presenter import DecisionResponse, build_decision_response
 from .repository import ContentRepository
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -18,7 +18,7 @@ async def decide_content(
     *,
     actor_id: str | None = None,
     repository: ContentRepository | None = None,
-) -> dict[str, Any]:
+) -> DecisionResponse:
     async with service._lock:
         content = service._content.get(content_id)
         if not content:

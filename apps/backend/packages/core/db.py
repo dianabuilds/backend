@@ -3,7 +3,7 @@ from __future__ import annotations
 """Async database engine helpers and FastAPI dependency utilities."""
 import re
 import ssl
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Mapping
 from pathlib import Path
 from threading import Lock
 from typing import Any
@@ -244,8 +244,11 @@ def get_async_engine(
     effective_kwargs.setdefault("pool_pre_ping", True)
     connect_args = dict(ssl_connect_args)
     if "connect_args" in effective_kwargs and effective_kwargs["connect_args"]:
-        existing = dict(effective_kwargs["connect_args"])  # type: ignore[arg-type]
-        connect_args.update(existing)
+        existing_raw = effective_kwargs["connect_args"]
+        if isinstance(existing_raw, Mapping):
+            connect_args.update(dict(existing_raw))
+        else:
+            raise TypeError("connect_args must be a mapping")
     if connect_args:
         effective_kwargs["connect_args"] = connect_args
     else:

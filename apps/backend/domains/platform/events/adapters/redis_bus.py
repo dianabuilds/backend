@@ -1,33 +1,69 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import logging
+from importlib import import_module
 from json import JSONDecodeError
-from typing import Any
-
-import redis  # type: ignore
-from redis.exceptions import RedisError  # type: ignore[import]
+from typing import Any, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
+try:
+    _redis_module = import_module("redis")
+    _redis_exceptions = import_module("redis.exceptions")
+except ModuleNotFoundError as exc:  # pragma: no cover - optional dependency guard
+    raise RuntimeError("redis package is required for RedisBus") from exc
+
+RedisError = cast(type[Exception], getattr(_redis_exceptions, "RedisError", Exception))
+RedisFactory = _redis_module.Redis
+
+
+class RedisStreamsClient(Protocol):
+    """Protocol describing the subset of Redis stream commands we rely on."""
+
+    def xgroup_create(
+        self, name: str, groupname: str, id: str, mkstream: bool = ...  # noqa: A002
+    ) -> Any: ...
+
+    def xreadgroup(
+        self,
+        groupname: str,
+        consumername: str,
+        streams: dict[str, str],
+        *,
+        count: int | None = None,
+        block: int | None = None,
+    ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]: ...
+
+    def xack(self, name: str, groupname: str, *ids: str) -> Any: ...
+
+    def xlen(self, name: str) -> int: ...
+
+    def xpending(self, name: str, groupname: str) -> Any: ...
+
 
 class RedisBus:
-    """Thin adapter over Redis Streams for events.* topics.
+    """Thin adapter over Redis Streams for events.* topics."""
 
-    - Streams: events:<topic>
-    - Consumer groups created on demand
-    """
+    def __init__(self, redis_url: str, client: RedisStreamsClient | None = None):
+        if client is not None:
+            self._client = client
+        else:
+            self._client = cast(
+                RedisStreamsClient,
+                RedisFactory.from_url(redis_url, decode_responses=True),
+            )
 
-    def __init__(self, redis_url: str, client: Any | None = None):
-        self._r = client or redis.Redis.from_url(redis_url, decode_responses=True)
-
-    def stream_key(self, topic: str) -> str:
+    @staticmethod
+    def stream_key(topic: str) -> str:
         return f"events:{topic}"
 
     def ensure_group(self, topic: str, group: str) -> None:
         stream = self.stream_key(topic)
         try:
-            self._r.xgroup_create(name=stream, groupname=group, id="0-0", mkstream=True)
+            self._client.xgroup_create(
+                name=stream, groupname=group, id="0-0", mkstream=True
+            )
         except RedisError as exc:
             message = str(exc)
             if (
@@ -44,25 +80,33 @@ class RedisBus:
     def read_batch(
         self, topics: list[str], group: str, consumer: str, count: int, block_ms: int
     ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]:
-        streams = {self.stream_key(t): ">" for t in topics}
+        streams = {self.stream_key(topic): ">" for topic in topics}
         return (
-            self._r.xreadgroup(group, consumer, streams, count=count, block=block_ms)
+            self._client.xreadgroup(
+                group,
+                consumer,
+                streams,
+                count=count,
+                block=block_ms,
+            )
             or []
         )
 
     def ack(self, topic: str, group: str, msg_id: str) -> None:
-        self._r.xack(self.stream_key(topic), group, msg_id)
+        self._client.xack(self.stream_key(topic), group, msg_id)
 
     def xlen(self, topic: str) -> int:
-        return int(self._r.xlen(self.stream_key(topic)))
+        return int(self._client.xlen(self.stream_key(topic)))
 
     def xpending(self, topic: str, group: str) -> int:
         try:
-            info = self._r.xpending(self.stream_key(topic), group)
-            return (
-                int(info.get("pending", 0)) if isinstance(info, dict) else int(info[0])
-            )
-        except RedisError as exc:
+            info = self._client.xpending(self.stream_key(topic), group)
+            if isinstance(info, dict):
+                return int(info.get("pending", 0))
+            if isinstance(info, (list, tuple)) and info:
+                return int(info[0])
+            return int(info)
+        except (RedisError, ValueError, TypeError) as exc:
             logger.debug(
                 "Failed to fetch pending info for stream=%s group=%s: %s",
                 self.stream_key(topic),
@@ -71,9 +115,16 @@ class RedisBus:
             )
             return 0
 
-    def to_payload(self, fields: dict[str, str]) -> dict[str, Any]:
+    @staticmethod
+    def to_payload(fields: dict[str, str]) -> dict[str, Any]:
         try:
-            return json.loads(fields.get("payload", "{}"))
+            raw = json.loads(fields.get("payload", "{}"))
         except (JSONDecodeError, TypeError) as exc:
             logger.debug("Failed to decode payload for fields=%s: %s", fields, exc)
             return {}
+        if isinstance(raw, dict):
+            return {str(key): value for key, value in raw.items()}
+        return {"value": raw}
+
+
+__all__ = ["RedisBus"]

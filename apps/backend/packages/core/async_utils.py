@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from collections.abc import Awaitable
+from collections.abc import Coroutine
+from concurrent.futures import Future
 from typing import Any, TypeVar
 
 _T = TypeVar("_T")
@@ -36,7 +37,7 @@ def _ensure_background_loop() -> asyncio.AbstractEventLoop:
 
 
 def run_sync(
-    coro: Awaitable[_T], *, loop: asyncio.AbstractEventLoop | None = None
+    coro: Coroutine[Any, Any, _T], *, loop: asyncio.AbstractEventLoop | None = None
 ) -> _T:
     """Execute an async coroutine on a background event loop synchronously."""
 
@@ -47,12 +48,12 @@ def run_sync(
         running_loop = None
     if running_loop is target_loop:
         raise RuntimeError("run_sync cannot be called from the managed background loop")
-    future = asyncio.run_coroutine_threadsafe(coro, target_loop)
+    future: Future[_T] = asyncio.run_coroutine_threadsafe(coro, target_loop)
     return future.result()
 
 
 def submit_async(
-    coro: Awaitable[Any], *, loop: asyncio.AbstractEventLoop | None = None
+    coro: Coroutine[Any, Any, Any], *, loop: asyncio.AbstractEventLoop | None = None
 ) -> None:
     """Schedule a coroutine on the background loop without waiting for completion."""
 

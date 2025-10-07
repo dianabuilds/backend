@@ -1,9 +1,9 @@
 ﻿import pytest
 
-from apps.backend.domains.platform.moderation.application.service import (
+from domains.platform.moderation.application.service import (
     PlatformModerationService,
 )
-from apps.backend.domains.platform.moderation.domain.dtos import (
+from domains.platform.moderation.domain.dtos import (
     SanctionStatus,
     SanctionType,
 )

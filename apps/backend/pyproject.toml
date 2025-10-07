@@ -1,4 +1,4 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -13,6 +13,7 @@ dependencies = [
   "fakeredis>=2.23",
   "httpx>=0.27",
   "pydantic-settings>=2.3",
+  "types-PyYAML>=6.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -60,6 +61,7 @@ mypy_path = ["."]
 python_version = "3.11"
 strict = true
 explicit_package_bases = true
+namespace_packages = true
 warn_unused_configs = true
 disallow_any_generics = true
 no_implicit_optional = true
@@ -68,3 +70,12 @@ exclude = [
   "apps/backend/templates/",
   "apps/backend/domains/platform/_template/",
 ]
+
+
+[[tool.mypy.overrides]]
+module = [
+    "packages.worker.*",
+    "domains.platform.notifications.workers.*",
+    "domains.platform.telemetry.workers.*",
+]
+ignore_missing_imports = true

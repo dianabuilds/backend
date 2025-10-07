@@ -6,15 +6,18 @@ from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel, Field
 
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
-from domains.product.profile.application.exceptions import ProfileError
-from domains.product.profile.application.profile_use_cases import (
+from domains.product.profile.application.commands import (
     bind_wallet,
     confirm_email_change,
-    get_profile_admin,
-    get_profile_me,
     request_email_change,
     unbind_wallet,
     update_profile,
+)
+from domains.product.profile.application.exceptions import ProfileError
+from domains.product.profile.application.profile_presenter import ResponseMeta
+from domains.product.profile.application.queries import (
+    get_profile_admin,
+    get_profile_me,
 )
 from packages.core.errors import ApiError
 from packages.core.settings_contract import attach_settings_schema
@@ -163,19 +166,19 @@ def _raise_profile_error(error: ProfileError) -> None:
     ) from error
 
 
+def _apply_response_meta(response: Response, meta: ResponseMeta) -> None:
+    if meta.status_code:
+        response.status_code = int(meta.status_code)
+    if meta.headers:
+        for key, value in meta.headers.items():
+            response.headers[key] = value
+
+
 def _profile_response(
-    response: Response, result_payload: dict[str, Any], status_code: int | None = None
+    response: Response, payload: dict[str, Any], meta: ResponseMeta
 ) -> dict[str, Any]:
-    if status_code is not None:
-        response.status_code = status_code
-    return profile_payload(response, result_payload)
-
-
-def _apply_result_headers(response: Response, headers: dict[str, str] | None) -> None:
-    if not headers:
-        return
-    for key, value in headers.items():
-        response.headers[key] = value
+    _apply_response_meta(response, meta)
+    return profile_payload(response, payload)
 
 
 def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
@@ -189,13 +192,10 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
     ) -> dict[str, Any]:
         container = get_container(request)
         try:
-            result = await get_profile_admin(container.profile_service, user_id)
+            payload, meta = await get_profile_admin(container.profile_service, user_id)
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload, meta)
 
     @admin_router.put("/profile/{user_id}")
     async def settings_profile_update(
@@ -211,7 +211,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         subject = subject_from_claims(claims, user_id)
         subject.setdefault("role", "admin")
         try:
-            result = await update_profile(
+            payload, meta = await update_profile(
                 container.profile_service,
                 user_id,
                 body.model_dump(exclude_unset=True),
@@ -220,10 +220,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload, meta)
 
     @personal_router.get("/profile")
     async def me_settings_profile_get(
@@ -234,13 +231,10 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         user_id = require_user_id(claims)
         container = get_container(request)
         try:
-            result = await get_profile_me(container.profile_service, user_id)
+            payload, meta = await get_profile_me(container.profile_service, user_id)
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload, meta)
 
     @personal_router.put("/profile")
     async def me_settings_profile_update(
@@ -254,7 +248,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         container = get_container(request)
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await update_profile(
+            payload, meta = await update_profile(
                 container.profile_service,
                 user_id,
                 body.model_dump(exclude_unset=True),
@@ -263,10 +257,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload, meta)
 
     @personal_router.post(
         "/profile/email/request-change",
@@ -282,7 +273,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         container = get_container(request)
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await request_email_change(
+            payload_data, meta = await request_email_change(
                 container.profile_service,
                 user_id,
                 payload.email,
@@ -290,10 +281,8 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return attach_settings_schema(result.payload, response)
+        _apply_response_meta(response, meta)
+        return attach_settings_schema(payload_data, response)
 
     @personal_router.post(
         "/profile/email/confirm",
@@ -309,7 +298,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         container = get_container(request)
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await confirm_email_change(
+            payload_data, meta = await confirm_email_change(
                 container.profile_service,
                 user_id,
                 payload.token,
@@ -317,10 +306,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload_data, meta)
 
     @personal_router.post(
         "/profile/wallet",
@@ -336,7 +322,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         container = get_container(request)
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await bind_wallet(
+            payload_data, meta = await bind_wallet(
                 container.profile_service,
                 user_id,
                 payload.model_dump(exclude_unset=True),
@@ -344,10 +330,7 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload_data, meta)
 
     @personal_router.delete(
         "/profile/wallet",
@@ -362,17 +345,14 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
         container = get_container(request)
         subject = subject_from_claims(claims, user_id)
         try:
-            result = await unbind_wallet(
+            payload_data, meta = await unbind_wallet(
                 container.profile_service,
                 user_id,
                 subject=subject,
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        _apply_result_headers(
-            response, dict(result.headers) if result.headers else None
-        )
-        return _profile_response(response, result.payload, int(result.status_code))
+        return _profile_response(response, payload_data, meta)
 
 
 __all__ = [

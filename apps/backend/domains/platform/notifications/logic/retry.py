@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import logging
 from collections.abc import Callable
@@ -32,7 +32,7 @@ def with_retry(
             for attempt in range(1, attempts + 1):
                 try:
                     return fn(*a, **kw)
-                except retry_exceptions as exc:  # type: ignore[misc]
+                except retry_exceptions as exc:
                     if attempt >= attempts:
                         retry_log.error(
                             "notifications retry exhausted after %s attempts: %s",

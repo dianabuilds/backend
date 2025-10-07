@@ -1,28 +1,19 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from apps.backend import get_container
-
+from ...application.content import commands as content_commands
+from ...application.content import queries as content_queries
 from ...application.content.exceptions import ModerationContentError
+from ...application.content.presenter import (
+    DecisionResponse,
+    QueueResponse,
+    build_queue_response,
+)
 from ...application.content.repository import ContentRepository, create_repository
-from ...application.content.use_cases import (
-    UseCaseResult,
-)
-from ...application.content.use_cases import (
-    decide_content as decide_content_use_case,
-)
-from ...application.content.use_cases import (
-    edit_content as edit_content_use_case,
-)
-from ...application.content.use_cases import (
-    get_content as get_content_use_case,
-)
-from ...application.content.use_cases import (
-    list_queue as list_queue_use_case,
-)
 from ...dtos import ContentSummary, ContentType
 from ..rbac import require_scopes
 
@@ -31,12 +22,6 @@ router = APIRouter(prefix="/content", tags=["moderation-content"])
 
 def _build_repository(container) -> ContentRepository:
     return create_repository(container.settings)
-
-
-def _apply(result: UseCaseResult, *, http_raise: bool = False) -> dict[str, Any]:
-    if http_raise and result.status_code >= 400:
-        raise HTTPException(status_code=result.status_code, detail=result.payload)
-    return result.payload
 
 
 @router.get(
@@ -55,10 +40,10 @@ async def list_queue(
     limit: int = 50,
     cursor: str | None = None,
     container=Depends(get_container),
-) -> dict[str, Any]:
+) -> QueueResponse:
     repository = _build_repository(container)
     try:
-        result = await list_queue_use_case(
+        raw = await content_queries.list_queue(
             repository,
             content_type=content_type,
             status=status,
@@ -73,7 +58,9 @@ async def list_queue(
         )
     except ModerationContentError as error:
         raise HTTPException(status_code=error.status_code, detail=error.code) from error
-    return result.payload
+    return build_queue_response(
+        raw.get("items", []), next_cursor=raw.get("next_cursor")
+    )
 
 
 @router.get(
@@ -87,14 +74,19 @@ async def get_content(
     svc = container.platform_moderation.service
     repository = _build_repository(container)
     try:
-        result = await get_content_use_case(
+        summary = await content_queries.get_content(
             svc,
             content_id,
             repository=repository,
         )
     except ModerationContentError as error:
         raise HTTPException(status_code=error.status_code, detail=error.code) from error
-    return ContentSummary.model_validate(result.payload)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="content_not_found") from error
+
+    if isinstance(summary, ContentSummary):
+        return summary
+    return ContentSummary.model_validate(summary)
 
 
 @router.post(
@@ -105,20 +97,21 @@ async def decide_content(
     content_id: str,
     body: dict[str, Any],
     container=Depends(get_container),
-) -> dict[str, Any]:
+) -> DecisionResponse:
     svc = container.platform_moderation.service
     repository = _build_repository(container)
     try:
-        result = await decide_content_use_case(
+        return await content_commands.decide_content(
             svc,
-            repository,
-            content_id=content_id,
-            payload=body,
+            content_id,
+            body,
             actor_id=body.get("actor"),
+            repository=repository,
         )
     except ModerationContentError as error:
         raise HTTPException(status_code=error.status_code, detail=error.code) from error
-    return result.payload
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="content_not_found") from error
 
 
 @router.patch(
@@ -130,14 +123,15 @@ async def edit_content(
 ) -> dict[str, Any]:
     svc = container.platform_moderation.service
     try:
-        result = await edit_content_use_case(
+        return await content_commands.edit_content(
             svc,
-            content_id=content_id,
-            payload=body,
+            content_id,
+            body,
         )
     except ModerationContentError as error:
         raise HTTPException(status_code=error.status_code, detail=error.code) from error
-    return result.payload
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="content_not_found") from error
 
 
 __all__ = ["router"]

@@ -1,4 +1,4 @@
-.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events run-scheduler
+﻿.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events run-scheduler
 
 dev-up:
 	docker compose -f infra/docker-compose.yml up -d
@@ -47,7 +47,7 @@ typecheck:
 	mypy . --config-file pyproject.toml
 
 run:
-	uvicorn apps.backend.app.api_gateway.main:app --reload
+	uvicorn app.api_gateway.main:app --reload
 
 run-relay:
 	python -c "from apps.backend.domains.platform.events.logic.relay import RedisRelay; import os; topics=os.getenv('EVENT_TOPICS','profile.updated.v1').split(','); from apps.backend.packages.core.config import load_settings; s=load_settings(); RedisRelay(s.redis_url, topics).loop(routes={t: (lambda t,p: print('event',t,p)) for t in topics})"
@@ -60,4 +60,5 @@ run-scheduler:
 
 run-notifications:
 	python -m apps.backend.workers notifications
+
 

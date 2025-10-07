@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from ...domain.dtos import ContentSummary, ContentType
 from ...domain.records import ContentRecord
 from ..common import isoformat_utc, paginate, parse_iso_datetime, resolve_iso
 from ..presenters.dto_builders import report_to_dto
-from .presenter import merge_summary_with_db
+from .presenter import QueueResponse, build_queue_response, merge_summary_with_db
 from .repository import ContentRepository
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -127,8 +128,8 @@ async def list_queue(
     date_to: str | None = None,
     limit: int = 50,
     cursor: str | None = None,
-) -> dict[str, Any]:
-    return await repository.list_queue(
+) -> QueueResponse:
+    raw = await repository.list_queue(
         content_type=content_type,
         status=status,
         moderation_status=moderation_status,
@@ -140,6 +141,15 @@ async def list_queue(
         limit=limit,
         cursor=cursor,
     )
+    items: list[Any] = []
+    for item in raw.get("items", []):
+        if isinstance(item, ContentSummary):
+            items.append(item)
+        elif isinstance(item, Mapping):
+            items.append(ContentSummary.model_validate(dict(item)))
+        else:
+            items.append(ContentSummary.model_validate(dict(item)))
+    return build_queue_response(items, next_cursor=raw.get("next_cursor"))
 
 
 async def get_content(

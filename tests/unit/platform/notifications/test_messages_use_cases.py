@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
@@ -128,8 +128,8 @@ async def test_list_notifications_resolves_user_and_returns_payload() -> None:
     )
 
     assert repo.list_calls[0]["user_id"] == "user-123"
-    assert result.payload["items"][0]["id"] == "n-1"
-    assert result.payload["unread"] == 1
+    assert result["items"][0]["id"] == "n-1"
+    assert result["unread"] == 1
 
 
 @pytest.mark.asyncio
@@ -163,7 +163,7 @@ async def test_mark_notification_read_returns_payload() -> None:
         notification_id="n-1",
     )
 
-    assert result.payload["notification"]["id"] == "n-1"
+    assert result["notification"]["id"] == "n-1"
     assert repo.read_calls == [("user-123", "n-1")]
 
 
@@ -194,7 +194,7 @@ async def test_send_notification_parses_string_meta() -> None:
     result = await send_notification(service, payload)
 
     assert service.calls[0]["meta"] == {"foo": 1}
-    assert result.payload["notification"]["id"] == "n-1"
+    assert result["notification"]["id"] == "n-1"
 
 
 @pytest.mark.asyncio

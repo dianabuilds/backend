@@ -1,12 +1,12 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, field_validator, model_validator
 
-from apps.backend import get_container
 from domains.platform.iam.security import csrf_protect, require_admin
 from domains.platform.notifications.application.broadcast_exceptions import (
     BroadcastError,
@@ -202,7 +202,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastListResponse(**result.payload)
+        return BroadcastListResponse(**result)
 
     @router.post(
         "/broadcasts",
@@ -222,7 +222,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastResponse(**result.payload)
+        return BroadcastResponse(**result)
 
     @router.put(
         "/broadcasts/{broadcast_id}",
@@ -244,7 +244,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastResponse(**result.payload)
+        return BroadcastResponse(**result)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/send-now",
@@ -264,7 +264,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastResponse(**result.payload)
+        return BroadcastResponse(**result)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/schedule",
@@ -286,7 +286,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastResponse(**result.payload)
+        return BroadcastResponse(**result)
 
     @router.post(
         "/broadcasts/{broadcast_id}/actions/cancel",
@@ -306,7 +306,7 @@ def make_router() -> APIRouter:
             )
         except BroadcastError as error:
             _raise_broadcast_error(error)
-        return BroadcastResponse(**result.payload)
+        return BroadcastResponse(**result)
 
     return router
 

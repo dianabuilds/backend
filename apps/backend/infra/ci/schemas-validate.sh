@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 try:
-    import yaml  # type: ignore
+    import yaml
 except Exception as exc:  # pragma: no cover
     print(f"[schemas] PyYAML is required: {exc}", file=sys.stderr)
     sys.exit(1)
@@ -44,3 +44,4 @@ if errors:
 
 print(f"[schemas] validated {len(files)} files")
 PY
+

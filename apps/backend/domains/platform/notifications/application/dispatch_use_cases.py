@@ -1,19 +1,16 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 
 from domains.platform.notifications.application.messages_exceptions import (
     NotificationError,
 )
 
 
-@dataclass(slots=True)
-class UseCaseResult:
-    payload: dict[str, Any]
-    status_code: int = 200
+class DispatchAck(TypedDict):
+    ok: bool
 
 
 def preview_channel_notification(
@@ -22,7 +19,7 @@ def preview_channel_notification(
     channel: str,
     payload: dict[str, Any] | None,
     logger: logging.Logger | None = None,
-) -> UseCaseResult:
+) -> DispatchAck:
     data = payload or {}
     try:
         dispatcher(channel, data)
@@ -34,7 +31,7 @@ def preview_channel_notification(
                 exc_info=exc,
             )
         raise NotificationError(code="publish_failed", status_code=502) from exc
-    return UseCaseResult(payload={"ok": True})
+    return DispatchAck(ok=True)
 
 
 def send_channel_notification(
@@ -45,7 +42,7 @@ def send_channel_notification(
     payload: dict[str, Any],
     logger: logging.Logger | None = None,
     validation_errors: Sequence[type[Exception]] = (),
-) -> UseCaseResult:
+) -> DispatchAck:
     request_body = {"channel": channel, "payload": payload}
     try:
         validator("/v1/notifications/send", "post", request_body)
@@ -71,11 +68,11 @@ def send_channel_notification(
                 exc_info=exc,
             )
         raise NotificationError(code="publish_failed", status_code=502) from exc
-    return UseCaseResult(payload={"ok": True})
+    return DispatchAck(ok=True)
 
 
 __all__ = [
-    "UseCaseResult",
+    "DispatchAck",
     "send_channel_notification",
     "preview_channel_notification",
 ]

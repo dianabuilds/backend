@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+﻿from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -6,7 +6,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from apps.backend.domains.platform.moderation.application.appeals.repository import (
+from domains.platform.moderation.application.appeals.repository import (
     AppealsRepository,
     _build_engine,
 )

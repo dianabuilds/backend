@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import logging
@@ -7,13 +7,13 @@ from datetime import UTC, datetime, timedelta
 from json import JSONDecodeError
 from typing import Any, cast
 
+from app.api_gateway.routers import get_container
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from apps.backend import get_container
 from domains.platform.iam.security import (
     csrf_protect,
     get_current_user,
@@ -70,6 +70,15 @@ def _normalize_algo_key(algo: str | None) -> str:
 def _algo_sources(key: str) -> list[str]:
     normalized = _normalize_algo_key(key)
     return ALGO_SOURCES.get(normalized, [normalized])
+
+
+def _coerce_int(value: Any, default: int | None = None) -> int | None:
+    try:
+        if value is None:
+            return default
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 async def _strategy_rows(engine: AsyncEngine) -> list[dict[str, Any]]:
@@ -139,7 +148,7 @@ async def _usage_rows(engine: AsyncEngine) -> dict[str, dict[str, Any]]:
     for row in rows:
         norm = _normalize_algo_key(row.get("algo"))
         bucket = usage.setdefault(norm, {"links": 0, "score": 0.0, "raw": {}})
-        links = int(row.get("links") or 0)
+        links = _coerce_int(row.get("links"), default=0) or 0
         bucket["links"] += links
         bucket["score"] += float(row.get("total_score") or 0.0)
         bucket.setdefault("raw", {})[str(row.get("algo"))] = links
@@ -185,20 +194,26 @@ async def _fetch_top_relations(
             "navigation relations: failed to load top relations for %s", key
         )
         return []
-    return [
-        {
-            "source_id": int(row.get("source_id")),
-            "source_title": row.get("source_title"),
-            "source_slug": row.get("source_slug"),
-            "target_id": int(row.get("target_id")),
-            "target_title": row.get("target_title"),
-            "target_slug": row.get("target_slug"),
-            "algo": row.get("algo"),
-            "score": float(row.get("score") or 0.0),
-            "updated_at": _iso(row.get("updated_at")),
-        }
-        for row in rows
-    ]
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        source_id = _coerce_int(row.get("source_id"))
+        target_id = _coerce_int(row.get("target_id"))
+        if source_id is None or target_id is None:
+            continue
+        items.append(
+            {
+                "source_id": source_id,
+                "source_title": row.get("source_title"),
+                "source_slug": row.get("source_slug"),
+                "target_id": target_id,
+                "target_title": row.get("target_title"),
+                "target_slug": row.get("target_slug"),
+                "algo": _normalize_algo_key(row.get("algo")),
+                "score": float(row.get("score") or 0.0),
+                "updated_at": _iso(row.get("updated_at")),
+            }
+        )
+    return items
 
 
 def make_router() -> APIRouter:
@@ -682,7 +697,7 @@ def make_router() -> APIRouter:
         total_links = sum(info.get("links", 0) for info in usage.values())
         for item in config:
             stats = usage.get(item["strategy"], {})
-            item["links"] = int(stats.get("links", 0))
+            item["links"] = _coerce_int(stats.get("links"), default=0) or 0
             item["score"] = float(stats.get("score", 0.0))
             item["usage_share"] = (
                 float(item["links"]) / float(total_links) if total_links else 0.0
@@ -762,7 +777,7 @@ def make_router() -> APIRouter:
             "enabled": bool(row.get("enabled")),
             "updated_at": _iso(row.get("updated_at")),
             "meta": row.get("meta") or {},
-            "links": int(stats.get("links", 0)),
+            "links": _coerce_int(stats.get("links"), default=0) or 0,
             "usage_share": (
                 float(stats.get("links", 0)) / float(total_links)
                 if total_links
@@ -786,7 +801,7 @@ def make_router() -> APIRouter:
                 "weight": item["weight"],
                 "enabled": item["enabled"],
                 "updated_at": item["updated_at"],
-                "links": int(stats.get("links", 0)),
+                "links": _coerce_int(stats.get("links"), default=0) or 0,
                 "usage_share": (
                     float(stats.get("links", 0)) / float(total_links)
                     if total_links

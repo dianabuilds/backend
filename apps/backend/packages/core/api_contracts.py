@@ -1,10 +1,11 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from types import ModuleType
 from typing import Any, cast
 
-yaml: Any | None
+yaml: ModuleType | None
 jsonschema_validate: Callable[..., None] | None
 
 try:  # optional deps

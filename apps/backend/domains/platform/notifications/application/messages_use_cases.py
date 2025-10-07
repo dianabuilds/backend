@@ -3,23 +3,18 @@ from __future__ import annotations
 import json
 import uuid
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import Any
 
 from domains.platform.notifications.application.messages_exceptions import (
     NotificationError,
 )
 from domains.platform.notifications.application.messages_presenter import (
+    NotificationResponse,
+    NotificationsListResponse,
     build_list_response,
     build_single_response,
     notification_to_dict,
 )
-
-
-@dataclass(slots=True)
-class UseCaseResult:
-    payload: dict[str, Any]
-    status_code: int = 200
 
 
 async def resolve_user_id(users_service: Any, subject: str | None) -> str:
@@ -44,7 +39,7 @@ async def list_notifications(
     placement: str = "inbox",
     limit: int = 50,
     offset: int = 0,
-) -> UseCaseResult:
+) -> NotificationsListResponse:
     user_id = await resolve_user_id(users_service, subject)
     rows = await repo.list_for_user(
         user_id,
@@ -53,7 +48,7 @@ async def list_notifications(
         offset=offset,
     )
     items = [notification_to_dict(row) for row in rows]
-    return UseCaseResult(payload=build_list_response(items))
+    return build_list_response(items)
 
 
 async def mark_notification_read(
@@ -62,12 +57,12 @@ async def mark_notification_read(
     *,
     subject: str | None,
     notification_id: str,
-) -> UseCaseResult:
+) -> NotificationResponse:
     user_id = await resolve_user_id(users_service, subject)
     updated = await repo.mark_read(user_id, notification_id)
     if not updated:
         raise NotificationError(code="not_found", status_code=404)
-    return UseCaseResult(payload=build_single_response(updated))
+    return build_single_response(updated)
 
 
 def _normalize_meta(raw: Any) -> Mapping[str, Any] | None:
@@ -90,7 +85,7 @@ def _normalize_meta(raw: Any) -> Mapping[str, Any] | None:
 async def send_notification(
     notify_service: Any,
     payload: Any,
-) -> UseCaseResult:
+) -> NotificationResponse:
     if not isinstance(payload, Mapping):
         raise NotificationError(
             code="invalid_payload",
@@ -126,11 +121,10 @@ async def send_notification(
         meta=meta,
         event_id=event_id,
     )
-    return UseCaseResult(payload=build_single_response(dto))
+    return build_single_response(dto)
 
 
 __all__ = [
-    "UseCaseResult",
     "list_notifications",
     "mark_notification_read",
     "send_notification",

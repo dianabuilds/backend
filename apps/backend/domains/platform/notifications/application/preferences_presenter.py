@@ -1,15 +1,28 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 
-def build_preferences_response(preferences: Mapping[str, Any]) -> dict[str, Any]:
-    return {"preferences": dict(preferences)}
+class PreferencesResponse(TypedDict):
+    preferences: dict[str, Any]
 
 
-def build_ack_response() -> dict[str, Any]:
-    return {"ok": True}
+class AckResponse(TypedDict):
+    ok: bool
 
 
-__all__ = ["build_ack_response", "build_preferences_response"]
+def build_preferences_response(preferences: Mapping[str, Any]) -> PreferencesResponse:
+    return PreferencesResponse(preferences=dict(preferences))
+
+
+def build_ack_response() -> AckResponse:
+    return AckResponse(ok=True)
+
+
+__all__ = [
+    "AckResponse",
+    "PreferencesResponse",
+    "build_ack_response",
+    "build_preferences_response",
+]
