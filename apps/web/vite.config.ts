@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, 'vendor/template/src'),
         '@constants': path.resolve(__dirname, 'vendor/template/src/constants'),
         '@utils': path.resolve(__dirname, 'vendor/template/src/utils'),
-        '@shared': path.resolve(__dirname, 'vendor/template/src/shared'),
+        '@shared': path.resolve(__dirname, 'src/shared'),
       },
     },
     server: {
@@ -45,3 +45,4 @@ export default defineConfig(({ mode }) => {
     envPrefix: 'VITE_',
   };
 });
+

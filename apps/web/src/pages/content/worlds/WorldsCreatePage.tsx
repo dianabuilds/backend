@@ -1,8 +1,15 @@
-﻿import React from "react";
+import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ContentLayout } from "../ContentLayout";
 import { Card, Input as TInput, Textarea, Button, Badge, Select } from "@ui";
-import { apiGet, apiPost, apiPatch } from "../../../shared/api/client";
+import { apiGet, apiPost, apiPatch } from "@shared/api/client";
+
+type WorldPayload = {
+  id?: string | number;
+  title?: string | null;
+  locale?: string | null;
+  description?: string | null;
+};
 
 const localeOptions = [
   { value: "ru-RU", label: "Русский" },
@@ -21,6 +28,12 @@ function normalizeLocale(raw?: string | null): LocaleValue {
   return prefixMatch ? prefixMatch.value : defaultLocale;
 }
 
+type WorldCreateResponse = {
+  id?: string | number;
+  world_id?: string | number;
+  slug?: string | null;
+} & Partial<WorldPayload>;
+
 function useWorldForm(worldId: string | null) {
   const mode: "create" | "edit" = worldId ? "edit" : "create";
   const navigate = useNavigate();
@@ -35,7 +48,7 @@ function useWorldForm(worldId: string | null) {
     if (mode === "edit" && worldId) {
       (async () => {
         try {
-          const data = await apiGet(`/v1/admin/worlds/${encodeURIComponent(worldId)}`);
+          const data = await apiGet<WorldPayload>(`/v1/admin/worlds/${encodeURIComponent(worldId)}`);
           setTitle(String(data?.title || ""));
           setLocale(normalizeLocale(data?.locale));
           setDescription(String(data?.description || ""));
@@ -62,8 +75,9 @@ function useWorldForm(worldId: string | null) {
         await apiPatch(`/v1/admin/worlds/${encodeURIComponent(worldId)}`, payload);
         navigate("/quests/worlds");
       } else {
-        const created = await apiPost(`/v1/admin/worlds`, payload);
-        setInfo(`Мир создан (id ${created?.id ?? "—"})`);
+        const created = await apiPost<WorldCreateResponse>(`/v1/admin/worlds`, payload);
+        const createdId = created?.id ?? created?.world_id;
+        setInfo(createdId != null ? `Мир создан (id ${createdId})` : 'Мир создан');
         setTitle("");
         setDescription("");
       }
@@ -184,4 +198,6 @@ export default function WorldsCreatePage() {
     </ContentLayout>
   );
 }
+
+
 

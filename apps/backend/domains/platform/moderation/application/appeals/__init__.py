@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from . import commands as appeal_commands
 from . import queries as appeal_queries

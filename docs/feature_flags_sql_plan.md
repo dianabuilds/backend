@@ -1,4 +1,4 @@
-ï»¿# Feature Flags: SQL Rollout Guide
+# Feature Flags: SQL Rollout Guide
 
 ## Summary
 
@@ -17,11 +17,11 @@ Feature flags use PostgreSQL as the single source of truth (`feature_flags`, `fe
 
 ## Migration Checklist
 
-1. **Deploy migration** – apply Alembic revision `0101_feature_flags_sql`.
-2. **Import existing flags** – translate Redis dumps (if any) into SQL rows (`flag.slug`, `status`, `rollout`, `rules`).
-3. **Verify configuration** – ensure `APP_DATABASE_URL` is set; Redis is no longer required for flags.
-4. **Restart services/UI** – reload API Gateway and web app to pick up the new schema.
-5. **Smoke test** –
+1. **Deploy migration** â€“ apply Alembic revision `0101_feature_flags_sql`.
+2. **Import existing flags** â€“ translate Redis dumps (if any) into SQL rows (`flag.slug`, `status`, `rollout`, `rules`).
+3. **Verify configuration** â€“ ensure `APP_DATABASE_URL` is set; Redis is no longer required for flags.
+4. **Restart services/UI** â€“ reload API Gateway and web app to pick up the new schema.
+5. **Smoke test** â€“
    - `GET /v1/flags` returns structured payload (status, rollout %, audience hint, testers, timestamps).
    - `/v1/settings/features` returns objects with `enabled`, `effective`, `status`, `audience`, and metadata.
    - Management UI shows status/targeting columns and kill/enable actions.
@@ -39,10 +39,10 @@ Feature flags use PostgreSQL as the single source of truth (`feature_flags`, `fe
 
 ## Admin API & UI
 
-- `GET /v1/flags` – structured rows for the management UI.
-- `POST /v1/flags` – accepts `status`, optional `rollout`, list fields (`testers`, `roles`, `segments`) or a raw `rules[]` array.
-- `DELETE /v1/flags/{slug}` – remove flag.
-- `GET /v1/flags/check/{slug}` – boolean evaluation helper.
+- `GET /v1/flags` â€“ structured rows for the management UI.
+- `POST /v1/flags` â€“ accepts `status`, optional `rollout`, list fields (`testers`, `roles`, `segments`) or a raw `rules[]` array.
+- `DELETE /v1/flags/{slug}` â€“ remove flag.
+- `GET /v1/flags/check/{slug}` â€“ boolean evaluation helper.
 
 The React management page (`apps/web/src/pages/management/Flags.tsx`) supports:
 - Editing `status`, `rollout`, testers/roles/segments.

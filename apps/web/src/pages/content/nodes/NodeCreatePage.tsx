@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Input as TInput, Switch, Button, TagInput, RichTextEditor, ImageUpload, Spinner } from '@ui';
-import { apiGet, apiPatch, apiPost, apiUploadMedia } from '../../../shared/api/client';
+import { apiGet, apiPatch, apiPost, apiUploadMedia } from '@shared/api/client';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -16,6 +16,7 @@ type NodeViewPayload = {
   content_html?: string | null;
   cover_url?: string | null;
   is_public?: boolean | null;
+  comments_disabled?: boolean | null;
   status?: string | null;
   publish_at?: string | null;
   unpublish_at?: string | null;
@@ -85,6 +86,7 @@ export default function NodeCreatePage() {
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
   const [coverPreview, setCoverPreview] = React.useState('');
   const [isPublic, setIsPublic] = React.useState(false);
+  const [commentsEnabled, setCommentsEnabled] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [loadingExisting, setLoadingExisting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -120,6 +122,7 @@ export default function NodeCreatePage() {
     if (!nodeId) {
       setNodeSlug(null);
       setAuthorId(null);
+      setCommentsEnabled(true);
       return;
     }
 
@@ -129,7 +132,7 @@ export default function NodeCreatePage() {
 
     (async () => {
       try {
-        const data = (await apiGet(`/v1/nodes/${encodeURIComponent(nodeId)}`)) as NodeViewPayload;
+        const data = await apiGet<NodeViewPayload>(`/v1/nodes/${encodeURIComponent(nodeId)}`);
         if (cancelled) return;
 
         setTitle(typeof data?.title === 'string' ? data.title : '');
@@ -143,6 +146,7 @@ export default function NodeCreatePage() {
         setCoverUrl(typeof data?.cover_url === 'string' ? data.cover_url : '');
         setCoverFile(null);
         setIsPublic(Boolean(data?.is_public));
+        setCommentsEnabled(!(data?.comments_disabled ?? false));
         setStatus(String(data?.status ?? (data?.is_public ? 'published' : 'draft')));
         setPublishAt(toLocalDateTimeInput(data?.publish_at ?? null));
         setUnpublishAt(toLocalDateTimeInput(data?.unpublish_at ?? null));
@@ -205,6 +209,7 @@ export default function NodeCreatePage() {
         title: title.trim() || undefined,
         tags: tags.map((tag) => tag.trim()).filter(Boolean),
         is_public: isPublic,
+        comments_disabled: !commentsEnabled,
       };
 
       const now = new Date();
@@ -259,7 +264,7 @@ export default function NodeCreatePage() {
       setBusy(false);
       submittingRef.current = false;
     }
-  }, [content, coverFile, coverUrl, isPublic, mode, navigate, nodeId, publishAt, readOnly, tags, title, unpublishAt]);
+  }, [commentsEnabled, content, coverFile, coverUrl, isPublic, mode, navigate, nodeId, publishAt, readOnly, tags, title, unpublishAt]);
 
   return (
     <ContentLayout context="nodes">
@@ -275,7 +280,7 @@ export default function NodeCreatePage() {
                 variant="outlined"
                 onClick={async () => {
                   try {
-                    const res = await apiPost('/v1/navigation/next', { current_node_id: Number(nodeId), strategy: 'random' });
+                    const res = await apiPost<{ node_id?: string | number }>('/v1/navigation/next', { current_node_id: Number(nodeId), strategy: 'random' });
                     const nextId = res?.node_id;
                     if (nextId) navigate(`/nodes/new?id=${encodeURIComponent(String(nextId))}&mode=view`);
                   } catch {}
@@ -284,6 +289,11 @@ export default function NodeCreatePage() {
                 Next
               </Button>
             </>
+          ) : null}
+          {nodeId ? (
+            <Button variant="outlined" onClick={() => navigate(`/admin/nodes/${encodeURIComponent(String(nodeId))}/moderation`)}>
+              Moderation
+            </Button>
           ) : null}
           <Button variant="outlined" color="neutral" onClick={() => navigate('/nodes/library')}>
             Back to list
@@ -395,6 +405,13 @@ export default function NodeCreatePage() {
                 <p className="text-sm text-gray-600 dark:text-dark-200">{isPublic ? 'Published for everyone' : 'Kept private for now'}</p>
               </div>
               <Switch checked={isPublic} onChange={(e: any) => setIsPublic(e.currentTarget.checked)} disabled={disableInputs} />
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-dark-500">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Comments</div>
+                <p className="text-sm text-gray-600 dark:text-dark-200">{commentsEnabled ? 'Visitors can submit comments' : 'Comments are blocked for this node'}</p>
+              </div>
+              <Switch checked={commentsEnabled} onChange={(e: any) => setCommentsEnabled(e.currentTarget.checked)} disabled={disableInputs} />
             </div>
             {!readOnly && (
               <div className="grid gap-3">

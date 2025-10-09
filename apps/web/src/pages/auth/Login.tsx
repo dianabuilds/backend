@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Button, Card, Checkbox, Input, InputErrorMsg } from '@ui';
-import { useAuth } from '../../shared/auth';
+import { useAuth } from '@shared/auth';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRightIcon, ShieldCheckIcon, SparklesIcon } from '@heroicons/react/24/outline';
 

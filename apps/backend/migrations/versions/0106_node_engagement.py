@@ -1,4 +1,4 @@
-﻿"""Add node engagement tables and counters.
+"""Add node engagement tables and counters.
 
 Revision ID: 0106_node_engagement
 Revises: 0105_moderator_user_notes

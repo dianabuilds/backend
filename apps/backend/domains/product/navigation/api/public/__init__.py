@@ -1,4 +1,4 @@
-﻿from .relations import register_relations_routes
+from .relations import register_relations_routes
 from .transition import register_transition_routes
 
 __all__ = [

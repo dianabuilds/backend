@@ -1,8 +1,8 @@
-﻿import React from 'react';
-import { Badge, Button, Card, Input, Spinner, useToast, Dialog, Table } from '@ui';
+import React from 'react';
+import { Badge, Button, Card, Dialog, Input, Skeleton, Table, useToast } from '@ui';
 
-import { useConfirmDialog } from '../../../../shared/hooks/useConfirmDialog';
-import { extractErrorMessage } from '../../../../shared/utils/errors';
+import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';
+import { extractErrorMessage } from '@shared/utils/errors';
 import {
   createAdminCommentBan,
   deleteAdminCommentBan,
@@ -34,6 +34,16 @@ function normalizeUuid(value: string): string {
 function isUuid(value: string): boolean {
   const normalized = normalizeUuid(value);
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized);
+}
+
+function BansLoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      <Skeleton className="h-10 w-full" rounded />
+      <Skeleton className="h-10 w-full" rounded />
+      <Skeleton className="h-10 w-3/4" rounded />
+    </div>
+  );
 }
 
 export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) {
@@ -87,9 +97,7 @@ export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) 
     setForm((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const canSubmit = React.useMemo(() => {
-    return isUuid(form.target_user_id);
-  }, [form.target_user_id]);
+  const canSubmit = React.useMemo(() => isUuid(form.target_user_id), [form.target_user_id]);
 
   const handleSubmit = React.useCallback(async () => {
     if (!canSubmit || submitting) return;
@@ -136,21 +144,26 @@ export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) 
 
   return (
     <>
-      <Card className="space-y-5 p-6" data-testid="comment-bans-panel" data-analytics="admin.comments.bans">
+      <Card
+        id="bans"
+        className="space-y-6 p-6 rounded-3xl border border-rose-100/70 bg-gradient-to-br from-rose-50/70 via-white to-white dark:border-dark-600 dark:from-dark-700/40 dark:via-dark-800 dark:to-dark-900"
+        data-testid="comment-bans-panel"
+        data-analytics="admin.comments.bans"
+      >
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="space-y-1">
             <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Comment bans</h3>
             <p className="text-sm text-neutral-600 dark:text-neutral-300">
-              Track users restricted from posting and manage ban status.
+              Track restricted users and adjust ban status.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge color={bansCount ? 'warning' : 'neutral'} data-testid="comment-bans-count">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge color={bansCount ? 'warning' : 'neutral'} variant="soft" data-testid="comment-bans-count">
               Active bans: {bansCount}
             </Badge>
             <Button
               size="sm"
-              variant="outlined"
+              variant="ghost"
               color="neutral"
               onClick={loadBans}
               disabled={loading}
@@ -175,10 +188,7 @@ export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) 
             {error}
           </Card>
         ) : loading && !items.length ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-sm text-neutral-500 dark:text-neutral-300">
-            <Spinner />
-            <span>Loading bans...</span>
-          </div>
+          <BansLoadingSkeleton />
         ) : items.length === 0 ? (
           <Card className="border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center text-sm text-neutral-500 dark:border-dark-500 dark:bg-dark-700/40 dark:text-dark-100" data-testid="comment-bans-empty">
             No active bans configured for this node.
@@ -222,19 +232,16 @@ export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) 
         )}
 
         <div className="rounded-md bg-neutral-50 p-4 text-xs text-neutral-600 dark:bg-dark-700/40 dark:text-dark-100">
-          <div className="font-medium text-neutral-800 dark:text-neutral-200">Need guidance?</div>
-          <p className="mt-1">
-            Bans remove posting ability immediately. Review moderation policy in{' '}
-            <a
-              href="/docs/api/node-engagement-admin.md"
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary-600 hover:underline dark:text-primary-300"
-            >
-              the moderation handbook
-            </a>
-            .
-          </p>
+          Bans remove posting ability immediately. Review moderation policy in{' '}
+          <a
+            href="/docs/api/node-engagement-admin.md"
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-600 hover:underline dark:text-primary-300"
+          >
+            the moderation handbook
+          </a>
+          .
         </div>
       </Card>
 
@@ -303,4 +310,3 @@ export function BansPanel({ nodeId, commentSummary, onChange }: BansPanelProps) 
 }
 
 export default BansPanel;
-

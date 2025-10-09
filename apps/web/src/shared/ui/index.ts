@@ -1,4 +1,4 @@
-﻿// Curated UI primitives styled with template CSS classes
+// Curated UI primitives styled with template CSS classes
 export { Button } from './primitives/Button';
 export { Card } from './primitives/Card';
 export { Checkbox } from './primitives/Checkbox';
@@ -24,6 +24,7 @@ export { BarChart, LineChart, PieChart } from './charts/presets';
 
 // Design patterns
 export { PageHeader } from './patterns/PageHeader';
+export { PageHero } from './patterns/PageHero';
 export { Surface } from './patterns/Surface';
 export { MetricCard } from './patterns/MetricCard';
 
@@ -43,3 +44,4 @@ export { PromptDialog } from './primitives/PromptDialog';
 export { ToastProvider } from './ToastProvider';
 export { useToast } from './useToast';
 export type { ToastIntent, ToastOptions, ToastContextValue } from './ToastContext';
+

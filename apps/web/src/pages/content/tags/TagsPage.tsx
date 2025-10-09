@@ -1,14 +1,15 @@
-﻿import React from 'react';
+import React from 'react';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Input, Button, Checkbox, Select, Badge, Drawer, TablePagination, useToast } from '@ui';
+import { Table as UITable } from '@ui/table';
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
-import { apiGet, apiPost, apiDelete } from '../../../shared/api/client';
-import { extractErrorMessage } from '../../../shared/utils/errors';
-import { usePaginatedQuery } from '../../../shared/hooks/usePaginatedQuery';
-import { useConfirmDialog } from '../../../shared/hooks/useConfirmDialog';
-import { translate } from '../../../shared/i18n/locale';
-import type { Locale } from '../../../shared/i18n/locale';
+import { apiGet, apiPost, apiDelete } from '@shared/api/client';
+import { extractErrorMessage } from '@shared/utils/errors';
+import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
+import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';
+import { translate } from '@shared/i18n/locale';
+import type { Locale } from '@shared/i18n/locale';
 
 type Tag = {
   id: string;
@@ -443,75 +444,81 @@ export default function TagsPage({
             </div>
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-600">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:bg-dark-800 dark:text-dark-300">
-                <tr>
-                  <th className="px-4 py-3">
-                    <Checkbox
-                      checked={selectedCount > 0 && selectedCount === items.length}
-                      onChange={(event: any) => toggleSelectAll(event.target.checked)}
-                      aria-label={translate({ en: 'Select all', ru: 'Выбрать все' })}
-                    />
-                  </th>
-                  <th className="px-4 py-3">Slug</th>
-                  <th className="px-4 py-3">{translate(COPY.table.name)}</th>
-                  <th className="px-4 py-3">{translate(COPY.table.usage)}</th>
-                  <th className="px-4 py-3">{translate(COPY.table.aliases)}</th>
-                  <th className="px-4 py-3">{translate(COPY.table.created)}</th>
-                  <th className="px-4 py-3 text-right">{translate(COPY.table.actions)}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                {items.map((tag) => {
-                  const checked = selected.has(tag.id);
-                  const labelCopy = tagLabelCopy(tag);
-                  const selectLabel = translate({ en: `Select ${labelCopy.en}`, ru: `Выбрать ${labelCopy.ru}` });
-                  const deleteLabel = translate({ en: `Delete ${labelCopy.en}`, ru: `Удалить ${labelCopy.ru}` });
-                  return (
-                    <tr key={tag.id} className="bg-white/90 text-sm transition hover:bg-white dark:bg-dark-800/80 dark:hover:bg-dark-750">
-                      <td className="px-4 py-3">
-                        <Checkbox
-                          checked={checked}
-                          onChange={(event: any) => toggleSelected(tag.id, event.target.checked)}
-                          aria-label={selectLabel}
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-dark-200">{tag.slug || '—'}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">#{tag.name}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-dark-200">{(tag.usage_count ?? 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-dark-200">{tag.aliases_count ?? 0}</td>
-                      <td className="px-4 py-3 text-xs text-gray-400 dark:text-dark-300">{toLocaleDate(tag.created_at)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            color="neutral"
-                            size="sm"
-                            onClick={() => handleDelete(tag.id)}
-                            aria-label={deleteLabel}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {!loading && items.length === 0 && (
-                  <tr>
-                    <td className="px-4 py-6 text-center text-sm text-gray-500" colSpan={7}>
-                      {translate(COPY.messages.empty)}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {loading && (
-              <div className="flex items-center justify-center py-6 text-sm text-gray-500">{translate(COPY.messages.loading)}</div>
-            )}
-          </div>
 
+<div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-600">
+  <UITable preset="surface" className="min-w-[900px]" hover>
+    <UITable.THead>
+      <UITable.TR>
+        <UITable.TH className="w-12">
+          <Checkbox
+            checked={selectedCount > 0 && selectedCount === items.length}
+            onChange={(event: any) => toggleSelectAll(event.target.checked)}
+            aria-label={translate({ en: 'Select all', ru: 'Выбрать все' })}
+          />
+        </UITable.TH>
+        <UITable.TH>Slug</UITable.TH>
+        <UITable.TH>{translate(COPY.table.name)}</UITable.TH>
+        <UITable.TH>{translate(COPY.table.usage)}</UITable.TH>
+        <UITable.TH>{translate(COPY.table.aliases)}</UITable.TH>
+        <UITable.TH>{translate(COPY.table.created)}</UITable.TH>
+        <UITable.TH className="text-right">{translate(COPY.table.actions)}</UITable.TH>
+      </UITable.TR>
+    </UITable.THead>
+    <UITable.TBody>
+      {items.length === 0 ? (
+        loading ? (
+          <UITable.Loading rows={4} colSpan={7} />
+        ) : (
+          <UITable.Empty colSpan={7} title={translate(COPY.messages.empty)} />
+        )
+      ) : (
+        items.map((tag) => {
+          const checked = selected.has(tag.id);
+          const labelCopy = tagLabelCopy(tag);
+          const selectLabel = translate({ en: `Select ${labelCopy.en}`, ru: `Выбрать ${labelCopy.ru}` });
+          const deleteLabel = translate({ en: `Delete ${labelCopy.en}`, ru: `Удалить ${labelCopy.ru}` });
+          return (
+            <UITable.TR
+              key={tag.id}
+              className="bg-white/90 text-sm transition hover:bg-white dark:bg-dark-800/80 dark:hover:bg-dark-750"
+            >
+              <UITable.TD>
+                <Checkbox
+                  checked={checked}
+                  onChange={(event: any) => toggleSelected(tag.id, event.target.checked)}
+                  aria-label={selectLabel}
+                />
+              </UITable.TD>
+              <UITable.TD className="font-mono text-xs text-gray-500 dark:text-dark-200">{tag.slug || '—'}</UITable.TD>
+              <UITable.TD className="font-medium text-gray-900 dark:text-white">#{tag.name}</UITable.TD>
+              <UITable.TD className="text-gray-600 dark:text-dark-200">{(tag.usage_count ?? 0).toLocaleString()}</UITable.TD>
+              <UITable.TD className="text-gray-600 dark:text-dark-200">{tag.aliases_count ?? 0}</UITable.TD>
+              <UITable.TD className="text-xs text-gray-400 dark:text-dark-300">{toLocaleDate(tag.created_at)}</UITable.TD>
+              <UITable.TD>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    color="neutral"
+                    size="sm"
+                    onClick={() => handleDelete(tag.id)}
+                    aria-label={deleteLabel}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              </UITable.TD>
+            </UITable.TR>
+          );
+        })
+      )}
+    </UITable.TBody>
+  </UITable>
+  {loading && items.length > 0 && (
+    <div className="flex items-center justify-center py-6 text-sm text-gray-500">
+      {translate(COPY.messages.loading)}
+    </div>
+  )}
+</div>
           <TablePagination
             page={page}
             pageSize={pageSize}

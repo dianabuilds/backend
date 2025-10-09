@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { ConfirmDialog } from '../ui/primitives/ConfirmDialog';
+import React from 'react';
+import { ConfirmDialog } from '@ui/primitives/ConfirmDialog';
 
 type ConfirmDialogOptions = {
   title?: React.ReactNode;

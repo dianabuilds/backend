@@ -1,30 +1,18 @@
-﻿import React from 'react';
+import React from 'react';
 import { AlertTriangle, ExternalLink, FileCode2, Link2, Users } from '@icons';
 import { Badge, Button, Card, PageHeader } from '@ui';
-import type { PageHeaderStat } from "@ui/patterns/PageHeader.tsx";
+import type {
+  PlatformAdminChangelogEntry as SharedPlatformAdminChangelogEntry,
+  PlatformAdminIntegrationSummary as SharedPlatformAdminIntegrationSummary,
+  PlatformAdminQuickLink as SharedPlatformAdminQuickLink,
+} from '@shared/types/management';
+import type { PageHeaderStat } from '@ui/patterns/PageHeader';
 
-export type PlatformAdminQuickLink = {
-  label: string;
-  href: string;
-  description?: string;
-  icon?: React.ReactNode;
-};
+export type PlatformAdminQuickLink = SharedPlatformAdminQuickLink;
+export type PlatformAdminChangelogEntry = SharedPlatformAdminChangelogEntry;
+export type PlatformAdminIntegration = SharedPlatformAdminIntegrationSummary;
 
-export type PlatformAdminChangelogEntry = {
-  id: string;
-  title: string;
-  category?: string;
-  published_at?: string;
-  highlights?: string[];
-};
 
-export type PlatformAdminIntegration = {
-  id: string;
-  label: string;
-  status: string;
-  link?: string | null;
-  hint?: string | null;
-};
 
 type PlatformAdminFrameProps = {
   title: string;
@@ -257,7 +245,7 @@ function ChangelogCard({ entries }: ChangelogCardProps) {
             ) : null}
             {entry.highlights?.length ? (
               <ul className="space-y-1 text-xs text-gray-600 dark:text-dark-100">
-                {entry.highlights.map((highlight, index) => (
+                {entry.highlights.map((highlight: string, index: number) => (
                   <li key={index} className="flex items-start gap-2">
                     <span className="mt-1 h-1 w-1 rounded-full bg-primary-400" />
                     <span>{highlight}</span>

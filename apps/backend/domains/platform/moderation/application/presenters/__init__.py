@@ -1,4 +1,4 @@
-﻿from .enricher import (
+from .enricher import (
     build_list_response,
     copy_model,
     merge_history_prepend,

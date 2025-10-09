@@ -1,0 +1,1 @@
+export { NotificationChannels } from './components/ChannelsView';

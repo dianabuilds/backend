@@ -1,4 +1,4 @@
-﻿-- Track node views aggregated by day
+-- Track node views aggregated by day
 CREATE TABLE IF NOT EXISTS node_views_daily (
     node_id bigint NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
     bucket_date date NOT NULL,

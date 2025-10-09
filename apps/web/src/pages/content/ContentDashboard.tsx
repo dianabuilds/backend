@@ -1,11 +1,11 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { ContentLayout } from './ContentLayout';
 import { PageViews } from './PageViews';
 import { TopTags } from './Tops/TopTags';
 import { Edits } from './Tops/Edits';
 import { Searches } from './Tops/Searches';
 import { FeaturedEditors } from './FeaturedEditors';
-import { apiGet } from '../../shared/api/client';
+import { apiGet } from '@shared/api/client';
 import type { KPIs } from './PageViews/Statistics';
 
 type ContentStats = KPIs;
@@ -37,10 +37,10 @@ export default function ContentDashboard() {
   }, []);
 
   const headerStats = [
-    { label: 'Nodes', value: stats ? stats.nodes.toLocaleString() : '—' },
-    { label: 'Quests', value: stats ? stats.quests.toLocaleString() : '—' },
-    { label: 'Worlds', value: stats ? stats.worlds.toLocaleString() : '—' },
-    { label: 'Published', value: stats ? stats.published.toLocaleString() : '—' },
+    { label: 'Nodes', value: stats ? stats.nodes.toLocaleString() : 'â€”' },
+    { label: 'Quests', value: stats ? stats.quests.toLocaleString() : 'â€”' },
+    { label: 'Worlds', value: stats ? stats.worlds.toLocaleString() : 'â€”' },
+    { label: 'Published', value: stats ? stats.published.toLocaleString() : 'â€”' },
   ];
 
   return (

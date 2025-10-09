@@ -28,11 +28,6 @@ const patternMap: Record<Required<PageHeaderProps>['pattern'], string> = {
     'border-gray-100 bg-gradient-to-br from-white/96 via-primary-50/24 to-indigo-50/30 shadow-[0_20px_45px_-30px_rgba(79,70,229,0.35)] dark:border-dark-600/60 dark:bg-dark-850/70',
 };
 
-const beforeLayer =
-  'before:absolute before:-left-16 before:top-16 before:h-40 before:w-40 before:rounded-full before:bg-primary-400/12 before:blur-3xl before:content-"" before:transition-colors before:duration-500 dark:before:bg-primary-400/20';
-const afterLayer =
-  'after:absolute after:-right-24 after:-top-10 after:h-56 after:w-56 after:rounded-full after:bg-gradient-to-br after:from-secondary/18 after:to-transparent after:opacity-60 after:blur-3xl after:content-"" dark:after:from-secondary/15';
-
 export function PageHeader({
   title,
   description,
@@ -45,7 +40,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <section
-      className={`relative isolate overflow-hidden rounded-3xl border px-6 py-8 sm:px-8 lg:px-12 lg:py-10 ${patternMap[pattern]} ${beforeLayer} ${afterLayer} ${className}`}
+      className={`relative isolate overflow-hidden rounded-[28px] border px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-8 ${patternMap[pattern]} ${className}`}
     >
       <div className="relative z-[1] flex flex-col gap-8">
         {(breadcrumbs?.length || kicker) && (
@@ -73,31 +68,31 @@ export function PageHeader({
           </div>
         )}
 
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl space-y-4">
-            <h1 className="text-balance text-3xl font-semibold tracking-tight text-gray-900 drop-shadow-sm dark:text-white sm:text-4xl">
+            <h1 className="text-balance text-xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-2xl">
               {title}
             </h1>
             {description ? (
-              <div className="text-base text-gray-600 dark:text-dark-100/80 sm:text-lg">{description}</div>
+              <div className="text-xs-plus text-gray-600 dark:text-dark-100/80 sm:text-sm">{description}</div>
             ) : null}
           </div>
           {actions ? <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div> : null}
         </div>
 
         {stats?.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:max-w-lg xl:self-end">
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="group relative overflow-hidden rounded-2xl border border-white/40 bg-white/80 p-5 shadow-[0_10px_30px_-25px_rgba(79,70,229,0.8)] backdrop-blur-md transition hover:-translate-y-1 hover:shadow-[0_18px_45px_-30px_rgba(79,70,229,0.8)] dark:border-white/5 dark:bg-dark-800/80"
+                className="rounded-xl border border-white/40 bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-dark-800/80"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   {stat.icon && <div className="mt-0.5 text-primary-500 dark:text-primary-300">{stat.icon}</div>}
                   <div className="space-y-1">
                     <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200/70">{stat.label}</div>
-                    <div className="text-2xl font-semibold text-gray-900 dark:text-white">{stat.value}</div>
-                    {stat.hint ? <div className="text-xs text-gray-500 dark:text-dark-200/60">{stat.hint}</div> : null}
+                    <div className="text-lg font-semibold text-gray-900 dark:text-white">{stat.value}</div>
+                    {stat.hint ? <div className="text-2xs text-gray-500 dark:text-dark-200/60">{stat.hint}</div> : null}
                   </div>
                 </div>
               </div>

@@ -1,8 +1,8 @@
-import React from 'react'
+﻿import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './styles/index.css'
-import { startRUM } from './shared/rum'
+import { startRUM } from '@shared/rum'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -14,3 +14,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 try {
   startRUM();
 } catch {}
+

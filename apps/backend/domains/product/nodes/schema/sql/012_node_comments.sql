@@ -1,4 +1,4 @@
-﻿-- Hierarchical comments for nodes
+-- Hierarchical comments for nodes
 CREATE TABLE IF NOT EXISTS node_comments (
     id bigserial PRIMARY KEY,
     node_id bigint NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,

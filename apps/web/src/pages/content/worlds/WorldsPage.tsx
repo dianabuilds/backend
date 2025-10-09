@@ -2,9 +2,9 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ContentLayout } from "../ContentLayout";
 import { Card, Button, Spinner, Skeleton, Badge, Tabs, Input, PieChart } from "@ui";
-import { apiGet, apiDelete } from "../../../shared/api/client";
+import { apiGet, apiDelete } from "@shared/api/client";
 
-import { useConfirmDialog } from "../../../shared/hooks/useConfirmDialog";
+import { useConfirmDialog } from "@shared/hooks/useConfirmDialog";
 type World = {
   id: string;
   title: string;

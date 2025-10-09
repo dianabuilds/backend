@@ -1,4 +1,4 @@
-﻿.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events run-scheduler
+.PHONY: dev-up seed test schemas-validate clients-gen schemas-compat migrate-all eval imports-check imports-lint lint lint-fix typecheck run run-relay run-events run-scheduler
 
 dev-up:
 	docker compose -f infra/docker-compose.yml up -d

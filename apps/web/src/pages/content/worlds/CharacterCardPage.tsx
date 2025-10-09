@@ -1,8 +1,8 @@
-﻿import React from "react";
+import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ContentLayout } from "../ContentLayout";
 import { Card, Input as TInput, Textarea, Button, Badge } from "@ui";
-import { apiGet, apiPost, apiPatch } from "../../../shared/api/client";
+import { apiGet, apiPost, apiPatch } from "@shared/api/client";
 
 type Mode = "create" | "edit";
 
@@ -11,6 +11,11 @@ type CharacterPayload = {
   role?: string;
   description?: string;
 };
+
+type CharacterResponse = {
+  id?: string | number;
+  character_id?: string | number;
+} & CharacterPayload;
 
 export default function CharacterCardPage() {
   const [params] = useSearchParams();
@@ -30,7 +35,7 @@ export default function CharacterCardPage() {
     if (mode === "edit" && charId) {
       (async () => {
         try {
-          const data = await apiGet(`/v1/admin/worlds/characters/${encodeURIComponent(charId)}`);
+          const data = await apiGet<CharacterResponse>(`/v1/admin/worlds/characters/${encodeURIComponent(charId)}`);
           setName(String(data?.name || ""));
           setRole(String(data?.role || ""));
           setDescription(String(data?.description || ""));
@@ -62,8 +67,9 @@ export default function CharacterCardPage() {
         navigate("/quests/worlds");
       } else {
         if (!worldId) throw new Error("world_id обязателен");
-        await apiPost(`/v1/admin/worlds/${encodeURIComponent(worldId)}/characters`, payload);
-        setInfo("Персонаж создан");
+        const created = await apiPost<CharacterResponse>(`/v1/admin/worlds/${encodeURIComponent(worldId)}/characters`, payload);
+        const createdId = created?.id ?? created?.character_id;
+        setInfo(createdId ? `Персонаж создан (id ${createdId})` : 'Персонаж создан');
         setName("");
         setRole("");
         setDescription("");
@@ -143,4 +149,5 @@ export default function CharacterCardPage() {
     </ContentLayout>
   );
 }
+
 

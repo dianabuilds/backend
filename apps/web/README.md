@@ -17,11 +17,11 @@ Getting started
    VITE_AUTH_ENDPOINT=/v1/auth/login
 
 Linking to backend auth
-- Dev: Vite proxy пробрасывает `/v1/**` на `VITE_API_BASE` (см. `vite.config.ts`), поэтому CORS/OPTIONS не требуется.
-- Prod: используется абсолютный `VITE_API_BASE` без прокси.
-- Эндпоинт логина: `POST /v1/auth/login`.
-- Бэкенд ожидает поле `email`, но форма принимает логин. Мы отправляем `{ email: <login>, password }`.
-- Запросы идут с `credentials: 'include'`, чтобы куки авторизации сохранялись.
+- Dev: Vite proxy forwards `/v1/**` requests to `VITE_API_BASE` (see `vite.config.ts`), so no extra CORS/OPTIONS plumbing is required.
+- Prod: replicate the same proxy rules in the upstream gateway or CDN.
+- Authentication endpoint: `POST /v1/auth/login`.
+- Login payload: JSON with `email` and `password` fields.
+- Requests must use `credentials: 'include'`, because cookies store the auth session.
 
 Moving the existing template
 - Preferred (with git):
@@ -66,3 +66,26 @@ To run them automatically with backend pre-commit hooks:
 pre-commit run --all-files --config apps/backend/.pre-commit-config.yaml
 ```
 
+## UI primitives
+
+- `@ui/Table` provides presets (`base`, `management`, `surface`), helper states (`Table.Empty`, `Table.Error`, `Table.Loading`) and pagination helpers.
+- `@ui/PageHero` supports layout modes `default`, `metrics`, `compact` and exposes slots for actions, filters, and metrics in page headers.
+- Re-export every shared primitive from `src/shared/ui/index.ts`.
+
+## Storybook
+
+```
+npm run storybook       # start the local component catalog
+npm run storybook:build # emit static bundle (storybook-static)
+```
+
+Document new UI primitives via stories in the `*.stories.tsx` files or MDX docs.
+
+## Visual tests
+
+```
+# Set the CHROMATIC_PROJECT_TOKEN secret in .env
+npm run visual:test
+```
+
+The command publishes Storybook to Chromatic using `--exit-zero-on-changes`. Review snapshots in Chromatic and promote baselines there when they look correct.

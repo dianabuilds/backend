@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from domains.platform.flags.application.commands import (
     delete_flag,

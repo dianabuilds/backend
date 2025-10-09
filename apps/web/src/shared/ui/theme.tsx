@@ -1,7 +1,6 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 
-import { ThemeCtx } from './themeContext';
-import type { CardSkin } from './themeContext';
+import { ThemeCtx, type CardSkin } from './themeContext';
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -12,3 +11,4 @@ export const ThemeProvider = ({ children, cardSkin = 'bordered' }: ThemeProvider
   const value = useMemo(() => ({ cardSkin }), [cardSkin]);
   return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 };
+

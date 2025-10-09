@@ -1,1 +1,1 @@
-﻿"Domain models and DTOs for platform moderation."
+"Domain models and DTOs for platform moderation."

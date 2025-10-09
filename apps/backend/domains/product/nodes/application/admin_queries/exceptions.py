@@ -1,4 +1,4 @@
-﻿"""Exceptions for admin node use-cases."""
+"""Exceptions for admin node use-cases."""
 
 from __future__ import annotations
 

@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Input, Textarea, Button, Spinner, Avatar, Badge, Accordion, CopyButton } from "@ui";
-import { SettingsLayout } from '../../shared/settings/SettingsLayout';
-import { CheckCircle2, Copy as CopyIcon } from '../../shared/icons';
-import { useWalletConnection } from '../../shared/settings/useWalletConnection';
-import { apiGetWithResponse, apiPutWithResponse, apiUploadMedia } from '../../shared/api/client';
-import { useSettingsIdempotencyHeader } from '../../shared/settings';
-import { extractErrorMessage } from '../../shared/utils/errors';
-import { makeIdempotencyKey } from '../../shared/utils/idempotency';
+import { SettingsLayout } from '@shared/settings/SettingsLayout';
+import { CheckCircle2, Copy as CopyIcon } from '@shared/icons';
+import { useWalletConnection } from '@shared/settings/useWalletConnection';
+import { apiGetWithResponse, apiPutWithResponse, apiUploadMedia } from '@shared/api/client';
+import { useSettingsIdempotencyHeader } from '@shared/settings';
+import { extractErrorMessage } from '@shared/utils/errors';
+import { makeIdempotencyKey } from '@shared/utils/idempotency';
 
 type ProfilePayload = {
   id: string;

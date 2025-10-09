@@ -1,4 +1,4 @@
-﻿# ADR 0003: Settings Platform Consolidation
+# ADR 0003: Settings Platform Consolidation
 
 - Status: Proposed
 - Date: 2025-09-22

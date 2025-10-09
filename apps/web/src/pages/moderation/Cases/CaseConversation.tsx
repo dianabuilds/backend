@@ -1,6 +1,6 @@
 import React from 'react';
-import { Avatar, Badge } from '../../../shared/ui';
-import { formatDateTime } from '../../../shared/utils/format';
+import { Avatar, Badge } from '@ui';
+import { formatDateTime } from '@shared/utils/format';
 import { CaseNote } from './types';
 
 type Props = {

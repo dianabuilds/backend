@@ -1,4 +1,4 @@
-﻿-- Node engagement counters on main table
+-- Node engagement counters on main table
 ALTER TABLE nodes
     ADD COLUMN IF NOT EXISTS views_count bigint NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS reactions_like_count bigint NOT NULL DEFAULT 0,

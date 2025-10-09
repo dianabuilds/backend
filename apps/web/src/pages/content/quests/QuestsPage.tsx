@@ -3,10 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 
 import { ContentLayout } from '../ContentLayout';
 import { Badge, Button, Card, Input, Select, Switch, Table, TablePagination, Textarea } from '@ui';
-import { apiGet, apiPost } from '../../../shared/api/client';
-import { usePaginatedQuery } from '../../../shared/hooks/usePaginatedQuery';
-import { extractErrorMessage } from '../../../shared/utils/errors';
-import { translate } from '../../../shared/i18n/locale';
+import { apiGet, apiPost } from '@shared/api/client';
+import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
+import { extractErrorMessage } from '@shared/utils/errors';
+import { translate } from '@shared/i18n/locale';
 type QuestStatus = 'all' | 'draft' | 'published';
 
 type Quest = {
@@ -33,6 +33,13 @@ type QuestFetchResult = {
   source: 'api' | 'fallback';
 };
 
+type QuestCreateResponse = {
+  quest?: (Quest & { quest_id?: string | number }) | null;
+  id?: string | number;
+  quest_id?: string | number;
+  slug?: string | null;
+} & Partial<Quest>;
+
 const STATUS_OPTIONS: Array<{ value: QuestStatus; label: string }> = [
   { value: 'all', label: 'All quests' },
   { value: 'draft', label: 'Draft' },
@@ -49,7 +56,7 @@ const FALLBACK_QUESTS: Quest[] = Array.from({ length: 24 }, (_, index) => ({
 }));
 
 const QUEST_TOASTS = {
-  loadError: { en: 'Failed to load quests', ru: 'Не удалось загрузить квесты' },
+  loadError: { en: 'Failed to load quests', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРІРµСЃС‚С‹' },
 };
 
 
@@ -82,7 +89,7 @@ function formatStatusBadge(quest: Quest): { label: string; color: 'success' | 'w
 }
 
 function formatDateTime(value?: string | null): string {
-  if (!value) return '�';
+  if (!value) return 'пїЅ';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
@@ -254,7 +261,7 @@ export default function QuestsPage(): React.ReactElement {
         setBusy(false);
         return;
       }
-      const response = await apiPost('/v1/quests', payload);
+      const response = await apiPost<QuestCreateResponse>('/v1/quests', payload);
       const createdQuest = response?.quest ?? response;
       if (!createdQuest) {
         throw new Error('Quest was not created');
@@ -307,7 +314,7 @@ export default function QuestsPage(): React.ReactElement {
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
           <span>
             {items.length
-              ? `Showing ${rangeStart.toLocaleString()}�${rangeEnd.toLocaleString()}${
+              ? `Showing ${rangeStart.toLocaleString()}пїЅ${rangeEnd.toLocaleString()}${
                   totalCount != null ? ` of ${totalCount.toLocaleString()}` : ''
                 }`
               : 'No quests to display yet.'}
@@ -359,12 +366,12 @@ export default function QuestsPage(): React.ReactElement {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={createQuest} disabled={busy}>
-              {busy ? 'Creating�' : 'Create quest'}
+              {busy ? 'CreatingпїЅ' : 'Create quest'}
             </Button>
             {created && (
               <span className="text-sm text-gray-600">
                 Created quest {created.id}
-                {created.slug ? ` � ${created.slug}` : ''}
+                {created.slug ? ` пїЅ ${created.slug}` : ''}
               </span>
             )}
           </div>
@@ -397,7 +404,7 @@ export default function QuestsPage(): React.ReactElement {
               {loading && items.length === 0 ? (
                 <Table.TR>
                   <Table.TD colSpan={4} className="py-6 text-center text-sm text-gray-500">
-                    Loading quests�
+                    Loading questsпїЅ
                   </Table.TD>
                 </Table.TR>
               ) : null}
@@ -413,7 +420,7 @@ export default function QuestsPage(): React.ReactElement {
                 return (
                   <Table.TR key={quest.id} className="text-sm">
                     <Table.TD className="py-3 font-medium text-gray-900">{quest.title || 'Untitled quest'}</Table.TD>
-                    <Table.TD className="py-3 text-gray-600">{quest.slug || '�'}</Table.TD>
+                    <Table.TD className="py-3 text-gray-600">{quest.slug || 'пїЅ'}</Table.TD>
                     <Table.TD className="py-3">
                       <Badge color={statusBadge.color} variant="soft">
                         {statusBadge.label}
@@ -442,3 +449,5 @@ export default function QuestsPage(): React.ReactElement {
     </ContentLayout>
   );
 }
+
+

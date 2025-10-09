@@ -1,1 +1,1 @@
-﻿"Application layer components for platform moderation."
+"Application layer components for platform moderation."

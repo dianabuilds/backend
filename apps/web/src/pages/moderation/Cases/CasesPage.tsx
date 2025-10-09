@@ -1,8 +1,8 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button, Card, Spinner, TablePagination } from "@ui";
-import { apiGet } from '../../../shared/api/client';
-import { formatDateTime } from '../../../shared/utils/format';
+import { apiGet } from '@shared/api/client';
+import { formatDateTime } from '@shared/utils/format';
 import { CaseFilters } from './CaseFilters';
 import { CaseTable } from './CaseTable';
 import { CasePreviewDrawer } from './CasePreviewDrawer';

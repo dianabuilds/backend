@@ -1,4 +1,4 @@
-﻿# ADR 0001: Transition Engine Core Model
+# ADR 0001: Transition Engine Core Model
 
 - Status: Accepted
 - Date: 2025-09-21

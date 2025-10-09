@@ -36,7 +36,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         isReady: true,
         loading: false,
-        error: error?.message || 'Не удалось загрузить настройки',
+        error: error?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РЅР°СЃС‚СЂРѕР№РєРё',
         features: {},
         schemaVersion: '',
         idempotencyHeader: 'Idempotency-Key',

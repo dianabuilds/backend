@@ -1,7 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import { ContentLayout } from '../ContentLayout';
 import { Card } from "@ui";
-import { apiGet } from '../../../shared/api/client';
+import { apiGet } from '@shared/api/client';
 import type { KPIs } from '../PageViews/Statistics';
 
 type ContentStats = KPIs;

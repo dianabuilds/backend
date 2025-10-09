@@ -1,9 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
-import { AuthProvider, useAuth } from './shared/auth';
+import { AuthProvider, useAuth } from '@shared/auth';
 import { ToastProvider } from '@ui';
-import { SettingsProvider } from './shared/settings';
+import { SettingsProvider } from '@shared/settings';
 import { AppLayout } from './layout/AppLayout';
 import DashboardPage from './pages/dashboard/Dashboard';
 import ProfilePage from './pages/profile/Profile';
@@ -13,7 +13,7 @@ import BillingPage from './pages/billing/Billing';
 import NodesOverviewPage from './pages/content/nodes/NodesOverviewPage';
 import NodesPage from './pages/content/nodes/NodesPage';
 import NodeCreatePage from './pages/content/nodes/NodeCreatePage';
-import { NodeEngagementPage } from './pages/admin/nodes';
+import { NodeEngagementPage, NodeModerationPage } from './pages/admin/nodes';
 import NodePublicPage from './pages/public/NodePublicPage';
 import QuestsOverviewPage from './pages/content/quests/QuestsOverviewPage';
 import QuestsPage from './pages/content/quests/QuestsPage';
@@ -31,7 +31,7 @@ import NotificationsBroadcastsPage from './pages/notifications/BroadcastsPage';
 import NotificationsTemplatesPage from './pages/notifications/TemplatesPage';
 import NotificationsChannelsPage from './pages/notifications/ChannelsPage';
 import NotificationsHistoryPage from './pages/notifications/HistoryPage';
-import { rumEvent } from './shared/rum';
+import { rumEvent } from '@shared/rum';
 import ObservabilityOverview from './pages/observability/Overview';
 import ObservabilityAPI from './pages/observability/API.tsx';
 import ObservabilityLLM from './pages/observability/LLM';
@@ -101,6 +101,7 @@ export default function App() {
           <Route path="/nodes/tags" element={<RequireAuth><AppLayout><NodeTagsPage /></AppLayout></RequireAuth>} />
           <Route path="/nodes/relations" element={<RequireAuth><AppLayout><RelationsPage /></AppLayout></RequireAuth>} />
           <Route path="/admin/nodes/:nodeId" element={<RequireAdmin><AppLayout><NodeEngagementPage /></AppLayout></RequireAdmin>} />
+          <Route path="/admin/nodes/:nodeId/moderation" element={<RequireAdmin><AppLayout><NodeModerationPage /></AppLayout></RequireAdmin>} />
 
           {/* Quests workspace */}
           <Route path="/quests" element={<RequireAuth><AppLayout><QuestsOverviewPage /></AppLayout></RequireAuth>} />
@@ -206,6 +207,7 @@ function RumRouteTracker() {
   }, [loc.pathname, loc.search]);
   return null;
 }
+
 
 
 

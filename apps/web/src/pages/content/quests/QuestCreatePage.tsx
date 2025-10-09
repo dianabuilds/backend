@@ -1,7 +1,13 @@
 import React from 'react';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Input as TInput, Textarea, Switch, Button, TagInput } from '@ui';
-import { apiPost } from '../../../shared/api/client';
+import { apiPost } from '@shared/api/client';
+
+type QuestCreateResponse = {
+  id?: string | number;
+  quest_id?: string | number;
+  slug?: string | null;
+};
 
 export default function QuestCreatePage() {
   const [title, setTitle] = React.useState('');
@@ -21,9 +27,10 @@ export default function QuestCreatePage() {
         tags,
         is_public: isPublic,
       };
-      if (!payload.title) throw new Error('Укажите название');
-      const res = await apiPost('/v1/quests', payload);
-      setCreated(res);
+      if (!payload.title) throw new Error('РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ');
+      const res = await apiPost<QuestCreateResponse>('/v1/quests', payload);
+      const createdId = res?.id ?? res?.quest_id;
+      setCreated({ id: createdId != null ? String(createdId) : '', slug: res?.slug ?? undefined });
       setTitle(''); setDescription(''); setTags([]); setIsPublic(false);
     } catch (e: any) {
       setError(String(e?.message || e));
@@ -33,24 +40,28 @@ export default function QuestCreatePage() {
   return (
     <ContentLayout context="quests">
       <Card className="p-4">
-        <h2 className="mb-3 text-base font-semibold">Создать квест</h2>
+        <h2 className="mb-3 text-base font-semibold">РЎРѕР·РґР°С‚СЊ РєРІРµСЃС‚</h2>
         {error && <div className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
         <div className="space-y-3">
-          <TInput label="Название" placeholder="Введите название" value={title} onChange={(e: any) => setTitle(e.target.value)} />
-          <Textarea label="Описание" placeholder="Краткое описание" value={description} onChange={(e: any) => setDescription(e.target.value)} />
-          <TagInput label="Теги" placeholder="story, ai, demo" value={tags} onChange={setTags} />
+          <TInput label="РќР°Р·РІР°РЅРёРµ" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ" value={title} onChange={(e: any) => setTitle(e.target.value)} />
+          <Textarea label="РћРїРёСЃР°РЅРёРµ" placeholder="РљСЂР°С‚РєРѕРµ РѕРїРёСЃР°РЅРёРµ" value={description} onChange={(e: any) => setDescription(e.target.value)} />
+          <TagInput label="РўРµРіРё" placeholder="story, ai, demo" value={tags} onChange={setTags} />
           <div className="flex items-center gap-3">
             <Switch checked={isPublic} onChange={(e: any) => setIsPublic(e.currentTarget.checked)} />
-            <span className="text-sm">Опубликовать</span>
+            <span className="text-sm">РћРїСѓР±Р»РёРєРѕРІР°С‚СЊ</span>
           </div>
           <div>
-            <Button disabled={busy || !title.trim()} onClick={createQuest}>{busy ? 'Сохранение…' : 'Создать'}</Button>
+            <Button disabled={busy || !title.trim()} onClick={createQuest}>{busy ? 'РЎРѕС…СЂР°РЅРµРЅРёРµвЂ¦' : 'РЎРѕР·РґР°С‚СЊ'}</Button>
           </div>
           {created && (
-            <div className="text-sm text-gray-700">Создано: id={created.id}{created.slug ? `, slug=${created.slug}` : ''}</div>
+            <div className="text-sm text-gray-700">РЎРѕР·РґР°РЅРѕ: id={created.id}{created.slug ? `, slug=${created.slug}` : ''}</div>
           )}
         </div>
       </Card>
     </ContentLayout>
   );
 }
+
+
+
+

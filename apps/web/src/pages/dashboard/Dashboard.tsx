@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowTopRightOnSquareIcon, BoltIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 import { Button, Card, MetricCard, PageHeader, Surface } from '@ui';
-import { apiGet } from '../../shared/api/client';
+import { apiGet } from '@shared/api/client';
 
 type HealthResponse = {
   ok?: boolean;

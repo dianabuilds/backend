@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { apiGet } from '../../shared/api/client';
-import { sanitizeHtml } from '../../shared/utils/sanitize';
+import { apiGet } from "@shared/api";
+import { sanitizeHtml } from '@shared/utils/sanitize';
 
 type NodePublic = {
   id: number;
@@ -26,7 +26,7 @@ export default function NodePublicPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiGet(`/v1/nodes/slug/${encodeURIComponent(String(slug || ''))}`);
+        const res = await apiGet<NodePublic>(`/v1/nodes/slug/${encodeURIComponent(String(slug || ''))}`);
         if (!cancelled) setData(res);
       } catch (err: any) {
         if (!cancelled) setError(String(err?.message || 'Not found or private'));
@@ -72,4 +72,5 @@ export default function NodePublicPage() {
     </div>
   );
 }
+
 

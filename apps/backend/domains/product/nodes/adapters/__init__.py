@@ -1,4 +1,4 @@
-﻿from .memory.repository import MemoryNodesRepo
+from .memory.repository import MemoryNodesRepo
 from .sql.comments import SQLNodeCommentsRepo
 from .sql.reactions import SQLNodeReactionsRepo
 from .sql.views import SQLNodeViewsRepo

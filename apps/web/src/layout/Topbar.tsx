@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../shared/auth';
-import { apiGet, apiPost } from '../shared/api/client';
+import { useAuth } from '@shared/auth';
+import type { AuthContextUser } from '@shared/auth';
+import { fetchNotificationsHistory, markNotificationAsRead } from '@shared/api/notifications';
+import { apiGet } from '@shared/api/client';
+import type { NotificationHistoryItem } from '@shared/types/notifications';
 import {
   ArrowRightOnRectangleIcon,
   ChevronRightIcon,
@@ -12,21 +15,15 @@ import {
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline';
 import { Spinner } from '@ui';
+import { formatRelativeTime as formatRelativeTimeLabel } from '@shared/utils/format';
 
 interface ProfileSummary {
   avatar_url?: string | null;
 }
 
-type InboxNotification = {
-  id: string;
-  title?: string | null;
-  message?: string | null;
-  created_at?: string | null;
-  read_at?: string | null;
-  priority?: string | null;
-};
+type InboxNotification = NotificationHistoryItem;
 
-type InboxResponse = { items?: InboxNotification[]; unread?: number };
+
 
 type UserMenuItem = {
   to: string;
@@ -67,30 +64,9 @@ const USER_MENU_ITEMS: UserMenuItem[] = [
   },
 ];
 
-function formatRelativeTime(value?: string | null): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const diff = Date.now() - date.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (diff < minute) return 'just now';
-  if (diff < hour) {
-    const mins = Math.round(diff / minute);
-    return `${mins}m ago`;
-  }
-  if (diff < day) {
-    const hrs = Math.round(diff / hour);
-    return `${hrs}h ago`;
-  }
-  const days = Math.round(diff / day);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
-}
-
 export function Topbar(): React.ReactElement {
   const { user, logout, isAuthenticated, isReady } = useAuth();
+  const typedUser = (user ?? null) as AuthContextUser | null;
   const [inbox, setInbox] = React.useState<InboxNotification[]>([]);
   const [unreadTotal, setUnreadTotal] = React.useState(0);
   const [inboxLoading, setInboxLoading] = React.useState(false);
@@ -111,9 +87,9 @@ export function Topbar(): React.ReactElement {
     }
     setInboxLoading(true);
     try {
-      const response = await apiGet<InboxResponse>('/v1/notifications?limit=8');
-      const rows = Array.isArray(response?.items) ? response.items : [];
-      const unread = typeof response?.unread === 'number' ? response.unread : rows.filter((item) => !item.read_at).length;
+      const page = await fetchNotificationsHistory({ limit: 8 });
+      const rows = page.items;
+      const unread = rows.filter((item) => !item.read_at).length;
       setInbox(rows);
       setUnreadTotal(unread);
     } catch {
@@ -188,8 +164,8 @@ export function Topbar(): React.ReactElement {
     nav('/login');
   };
 
-  const displayName = user?.username || user?.email || 'User';
-  const secondaryLine = user?.email || user?.username || '';
+  const displayName = typedUser?.displayName || typedUser?.username || typedUser?.email || 'User';
+  const secondaryLine = typedUser?.email || typedUser?.username || typedUser?.authSource || '';
   const initials = React.useMemo(() => {
     if (!displayName) return 'U';
     const segments = displayName.trim().split(/\s+/).filter(Boolean);
@@ -203,7 +179,7 @@ export function Topbar(): React.ReactElement {
     return `https://avatar.vercel.sh/${seed}.svg?text=${textParam}&background=f0f2f8`;
   }, [displayName, initials]);
   const profileAvatarNormalized = typeof profileAvatar === 'string' ? profileAvatar.trim() : '';
-  const userAvatarNormalized = (user as any)?.avatar_url ? String((user as any)?.avatar_url).trim() : '';
+  const userAvatarNormalized = typedUser?.avatarUrl ? String(typedUser.avatarUrl).trim() : '';
   const baseAvatar = profileAvatarNormalized || userAvatarNormalized || null;
   React.useEffect(() => {
     setAvatarBroken(false);
@@ -226,11 +202,7 @@ export function Topbar(): React.ReactElement {
     async (notificationId: string) => {
       setMarking((prev) => ({ ...prev, [notificationId]: true }));
       try {
-        const response = await apiPost<{ notification?: InboxNotification }>(
-          `/v1/notifications/read/${notificationId}`,
-          {},
-        );
-        const updated = response?.notification;
+        const updated = await markNotificationAsRead(notificationId);
         const fallbackReadAt = new Date().toISOString();
         let wasUnread = false;
         setInbox((prev) =>
@@ -338,7 +310,7 @@ export function Topbar(): React.ReactElement {
                               </div>
                             )}
                             <div className="mt-1 text-[11px] uppercase tracking-wide text-gray-400">
-                              {formatRelativeTime(item.created_at)}
+                              {formatRelativeTimeLabel(item.created_at, { fallback: '' })}
                             </div>
                           </div>
                           <button
@@ -440,5 +412,3 @@ export function Topbar(): React.ReactElement {
     </header>
   );
 }
-
-

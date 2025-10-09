@@ -1,4 +1,4 @@
-﻿-- Product worlds (templates)
+-- Product worlds (templates)
 CREATE TABLE IF NOT EXISTS worlds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   title text NOT NULL,

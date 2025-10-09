@@ -1,4 +1,4 @@
-﻿from .broadcast_presenter import (
+from .broadcast_presenter import (
     AudiencePayload,
     BroadcastListResponse,
     BroadcastPayload,

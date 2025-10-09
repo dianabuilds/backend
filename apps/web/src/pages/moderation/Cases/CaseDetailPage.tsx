@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Avatar, Badge, Button, Card, Drawer, Pagination, Spinner, Tabs } from "@ui";
-import { formatDateTime } from '../../../shared/utils/format';
+import { formatDateTime } from '@shared/utils/format';
 import { CaseConversation } from './CaseConversation';
 import { CaseWorkflowControls } from './CaseWorkflowControls';
 import { CaseTimeline } from './CaseTimeline';
-import { apiGet } from '../../../shared/api/client';
-import { useAuth } from '../../../shared/auth';
+import { apiGet } from '@shared/api/client';
+import { useAuth } from '@shared/auth';
 import { useModerationCase } from './hooks';
 import { Paperclip } from "lucide-react";
 import { CaseNote } from './types';

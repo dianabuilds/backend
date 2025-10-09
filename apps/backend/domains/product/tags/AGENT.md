@@ -1,4 +1,4 @@
-﻿# Tags (Product) вЂ” AGENT Guide
+# Tags (Product) вЂ” AGENT Guide
 
 Purpose
 - Manage tag catalog (slugs, aliases, blacklist) and expose usage counters for UI.

@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 from domains.platform.moderation.domain.dtos import (
     ContentType,
     SanctionStatus,

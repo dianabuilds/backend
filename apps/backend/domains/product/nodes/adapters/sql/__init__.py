@@ -1,4 +1,4 @@
-﻿from .comments import SQLNodeCommentsRepo
+from .comments import SQLNodeCommentsRepo
 from .comments import create_repo as create_comments_repo
 from .reactions import SQLNodeReactionsRepo
 from .reactions import create_repo as create_reactions_repo

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
@@ -11,7 +11,7 @@ import {
   CurrencyDollarIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../shared/auth';
+import { useAuth } from '@shared/auth';
 
 type Group = {
   base: string;
@@ -260,7 +260,7 @@ export function Sidebar() {
           <div className="border-t border-gray-200 px-6 py-4 text-sm dark:border-dark-600">
             <button
               type="button"
-              onClick={logout}
+              onClick={() => { void logout(); }}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-dark-600 dark:bg-dark-700 dark:text-dark-100 dark:hover:bg-dark-600"
             >
               Sign out

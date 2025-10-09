@@ -1,4 +1,4 @@
-﻿# Notifications (system domain)
+# Notifications (system domain)
 
 Уведомления как сервис платформы: каналы (SMTP/webhook/log), кампании, in‑app сообщения.
 

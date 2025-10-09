@@ -1,9 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../shared/auth';
-import { Badge, Button, Card, Drawer, Spinner } from "@ui";
-import { apiGet } from '../../../shared/api/client';
-import { formatDateTime } from '../../../shared/utils/format';
+import { useAuth } from '@shared/auth';
+import { Badge, Button, Card, Drawer, Spinner } from '@ui';
+import { apiGet } from '@shared/api';
+import { formatDateTime } from '@shared/utils/format';
 import { CaseWorkflowControls } from './CaseWorkflowControls';
 import { CaseConversation } from './CaseConversation';
 import { ModerationCaseDetail } from './types';
@@ -297,3 +297,6 @@ export function CasePreviewDrawer({
 }
 
 export default CasePreviewDrawer;
+
+
+

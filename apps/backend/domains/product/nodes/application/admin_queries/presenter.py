@@ -1,4 +1,4 @@
-﻿"""Presentation helpers for admin node use-cases."""
+"""Presentation helpers for admin node use-cases."""
 
 from __future__ import annotations
 

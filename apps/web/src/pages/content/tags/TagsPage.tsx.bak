@@ -1,7 +1,7 @@
 import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card, Input, Select } from '../../../shared/ui';
-import { apiGet } from '../../../shared/api/client';
+import { Card, Input, Select } from '@shared/ui';
+import { apiGet } from '@shared/api/client';
 
 type Tag = { id: string; slug?: string; name: string; usage_count?: number; aliases_count?: number; created_at?: string };
 

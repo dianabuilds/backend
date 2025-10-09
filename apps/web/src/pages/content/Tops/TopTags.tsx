@@ -1,6 +1,6 @@
 import { Card } from "@ui";
 import React from 'react';
-import { apiGet } from '../../../shared/api/client';
+import { apiGet } from '@shared/api/client';
 
 type TagRow = {
   id: string;

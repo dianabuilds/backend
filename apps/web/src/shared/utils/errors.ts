@@ -22,18 +22,40 @@ function translateMessage(message: unknown): string | null {
     return parts.length ? parts.join(', ') : null;
   }
   if (typeof message === 'object') {
-    const detail = translateMessage((message as Record<string, unknown>).detail);
+    const record = message as Record<string, unknown>;
+    const detail = translateMessage(record.detail);
     if (detail) return detail;
-    const error = translateMessage((message as Record<string, unknown>).error);
+
+    const errorsField = record.errors;
+    if (Array.isArray(errorsField) && errorsField.length) {
+      const translatedErrors = translateMessage(errorsField);
+      if (translatedErrors) return translatedErrors;
+    }
+
+    const error = translateMessage(record.error);
     if (error) return error;
-    const msg = translateMessage((message as Record<string, unknown>).message);
+
+    const description = translateMessage((record as Record<string, unknown>).error_description);
+    if (description) return description;
+
+    const list = translateMessage(record.messages);
+    if (list) return list;
+
+    const msg = translateMessage(record.message);
     if (msg) return msg;
   }
+
   return null;
 }
 
 export function extractErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (err == null) return fallback;
+
+  if (typeof err === 'object' && !(err instanceof Error)) {
+    const translatedObject = translateMessage(err);
+    if (translatedObject) return translatedObject;
+  }
+
   let raw: string | null;
   if (typeof err === 'string') raw = err;
   else if (err instanceof Error) raw = err.message;
@@ -66,3 +88,6 @@ export function extractErrorMessage(err: unknown, fallback = 'Something went wro
 
   return trimmed || fallback;
 }
+
+
+

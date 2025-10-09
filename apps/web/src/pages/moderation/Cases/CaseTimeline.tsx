@@ -1,6 +1,6 @@
 import React from 'react';
 import { CaseEvent, CaseNote } from './types';
-import { formatDateTime } from '../../../shared/utils/format';
+import { formatDateTime } from '@shared/utils/format';
 import { Badge } from "@ui";
 
 type TimelineItem = (CaseEvent | (CaseNote & { type?: string })) & { id?: string };

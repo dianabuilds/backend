@@ -1,4 +1,4 @@
-﻿# ADR 0002: Node Embedding Integration
+# ADR 0002: Node Embedding Integration
 
 - Status: Approved
 - Date: 2025-09-21

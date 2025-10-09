@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Spinner } from "@ui";
-import { apiGet } from '../../../shared/api/client';
+import { apiGet } from '@shared/api/client';
 
 export type AssigneeOption = {
   id: string;

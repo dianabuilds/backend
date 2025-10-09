@@ -1,10 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Spinner, Button, Badge } from "@ui";
-import { SettingsLayout } from '../../shared/settings/SettingsLayout';
-import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';
-import { apiGet } from '../../shared/api/client';
-import { extractErrorMessage } from '../../shared/utils/errors';
+import { SettingsLayout } from '@shared/settings/SettingsLayout';
+import { WalletConnectionCard } from '@shared/settings/WalletConnectionCard';
+import { apiGet } from '@shared/api/client';
+import { extractErrorMessage } from '@shared/utils/errors';
 
 interface Summary {
   plan: {

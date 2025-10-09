@@ -1,12 +1,12 @@
-﻿import React from 'react';
+import React from 'react';
 import { Card, Button, Input, Badge, Spinner, Select } from "@ui";
-import { SettingsLayout } from '../../shared/settings/SettingsLayout';
-import { SecurityCard } from '../../shared/settings/SecurityCard';
-import { WalletConnectionCard } from '../../shared/settings/WalletConnectionCard';
-import { apiGet, apiPost } from '../../shared/api/client';
-import { useSettingsIdempotencyHeader } from '../../shared/settings';
-import { extractErrorMessage } from '../../shared/utils/errors';
-import { makeIdempotencyKey } from '../../shared/utils/idempotency';
+import { SettingsLayout } from '@shared/settings/SettingsLayout';
+import { SecurityCard } from '@shared/settings/SecurityCard';
+import { WalletConnectionCard } from '@shared/settings/WalletConnectionCard';
+import { apiGet, apiPost } from '@shared/api/client';
+import { useSettingsIdempotencyHeader } from '@shared/settings';
+import { extractErrorMessage } from '@shared/utils/errors';
+import { makeIdempotencyKey } from '@shared/utils/idempotency';
 
 type SessionRecord = {
   id: string;

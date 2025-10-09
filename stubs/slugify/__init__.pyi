@@ -1,4 +1,4 @@
-﻿from typing import Any, Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 def slugify(
     text: str,

@@ -33,6 +33,13 @@ from domains.product.navigation.domain.transition import (
     TransitionDecision,
 )
 
+try:
+    from domains.platform.telemetry.application.transition_metrics_service import (
+        transition_metrics,
+    )
+except ModuleNotFoundError:  # pragma: no cover - telemetry optional in some tools
+    transition_metrics = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,7 +222,106 @@ class NavigationService:
             emergency_used=data.emergency,
             telemetry={"time_ms": elapsed_ms},
         )
+        self._record_transition_metrics(decision, elapsed_ms)
         return decision
+
+    def _record_transition_metrics(
+        self, decision: TransitionDecision, elapsed_ms: float
+    ) -> None:
+        if transition_metrics is None:
+            return
+        mode = (
+            decision.mode or decision.context.mode or "default"
+        ).strip().lower() or "default"
+        try:
+            transition_metrics.observe_latency(mode, elapsed_ms)
+            candidates = decision.candidates
+            if candidates:
+                entropy = self._candidate_entropy(candidates)
+                transition_metrics.observe_entropy(mode, entropy)
+                transition_metrics.observe_repeat_rate(
+                    mode, self._repeat_rate(decision.context.route_window, candidates)
+                )
+                transition_metrics.observe_novelty_rate(
+                    mode, self._novelty_rate(candidates)
+                )
+            if decision.empty_pool or decision.pool_size == 0:
+                transition_metrics.inc_no_route(mode)
+            if (
+                decision.empty_pool
+                or decision.curated_blocked_reason
+                or decision.emergency_used
+            ):
+                transition_metrics.inc_fallback(mode)
+        except Exception:  # pragma: no cover - metrics must not disrupt traffic
+            logger.debug(
+                "nav_transition_metrics_record_failed",
+                extra={"mode": mode},
+                exc_info=True,
+            )
+
+    @staticmethod
+    def _repeat_rate(
+        route_window: Sequence[int], candidates: Sequence[TransitionCandidate]
+    ) -> float:
+        if not candidates:
+            return 0.0
+        window: set[int] = set()
+        for node_id in route_window:
+            try:
+                window.add(int(node_id))
+            except (TypeError, ValueError):
+                continue
+        if not window:
+            return 0.0
+        repeats = sum(1 for candidate in candidates if candidate.node_id in window)
+        return repeats / len(candidates)
+
+    @staticmethod
+    def _novelty_rate(candidates: Sequence[TransitionCandidate]) -> float:
+        if not candidates:
+            return 0.0
+        novel = 0
+        for candidate in candidates:
+            factors = candidate.factors or {}
+            try:
+                diversity_bonus = float(factors.get("diversity_bonus", 0.0))
+            except (TypeError, ValueError):
+                diversity_bonus = 0.0
+            if (
+                candidate.badge == "explore"
+                or candidate.provider == "random"
+                or diversity_bonus > 0.0
+            ):
+                novel += 1
+        return novel / len(candidates)
+
+    @staticmethod
+    def _candidate_entropy(candidates: Sequence[TransitionCandidate]) -> float:
+        if not candidates:
+            return 0.0
+        probs = []
+        for candidate in candidates:
+            try:
+                value = float(candidate.probability)
+            except (TypeError, ValueError):
+                value = 0.0
+            if value > 0.0:
+                probs.append(value)
+        if not probs:
+            uniform = 1.0 / len(candidates)
+            return -(uniform * math.log(uniform, 2)) * len(candidates)
+        total = sum(probs)
+        if total <= 0.0:
+            uniform = 1.0 / len(candidates)
+            return -(uniform * math.log(uniform, 2)) * len(candidates)
+        entropy = 0.0
+        for prob in probs:
+            frac = prob / total
+            if frac <= 0.0:
+                continue
+            entropy -= frac * math.log(frac, 2)
+        return entropy
 
     def _build_context(self, data: TransitionRequest) -> TransitionContext:
         limit_state = data.limit_state or "normal"

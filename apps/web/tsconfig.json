@@ -30,6 +30,9 @@
       ],
       "@icons/*": [
         "src/shared/icons/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
       ]
     },
     "types": [
@@ -45,7 +48,14 @@
     "src/shared/ui/**/*.tsx",
     "src/shared/auth/**/*.ts",
     "src/shared/auth/**/*.tsx",
-    "src/vite-env.d.ts"
+    "src/vite-env.d.ts",
+    "src/features/**/*.ts",
+    "src/features/**/*.tsx",
+    "src/shared/api/**/*.ts",
+    "src/shared/types/**/*.ts",
+    "src/test/**/*.ts",
+    "src/test/**/*.tsx",
+    "src/test/**/*.d.ts"
   ],
   "exclude": [
     "vendor",

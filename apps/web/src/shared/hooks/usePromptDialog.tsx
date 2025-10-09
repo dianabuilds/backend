@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { PromptDialog } from '../ui/primitives/PromptDialog';
+import React from 'react';
+import { PromptDialog } from '@ui/primitives/PromptDialog';
 
 type PromptDialogOptions = {
   title?: React.ReactNode;

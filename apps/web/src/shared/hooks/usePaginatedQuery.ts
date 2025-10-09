@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { extractErrorMessage } from '../utils/errors';
 
 type FetcherContext = {

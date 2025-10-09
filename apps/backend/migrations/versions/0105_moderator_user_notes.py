@@ -1,4 +1,4 @@
-﻿"""Add moderator user notes table.
+"""Add moderator user notes table.
 
 Revision ID: 0105_moderator_user_notes
 Revises: 0104_platform_moderation_state

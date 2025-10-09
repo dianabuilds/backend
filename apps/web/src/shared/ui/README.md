@@ -1,7 +1,25 @@
-UI layer usage
+# Shared UI
 
-- Import UI only from this directory via alias `@ui`.
-- Each new component should be a thin wrapper over template classes or a minimal copy from vendor sources.
-- Do not import from vendor/template directly in pages/components.
-- Keep props small and typed; prefer composition over configuration.
+- Импортируйте компоненты через алиас @ui — прямые пути к шаблону запрещены.
+- Компоненты минималистичны: тонкие обёртки над готовыми стилями и токенами.
+- Подключайте только те пропсы, которые реально требуются экрану; остальное настраивается композицией.
 
+## Паттерны
+
+| Компонент | Когда использовать | Примечания |
+| --- | --- | --- |
+| PageHeader | Первый экран разделов управления. | Поддерживает пресеты highlight, 
+adiant, subtle; для метрик используйте stats.
+| PageHero | Дашборды, аналитика, страницы обзора. | Варианты default, metrics, compact; KPI передавайте через metrics.
+| Table | Списки и таблицы админки. | Пресеты ase, management, surface, nalytics; доступен набор слотов (Actions, Empty, Error, Loading). |
+
+## Табличные пресеты
+
+- ase — дефолтный вид с серыми линиями и универсальными отступами.
+- management — плотная таблица для страниц управления тарифами, интеграциями, ролями.
+- surface — таблица внутри карточки или Surface; фон белый, скругления и тени.
+- nalytics — лёгкий вариант для тёмных/прозрачных панелей (Observability, мониторинг).
+
+## Галерея
+
+Storybook содержит примеры для основных паттернов: PageHeader, PageHero, Table. При добавлении нового варианта не забывайте дополнять истории и документацию (*.stories.tsx, *.docs.mdx).

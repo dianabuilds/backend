@@ -1,4 +1,4 @@
-﻿from .commands import (
+from .commands import (
     bind_wallet,
     confirm_email_change,
     legacy_update_username,

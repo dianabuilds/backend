@@ -1,14 +1,37 @@
 import { createContext, useContext } from 'react';
 
-type LoginArgs = { login: string; password: string; remember?: boolean };
+export type LoginArgs = { login: string; password: string; remember?: boolean };
 
-type AuthContextValue = {
+export type AuthContextUser = {
+  id?: string;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  email?: string;
+  role?: string;
+  roles: string[];
+  isActive?: boolean;
+  authSource?: string;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type AuthTokens = {
+  accessToken: string | null;
+  refreshToken: string | null;
+  csrfToken: string | null;
+  expiresAt: number | null;
+  tokenType: string | null;
+};
+
+export type AuthContextValue = {
   isAuthenticated: boolean;
   isReady: boolean;
   errorMessage: string | null;
-  user: { id?: string; username?: string; email?: string; role?: string; roles?: string[]; is_active?: boolean; authSource?: string } | null;
+  user: AuthContextUser | null;
+  tokens: AuthTokens;
   login: (args: LoginArgs) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refresh: () => Promise<AuthContextUser | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -22,4 +45,3 @@ function useAuthContext(): AuthContextValue {
 }
 
 export { AuthContext, useAuthContext as useAuth };
-export type { AuthContextValue, LoginArgs };
