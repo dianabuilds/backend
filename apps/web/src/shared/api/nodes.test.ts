@@ -14,6 +14,7 @@ import {
   fetchNodesList,
   restoreNode,
   searchNodeAuthors,
+  updateNodeTags,
 } from './nodes';
 
 const mockedApiGet = vi.mocked(apiGet);
@@ -41,6 +42,7 @@ describe('nodes api', () => {
               embedding_status: 'ready',
               status: 'draft',
               updated_at: '2025-10-05T12:00:00Z',
+              tags: ['dev-blog'],
             },
             {
               id: 'node-2',
@@ -50,6 +52,7 @@ describe('nodes api', () => {
               is_public: true,
               status: 'published',
               updated_at: null,
+              tags: ['dev-blog', 'DEV-BLOG-HOME'],
             },
           ],
           total: '10',
@@ -66,6 +69,7 @@ describe('nodes api', () => {
         q: ' test ',
         slug: ' sluggy ',
         status: 'draft',
+        tag: ' dev-blog ',
         authorId: ' author-1 ',
         sort: 'status',
         order: 'asc',
@@ -74,7 +78,7 @@ describe('nodes api', () => {
       });
 
       expect(mockedApiGet).toHaveBeenCalledWith(
-        '/v1/admin/nodes/list?q=test&slug=sluggy&limit=15&offset=30&sort=status&order=asc&status=draft&author_id=author-1',
+        '/v1/admin/nodes/list?q=test&slug=sluggy&limit=15&offset=30&sort=status&order=asc&status=draft&tag=dev-blog&author_id=author-1',
         { signal: undefined },
       );
 
@@ -90,6 +94,9 @@ describe('nodes api', () => {
           updated_at: '2025-10-05T12:00:00Z',
           embedding_status: 'ready',
           embedding_ready: true,
+          tags: ['dev-blog'],
+          isDevBlog: true,
+          showOnHome: false,
         },
         {
           id: 'node-2',
@@ -102,6 +109,9 @@ describe('nodes api', () => {
           updated_at: null,
           embedding_status: 'ready',
           embedding_ready: true,
+          tags: ['dev-blog', 'dev-blog-home'],
+          isDevBlog: true,
+          showOnHome: true,
         },
       ]);
       expect(result.meta).toEqual({ total: 10, published: 3, drafts: 7, pendingEmbeddings: 2 });
@@ -128,6 +138,21 @@ describe('nodes api', () => {
       mockedApiPost.mockResolvedValue(undefined);
       await restoreNode('  node-42  ');
       expect(mockedApiPost).toHaveBeenCalledWith('/v1/admin/nodes/node-42/restore', {}, { signal: undefined });
+    });
+
+    it('updates node tags with trimmed inputs', async () => {
+      mockedApiPost.mockResolvedValue(undefined);
+      await updateNodeTags(' node-7 ', ['  dev-blog-home  '], 'add');
+      expect(mockedApiPost).toHaveBeenCalledWith(
+        '/v1/admin/nodes/bulk/tags',
+        { ids: ['node-7'], tags: ['dev-blog-home'], action: 'add' },
+        { signal: undefined },
+      );
+    });
+
+    it('throws when updateNodeTags receives invalid payload', async () => {
+      await expect(updateNodeTags([], ['dev-blog-home'], 'add')).rejects.toThrow('nodes_bulk_ids_missing');
+      await expect(updateNodeTags('node-7', [], 'add')).rejects.toThrow('nodes_tags_missing');
     });
 
     it('deletes node with trimmed id', async () => {
@@ -186,4 +211,3 @@ describe('nodes api', () => {
     });
   });
 });
-

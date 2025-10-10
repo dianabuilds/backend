@@ -45,3 +45,5 @@ export { ToastProvider } from './ToastProvider';
 export { useToast } from './useToast';
 export type { ToastIntent, ToastOptions, ToastContextValue } from './ToastContext';
 
+export { pushGlobalToast, subscribeToGlobalToasts } from './toastBus';
+

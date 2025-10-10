@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
+import os
 from collections.abc import Generator
 from pathlib import Path
 
@@ -10,6 +11,11 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
+
+os.environ.setdefault("APP_DATABASE_SSL_CA", "")
+os.environ.setdefault(
+    "APP_DATABASE_URL", "postgresql://app:app@localhost:5432/app?ssl=disable"
+)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _BACKEND_ROOT = _PROJECT_ROOT / "apps/backend"

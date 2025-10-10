@@ -10,8 +10,8 @@ from domains.product.nodes.application.use_cases.catalog import (
 
 
 class StubDevBlogRepository:
-    async def fetch_page(self, engine, *, limit: int, offset: int):
-        items = [
+    def __init__(self) -> None:
+        self.page_items = [
             {
                 "id": 1,
                 "slug": "hello",
@@ -27,7 +27,40 @@ class StubDevBlogRepository:
                 "updated_at": None,
             },
         ]
-        return items[:limit], 5
+        self.posts_by_slug: dict[str, dict[str, object]] = {}
+        self.preview_posts: dict[str, dict[str, object]] = {}
+        self.adjacent_result: tuple[
+            dict[str, object] | None, dict[str, object] | None
+        ] = (
+            None,
+            None,
+        )
+
+    async def fetch_page(self, engine, *, limit: int, offset: int):
+        return self.page_items[:limit], 5
+
+    async def fetch_latest_for_home(self, engine, *, limit: int):
+        return self.page_items[:limit]
+
+    async def fetch_post_by_slug(
+        self,
+        engine,
+        *,
+        slug: str,
+        include_unpublished: bool = False,
+        allowed_statuses=None,
+    ):
+        if include_unpublished:
+            source = self.preview_posts.get(slug) or self.posts_by_slug.get(slug)
+        else:
+            source = self.posts_by_slug.get(slug)
+        return dict(source) if source is not None else None
+
+    async def fetch_adjacent(self, engine, *, sort_value, node_id: int):
+        prev, nxt = self.adjacent_result
+        prev_copy = dict(prev) if prev is not None else None
+        next_copy = dict(nxt) if nxt is not None else None
+        return prev_copy, next_copy
 
 
 class StubNodesService:
@@ -95,6 +128,77 @@ async def test_dev_blog_service_missing_engine():
     with pytest.raises(HTTPException) as exc:
         await service.list_posts(limit=2, offset=0)
     assert exc.value.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_dev_blog_service_gets_published_post_with_neighbors():
+    repo = StubDevBlogRepository()
+    repo.posts_by_slug["hello"] = {
+        "id": 42,
+        "slug": "hello",
+        "summary": "hi",
+        "cover_url": None,
+        "publish_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-02T00:00:00Z",
+        "author": {"id": "author-1"},
+        "status": "published",
+        "_order_value": 123,
+    }
+    repo.adjacent_result = (
+        {"id": 41, "slug": "prev", "summary": "p"},
+        {"id": 43, "slug": "next", "summary": "n"},
+    )
+
+    async def engine_factory():
+        return object()
+
+    service = DevBlogService(engine_factory=engine_factory, repository=repo)
+    post, sort_value = await service.get_post_by_slug("hello")
+    assert post["slug"] == "hello"
+    assert sort_value == 123
+
+    neighbors = await service.get_adjacent_posts(
+        sort_value=sort_value, node_id=post["id"]
+    )
+    assert neighbors["prev"]["slug"] == "prev"
+    assert neighbors["next"]["slug"] == "next"
+
+
+@pytest.mark.asyncio
+async def test_dev_blog_service_preview_allows_draft():
+    repo = StubDevBlogRepository()
+    repo.preview_posts["draft"] = {
+        "id": 99,
+        "slug": "draft",
+        "summary": "draft summary",
+        "cover_url": None,
+        "publish_at": None,
+        "updated_at": None,
+        "author": {"id": "author-2"},
+        "status": "draft",
+        "_order_value": 555,
+    }
+
+    async def engine_factory():
+        return object()
+
+    service = DevBlogService(engine_factory=engine_factory, repository=repo)
+    post, sort_value = await service.get_post_by_slug("draft", preview=True)
+    assert post["status"] == "draft"
+    assert sort_value == 555
+
+
+@pytest.mark.asyncio
+async def test_dev_blog_service_missing_post_raises_not_found():
+    async def engine_factory():
+        return object()
+
+    service = DevBlogService(
+        engine_factory=engine_factory, repository=StubDevBlogRepository()
+    )
+    with pytest.raises(HTTPException) as exc:
+        await service.get_post_by_slug("missing")
+    assert exc.value.status_code == 404
 
 
 @pytest.mark.asyncio

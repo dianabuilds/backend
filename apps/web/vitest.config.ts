@@ -5,10 +5,11 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@ui': path.resolve(__dirname, 'src/shared/ui'),
-      '@icons': path.resolve(__dirname, 'src/shared/icons'),
-    },
+    alias: [
+      { find: '@ui', replacement: path.resolve(__dirname, 'src/shared/ui') },
+      { find: '@icons', replacement: path.resolve(__dirname, 'src/shared/icons') },
+      { find: '@shared', replacement: path.resolve(__dirname, 'src/shared') },
+    ],
   },
   test: {
     globals: true,

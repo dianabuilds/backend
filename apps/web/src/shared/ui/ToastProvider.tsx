@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import { ToastContext, type ToastIntent, type ToastOptions } from './ToastContext';
+import { subscribeToGlobalToasts } from './toastBus';
 
 type ToastEntry = {
   id: string;
@@ -35,6 +36,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
     },
     [dismissToast],
   );
+
+  React.useEffect(() => {
+    return subscribeToGlobalToasts((detail) => {
+      pushToast(detail);
+    });
+  }, [pushToast]);
 
   return (
     <ToastContext.Provider value={{ pushToast, dismissToast }}>

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from html import unescape
 from typing import Any, TypeVar
 
-ROLE_HIERARCHY = {"user": 0, "support": 1, "moderator": 2, "admin": 3}
+ROLE_HIERARCHY = {"user": 0, "support": 1, "editor": 2, "moderator": 3, "admin": 4}
 
 
 def normalize_actor_id(claims: Mapping[str, Any] | None) -> str:

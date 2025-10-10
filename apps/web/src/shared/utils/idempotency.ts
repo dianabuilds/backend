@@ -1,4 +1,4 @@
-﻿export function makeIdempotencyKey(): string {
+export function makeIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }

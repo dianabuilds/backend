@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user
+from domains.platform.iam.security import get_current_user, require_role_db
 from domains.product.nodes.application.use_cases.catalog import (
     DevBlogService,
     NodeCatalogService,
@@ -20,6 +20,32 @@ def register_catalog_routes(router: APIRouter) -> None:
         service: DevBlogService = Depends(_get_dev_blog_service),
     ):
         return await service.list_posts(limit=int(limit), offset=int(offset))
+
+    @router.get("/dev-blog/{slug}", summary="Get public dev blog post")
+    async def get_dev_blog_post(
+        slug: str,
+        service: DevBlogService = Depends(_get_dev_blog_service),
+    ):
+        post, sort_value = await service.get_post_by_slug(slug, preview=False)
+        adjacent = await service.get_adjacent_posts(
+            sort_value=sort_value, node_id=post.get("id")
+        )
+        return {"post": post, "prev": adjacent["prev"], "next": adjacent["next"]}
+
+    @router.get(
+        "/dev-blog/{slug}/preview",
+        summary="Preview dev blog post",
+        dependencies=[Depends(require_role_db("editor"))],
+    )
+    async def preview_dev_blog_post(
+        slug: str,
+        service: DevBlogService = Depends(_get_dev_blog_service),
+    ):
+        post, sort_value = await service.get_post_by_slug(slug, preview=True)
+        adjacent = await service.get_adjacent_posts(
+            sort_value=sort_value, node_id=post.get("id")
+        )
+        return {"post": post, "prev": adjacent["prev"], "next": adjacent["next"]}
 
     @router.get("/{node_id}")
     async def get_node(

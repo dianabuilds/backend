@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { apiGet, apiPatch, apiPost } from '../../../shared/api/client';
+import React from 'react';
+import { apiGet, apiPatch, apiPost } from '@shared/api/client';
 import { CaseNote, ModerationCaseDetail } from './types';
 
 export function useModerationCase(initialId?: string | null) {

@@ -1,3 +1,6 @@
+﻿export const DEV_BLOG_TAG = 'dev-blog';
+export const DEV_BLOG_HOME_TAG = 'dev-blog-home';
+
 export type EmbeddingStatus = 'ready' | 'pending' | 'disabled' | 'error' | 'unknown';
 
 export type NodeItem = {
@@ -11,6 +14,9 @@ export type NodeItem = {
   updated_at?: string | null;
   embedding_status?: EmbeddingStatus | null;
   embedding_ready?: boolean;
+  tags?: string[];
+  isDevBlog?: boolean;
+  showOnHome?: boolean;
 };
 
 export type NodeLifecycleStatus =
@@ -44,3 +50,5 @@ export type NodeUserOption = {
   id: string;
   username: string;
 };
+
+

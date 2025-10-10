@@ -40,6 +40,7 @@ import ObservabilityTransitions from './pages/observability/Transitions';
 import ObservabilityEvents from './pages/observability/Events';
 import ObservabilityRUM from './pages/observability/RUM';
 import ManagementAI from './pages/management/AI';
+import ManagementHome from './pages/management/Home';
 import ManagementPayments from './pages/management/Payments';
 import PaymentsMonitoring from './pages/management/PaymentsMonitoring';
 import ManagementTariffs from './pages/management/Tariffs';
@@ -124,6 +125,9 @@ export default function App() {
 
           {/* Shared tooling */}
           <Route path="/tools/import-export" element={<RequireAuth><AppLayout><ImportExportPage /></AppLayout></RequireAuth>} />
+
+          {/* Homepage management */}
+          <Route path="/management/home" element={<RequireAdmin><AppLayout><ManagementHome /></AppLayout></RequireAdmin>} />
 
           {/* Billing & plans */}
           <Route path="/billing" element={<RequireAuth><AppLayout><BillingPage /></AppLayout></RequireAuth>} />

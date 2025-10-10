@@ -1,4 +1,4 @@
-export { BellIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+﻿export { BellIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 // Add new icons here; do not import icons directly elsewhere.
 
 export {
@@ -16,6 +16,7 @@ export {
   Gauge,
   TrendingDown,
   Copy,
+  GripVertical,
   Edit3,
   Plus,
   Trash2,

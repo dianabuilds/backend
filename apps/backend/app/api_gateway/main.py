@@ -364,6 +364,12 @@ def _register_core_routers(app: FastAPI, settings: Settings) -> None:
     from domains.product.achievements.api.http import make_router as achievements_router
     from domains.product.ai.api.admin_http import make_router as ai_admin_router
     from domains.product.ai.api.http import make_router as ai_router
+    from domains.product.content.api.home_http import (
+        make_admin_router as home_admin_router,
+    )
+    from domains.product.content.api.home_http import (
+        make_public_router as home_public_router,
+    )
     from domains.product.content.api.http import make_router as content_router
     from domains.product.moderation.api.http import make_router as moderation_router
     from domains.product.navigation.api.http import make_router as navigation_router
@@ -404,6 +410,8 @@ def _register_core_routers(app: FastAPI, settings: Settings) -> None:
         app.include_router(navigation_router())
     if settings.content_enabled:
         app.include_router(content_router())
+        app.include_router(home_public_router())
+        app.include_router(home_admin_router())
     if settings.ai_enabled:
         app.include_router(ai_router())
         app.include_router(ai_admin_router())

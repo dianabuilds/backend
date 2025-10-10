@@ -17,6 +17,7 @@ export type FetchNodesListOptions = {
   q?: string;
   slug?: string;
   status?: NodeLifecycleStatus | 'all' | null;
+  tag?: string;
   authorId?: string;
   sort?: NodeSortKey;
   order?: NodeSortOrder;
@@ -31,6 +32,7 @@ function buildSearchParams({
   q,
   slug,
   status,
+  tag,
   authorId,
   sort,
   order,
@@ -60,6 +62,10 @@ function buildSearchParams({
   }
   if (status && status !== 'all') {
     params.set('status', status);
+  }
+  const normalizedTag = tag?.trim();
+  if (normalizedTag) {
+    params.set('tag', normalizedTag);
   }
   const normalizedAuthor = authorId?.trim();
   if (normalizedAuthor) {
@@ -212,5 +218,3 @@ export async function fetchNodesList(options: FetchNodesListOptions = {}): Promi
 export const nodesListApi = {
   fetchNodesList,
 };
-
-

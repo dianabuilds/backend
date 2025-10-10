@@ -2,9 +2,9 @@
 
 Background workers for the backend:
 
-- `events_worker.run()` – dispatches domain events from Redis Streams.
-- `schedule_worker.run()` – periodic scheduler for content publish/unpublish.
-- `notifications_worker.run()` – runs the notifications broadcast queue via `packages.worker`.
+- `events_worker.run()` â€“ dispatches domain events from Redis Streams.
+- `schedule_worker.run()` â€“ periodic scheduler for content publish/unpublish.
+- `notifications_worker.run()` â€“ runs the notifications broadcast queue via `packages.worker`.
 
 ## CLI
 

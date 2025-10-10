@@ -10,6 +10,14 @@ from domains.product.nodes.infrastructure.dev_blog_repository import DevBlogRepo
 from domains.product.nodes.infrastructure.engine import ensure_engine
 from domains.product.nodes.utils import has_role, normalize_actor_id
 
+PREVIEW_ALLOWED_STATUSES: tuple[str, ...] = (
+    "draft",
+    "scheduled",
+    "scheduled_unpublish",
+    "published",
+    "archived",
+)
+
 
 class NodesServiceProtocol(Protocol):
     async def _repo_get_async(self, node_id: int): ...
@@ -30,11 +38,55 @@ class DevBlogService:
         engine = await self.engine_factory()
         if engine is None:
             raise HTTPException(status_code=503, detail="database_unavailable")
+        limit = max(1, int(limit))
+        offset = max(0, int(offset))
         rows, total_count = await self.repository.fetch_page(
             engine, limit=limit, offset=offset
         )
         has_next = offset + len(rows) < total_count
         return {"items": rows, "total": total_count, "has_next": has_next}
+
+    async def list_latest_for_home(self, *, limit: int) -> list[dict[str, Any]]:
+        engine = await self.engine_factory()
+        if engine is None:
+            raise HTTPException(status_code=503, detail="database_unavailable")
+        effective_limit = max(1, int(limit))
+        return await self.repository.fetch_latest_for_home(
+            engine, limit=effective_limit
+        )
+
+    async def get_post_by_slug(
+        self, slug: str, *, preview: bool = False
+    ) -> tuple[dict[str, Any], Any]:
+        normalized = str(slug or "").strip()
+        if not normalized:
+            raise HTTPException(status_code=400, detail="invalid_slug")
+        engine = await self.engine_factory()
+        if engine is None:
+            raise HTTPException(status_code=503, detail="database_unavailable")
+        post = await self.repository.fetch_post_by_slug(
+            engine,
+            slug=normalized,
+            include_unpublished=preview,
+            allowed_statuses=PREVIEW_ALLOWED_STATUSES,
+        )
+        if post is None:
+            raise HTTPException(status_code=404, detail="not_found")
+        sort_value = post.pop("_order_value", None)
+        return post, sort_value
+
+    async def get_adjacent_posts(
+        self, *, sort_value, node_id: int | None
+    ) -> dict[str, Any]:
+        if sort_value is None or node_id is None:
+            return {"prev": None, "next": None}
+        engine = await self.engine_factory()
+        if engine is None:
+            raise HTTPException(status_code=503, detail="database_unavailable")
+        previous, next_item = await self.repository.fetch_adjacent(
+            engine, sort_value=sort_value, node_id=int(node_id)
+        )
+        return {"prev": previous, "next": next_item}
 
 
 @dataclass

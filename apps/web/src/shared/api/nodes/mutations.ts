@@ -1,9 +1,10 @@
-import { apiDelete, apiPost } from '../client';
+﻿import { apiDelete, apiPost } from '../client';
 import type { NodeLifecycleStatus } from '../../types/nodes';
 import { pickString } from './utils';
 
 const NODES_ENDPOINT = '/v1/admin/nodes';
 const NODES_BULK_ENDPOINT = '/v1/admin/nodes/bulk/status';
+const NODES_TAGS_ENDPOINT = '/v1/admin/nodes/bulk/tags';
 
 type RequestOptions = {
   signal?: AbortSignal;
@@ -47,11 +48,21 @@ function sanitizeIds(ids: string[]): string[] {
   return Array.from(new Set(result));
 }
 
+function sanitizeTags(tags: string[]): string[] {
+  const result: string[] = [];
+  for (const value of tags) {
+    const normalized = pickString(value);
+    if (normalized) {
+      result.push(normalized.toLowerCase());
+    }
+  }
+  return Array.from(new Set(result));
+}
+
 function normalizeScheduleValue(value: string | undefined): string | undefined {
   const normalized = value?.trim();
   return normalized && normalized.length ? normalized : undefined;
 }
-
 export async function bulkUpdateNodesStatus(
   payload: BulkUpdateNodesStatusPayload,
   options: RequestOptions = {},
@@ -78,9 +89,35 @@ export async function bulkUpdateNodesStatus(
   await apiPost(NODES_BULK_ENDPOINT, body, { signal: options.signal });
 }
 
+export async function updateNodeTags(
+  nodeIds: string | string[],
+  tags: string[],
+  action: 'add' | 'remove',
+  options: RequestOptions = {},
+): Promise<void> {
+  const ids = sanitizeIds(Array.isArray(nodeIds) ? nodeIds : [nodeIds]);
+  if (!ids.length) {
+    throw new Error('nodes_bulk_ids_missing');
+  }
+  const normalizedTags = sanitizeTags(tags);
+  if (!normalizedTags.length) {
+    throw new Error('nodes_tags_missing');
+  }
+  const normalizedAction = action === 'remove' ? 'remove' : 'add';
+  await apiPost(
+    NODES_TAGS_ENDPOINT,
+    { ids, tags: normalizedTags, action: normalizedAction },
+    { signal: options.signal },
+  );
+}
+
 export const nodesMutationsApi = {
   restoreNode,
   deleteNode,
   bulkUpdateNodesStatus,
+  updateNodeTags,
 };
+
+
+
 

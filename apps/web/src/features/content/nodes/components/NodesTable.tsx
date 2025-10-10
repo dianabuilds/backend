@@ -10,7 +10,7 @@ import {
   ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
-import { Badge } from '@ui';
+import { Badge, Spinner, Switch } from '@ui';
 import { Table } from '@ui/table';
 import { formatDateTime } from '@shared/utils/format';
 import type { NodeItem, EmbeddingStatus } from '@shared/types/nodes';
@@ -30,6 +30,7 @@ type ColumnVisibility = {
   status: boolean;
   updated: boolean;
   embedding: boolean;
+  homepage?: boolean;
 };
 
 export type NodesTableProps = {
@@ -51,6 +52,9 @@ export type NodesTableProps = {
   onOpenMenu: (rowId: string | null) => void;
   columnsCount: number;
   bulkActions?: React.ReactNode;
+  showHomepageToggle?: boolean;
+  onToggleHomepage?: (row: NodeItem, next: boolean) => void;
+  homepageUpdating?: Set<string>;
 };
 
 function resolveStatusBadge(row: NodeItem): { label: string; color: 'success' | 'warning' | 'info' | 'error' | 'neutral' } | null {
@@ -82,14 +86,19 @@ export function NodesTable({
   onOpenMenu,
   columnsCount,
   bulkActions,
+  showHomepageToggle = false,
+  onToggleHomepage,
+  homepageUpdating,
 }: NodesTableProps) {
   const selectAllRef = React.useRef<HTMLInputElement | null>(null);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const menuTriggerRef = React.useRef<HTMLButtonElement | null>(null);
-  const fallbackValue = '\u2014';
+  const fallbackValue = '—';
   const allSelected = !loading && items.length > 0 && items.every((item) => selected.has(item.id));
   const [menuPosition, setMenuPosition] = React.useState<{ top: number; left: number; placement: 'bottom' | 'top' } | null>(null);
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
+  const showHomepageColumn = !!(showHomepageToggle && columns.homepage);
+  const homepageLoadingSet = homepageUpdating ?? new Set<string>();
 
   React.useLayoutEffect(() => {
     if (typeof window === 'undefined') return;
@@ -191,9 +200,7 @@ export function NodesTable({
             {columns.slug && <Table.TH>Slug</Table.TH>}
             {columns.author && <Table.TH>Author</Table.TH>}
             {columns.status && <Table.TH>Status</Table.TH>}
-            {columns.embedding && <Table.TH>Embedding</Table.TH>}
-            {columns.updated && <Table.TH>Updated</Table.TH>}
-            <Table.TH className="w-28 text-right">Actions</Table.TH>
+            {columns.embedding && <Table.TH>Embedding</Table.TH>}\n            {showHomepageColumn && <Table.TH>Homepage</Table.TH>}\n            {columns.updated && <Table.TH>Updated</Table.TH>}\n            <Table.TH className="w-28 text-right">Actions</Table.TH>
           </Table.TR>
         </Table.THead>
         <Table.TBody>
@@ -243,6 +250,23 @@ export function NodesTable({
                     </Table.TD>
                   )}
                   {columns.embedding && <Table.TD>{renderEmbeddingBadge(row.embedding_status)}</Table.TD>}
+                  {showHomepageColumn && (
+                    <Table.TD>
+                      {row.isDevBlog ? (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={row.showOnHome === true}
+                            onChange={(event) => onToggleHomepage?.(row, event.currentTarget.checked)}
+                            disabled={!onToggleHomepage || homepageLoadingSet.has(row.id)}
+                            aria-label={`Toggle homepage visibility for ${row.title || row.slug || row.id}`}
+                          />
+                          {homepageLoadingSet.has(row.id) && <Spinner size="sm" />}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 dark:text-dark-300">—</span>
+                      )}
+                    </Table.TD>
+                  )}
                   {columns.updated && (
                     <Table.TD className="text-gray-600 dark:text-dark-200">{updated}</Table.TD>
                   )}
@@ -351,6 +375,14 @@ export function NodesTable({
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 

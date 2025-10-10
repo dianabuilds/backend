@@ -1,5 +1,6 @@
 import React from 'react';
 import { Spinner } from '@ui';
+import { translate } from '@shared/i18n/locale';
 import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 import type { NodeStatusFilter, NodeSortKey, NodeSortOrder, NodeUserOption } from '@shared/types/nodes';
@@ -18,6 +19,8 @@ export type NodesFiltersProps = {
   showUserOptions: boolean;
   isDraftFilter: boolean;
   hasCustomStatus: boolean;
+  devBlogOnly: boolean;
+  onDevBlogToggle: () => void;
   onQueryChange: (value: string) => void;
   onSlugChange: (value: string) => void;
   onSortChange: (value: NodeSortKey) => void;
@@ -46,6 +49,8 @@ export function NodesFilters({
   showUserOptions,
   isDraftFilter,
   hasCustomStatus,
+  devBlogOnly,
+  onDevBlogToggle,
   onQueryChange,
   onSlugChange,
   onSortChange,
@@ -158,6 +163,18 @@ export function NodesFilters({
         <button
           type="button"
           className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+            devBlogOnly
+              ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-600/60 dark:bg-primary-900/30 dark:text-primary-300'
+              : 'border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-dark-500 dark:text-dark-100 dark:hover:bg-dark-700/60'
+          }`}
+          onClick={onDevBlogToggle}
+          aria-pressed={devBlogOnly}
+        >
+          {translate({ en: 'Dev Blog', ru: 'Dev-блог' })}
+        </button>
+        <button
+          type="button"
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
             isDraftFilter
               ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-600/60 dark:bg-primary-900/30 dark:text-primary-300'
               : 'border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-dark-500 dark:text-dark-100 dark:hover:bg-dark-700/60'
@@ -193,4 +210,3 @@ export function NodesFilters({
     </div>
   );
 }
-

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 type PaginationProps = {
     page: number; // 1-based

@@ -1,4 +1,4 @@
-﻿let currentLocale: 'en' | 'ru' = 'ru';
+let currentLocale: 'en' | 'ru' = 'ru';
 
 export type Locale = 'en' | 'ru';
 

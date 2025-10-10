@@ -14,7 +14,9 @@ import {
   deleteNode,
   bulkUpdateNodesStatus,
   fetchNodeAuthor,
+  updateNodeTags,
 } from '@shared/api/nodes';
+import { DEV_BLOG_TAG, DEV_BLOG_HOME_TAG } from '@shared/types/nodes';
 import type {
   EmbeddingStatus,
   NodeItem,
@@ -52,7 +54,7 @@ const EMBEDDING_STATUS_THEME: Record<EmbeddingStatus | 'missing', { color: 'succ
 };
 
 const TOAST_COPY = {
-  linkCopied: { en: 'Node link copied to clipboard', ru: 'Ссылка на ноду сохранена в буфер' },
+  linkCopied: { en: 'Node link copied to clipboard', ru: 'Ссылка на ноду скопирована в буфер обмена' },
   restoreSuccess: { en: 'Node restored', ru: 'Нода восстановлена' },
   restoreError: { en: 'Failed to restore node', ru: 'Не удалось восстановить ноду' },
   deleteSuccess: { en: 'Node deleted', ru: 'Нода удалена' },
@@ -65,6 +67,15 @@ const TOAST_COPY = {
   bulkDeleteSuccess: { en: 'Selected nodes deleted', ru: 'Выбранные ноды удалены' },
   bulkError: { en: 'Bulk action failed', ru: 'Не удалось выполнить массовое действие' },
 };
+
+const HOMEPAGE_MESSAGES = {
+  addSuccess: { en: 'Post will appear on the homepage', ru: 'Пост появится на главной' },
+  removeSuccess: { en: 'Post removed from the homepage', ru: 'Пост снят с главной' },
+  error: { en: 'Failed to update homepage flag', ru: 'Не удалось обновить флаг главной' },
+};
+
+
+
 
 function isUUIDLike(value: string | null | undefined): boolean {
   if (!value) return false;
@@ -95,11 +106,13 @@ export function ContentNodesList(): React.ReactElement {
   const [status, setStatus] = React.useState<NodeStatusFilter>('all');
   const [sort, setSort] = React.useState<NodeSortKey>('updated_at');
   const [order, setOrder] = React.useState<NodeSortOrder>('desc');
+  const [devBlogOnly, setDevBlogOnly] = React.useState(false);
   const [openMenuRow, setOpenMenuRow] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [homepageUpdating, setHomepageUpdating] = React.useState<Set<string>>(new Set());
   const columnVisibility = React.useMemo(
-    () => ({ slug: true, author: true, status: true, updated: true, embedding: true }),
-    [],
+    () => ({ slug: true, author: true, status: true, updated: true, embedding: true, homepage: devBlogOnly }),
+    [devBlogOnly],
   );
   const [listMeta, setListMeta] = React.useState<NodesListMeta>({
     total: null,
@@ -173,13 +186,14 @@ export function ContentNodesList(): React.ReactElement {
     refresh,
   } = usePaginatedQuery<NodeItem, NodesListResult>({
     initialPageSize: 20,
-    dependencies: [q, slugQuery, status, sort, order, authorId, enrichAuthorNames],
+    dependencies: [q, slugQuery, status, sort, order, authorId, devBlogOnly, enrichAuthorNames],
     debounceMs: 250,
     fetcher: async ({ page: currentPage, pageSize: size, signal }) => {
       const result = await fetchNodesList({
         q,
         slug: slugQuery,
         status,
+        tag: devBlogOnly ? DEV_BLOG_TAG : undefined,
         authorId,
         sort,
         order,
@@ -198,7 +212,7 @@ export function ContentNodesList(): React.ReactElement {
         total: result.meta.total ?? undefined,
       };
     },
-    onError: (err) => extractErrorMessage(err, 'Failed to load nodes'),
+    onError: (err) => extractErrorMessage(err, translate({ en: 'Failed to load nodes', ru: 'Не удалось загрузить ноды' })),
   });
 
   React.useEffect(() => {
@@ -209,6 +223,12 @@ export function ContentNodesList(): React.ReactElement {
       setPage(1);
     }
   }, [location.search, setPage, status]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const active = params.get('tag') === DEV_BLOG_TAG;
+    setDevBlogOnly((prev) => (prev !== active ? active : prev));
+  }, [location.search]);
 
   React.useEffect(() => {
     setSelected(new Set());
@@ -245,6 +265,53 @@ export function ContentNodesList(): React.ReactElement {
       setPage(1);
     },
     [setPage],
+  );
+
+  const handleDevBlogToggle = React.useCallback(() => {
+    const params = new URLSearchParams(location.search);
+    const nextValue = params.get('tag') !== DEV_BLOG_TAG;
+    if (nextValue) {
+      params.set('tag', DEV_BLOG_TAG);
+    } else {
+      params.delete('tag');
+    }
+    setDevBlogOnly(nextValue);
+    setPage(1);
+    const query = params.toString();
+    const nextSearch = query ? `?${query}` : '';
+    navigate({ pathname: location.pathname, search: nextSearch }, { replace: true });
+  }, [location.pathname, location.search, navigate, setPage]);
+
+  const handleHomepageToggle = React.useCallback(
+    async (row: NodeItem, next: boolean) => {
+      const nodeId = row.id;
+      if (!nodeId) {
+        return;
+      }
+      setHomepageUpdating((prev) => {
+        const nextSet = new Set(prev);
+        nextSet.add(nodeId);
+        return nextSet;
+      });
+      try {
+        await updateNodeTags(nodeId, [DEV_BLOG_HOME_TAG], next ? 'add' : 'remove');
+        setItems((prev) =>
+          prev.map((item) => (item.id === nodeId ? { ...item, showOnHome: next } : item)),
+        );
+        pushToast({ intent: 'success', description: translate(next ? HOMEPAGE_MESSAGES.addSuccess : HOMEPAGE_MESSAGES.removeSuccess) });
+      } catch (err) {
+        const message = extractErrorMessage(err, translate(HOMEPAGE_MESSAGES.error));
+        setError(message);
+        pushToast({ intent: 'error', description: message });
+      } finally {
+        setHomepageUpdating((prev) => {
+          const nextSet = new Set(prev);
+          nextSet.delete(nodeId);
+          return nextSet;
+        });
+      }
+    },
+    [pushToast, setError, setHomepageUpdating, setItems],
   );
 
   const applyStatus = React.useCallback(
@@ -538,6 +605,7 @@ export function ContentNodesList(): React.ReactElement {
       Number(columnVisibility.author) +
       Number(columnVisibility.status) +
       Number(columnVisibility.embedding) +
+      (columnVisibility.homepage ? 1 : 0) +
       Number(columnVisibility.updated) +
       1,
     [columnVisibility],
@@ -588,6 +656,8 @@ export function ContentNodesList(): React.ReactElement {
             showUserOptions={showAuthorOptions}
             isDraftFilter={status === 'draft'}
             hasCustomStatus={status !== 'all'}
+            devBlogOnly={devBlogOnly}
+            onDevBlogToggle={handleDevBlogToggle}
             onQueryChange={handleQueryChange}
             onSlugChange={handleSlugChange}
             onSortChange={handleSortChange}
@@ -618,6 +688,9 @@ export function ContentNodesList(): React.ReactElement {
             items={items}
             loading={loading}
             columns={columnVisibility}
+            showHomepageToggle={devBlogOnly}
+            onToggleHomepage={handleHomepageToggle}
+            homepageUpdating={homepageUpdating}
             selected={selected}
             openMenuRow={openMenuRow}
             renderEmbeddingBadge={renderEmbeddingBadge}
@@ -657,7 +730,3 @@ export function ContentNodesList(): React.ReactElement {
 }
 
 export default ContentNodesList;
-
-
-
-

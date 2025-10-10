@@ -40,6 +40,12 @@ Accepted — 09.10.2025
   ```
 - Набор допустимых типов блоков фиксирован (hero, dev_blog_list, quests_carousel, nodes_carousel, popular_carousel, editorial_picks, recommendations, custom_carousel). Расширение — отдельное решение.
 
+- Схема хранения:
+  - Таблица `product_home_configs`: `id` (uuid, PK, `gen_random_uuid()`), `slug` (уникальный), `version` (bigint, default 1), `status` (enum `home_config_status`), `data` (JSONB), аудитные поля `created_by`/`updated_by`, временные метки `created_at`/`updated_at`, `published_at`, ссылка `draft_of` на исходный конфиг.
+  - Таблица `home_config_audits`: `id` (uuid, PK), `config_id` (FK → `product_home_configs.id`, CASCADE), `version`, `action`, `actor`, `data` (snapshot JSONB), `created_at`, индекс `ix_home_config_audits_config_id(config_id, version)`.
+  - Enum `home_config_status` со значениями `draft`, `published` и индексом `ix_product_home_configs_status`.
+
+
 ### 2. API
 - Публичный `GET /v1/public/home` возвращает опубликованную конфигурацию с разрешёнными данными (карточки, ссылки, тексты) и HTTP-кешем (ETag, `Cache-Control: public, max-age=300`). Источник данных формируется сервисом HomeComposer, который разворачивает блоки конфигурации: 
   - manual — подтягивает сущности по ID из соответствующих use-case (nodes, quests, dev_blog);

@@ -118,6 +118,24 @@ class Settings(BaseSettings):
         default=cast(AnyUrl, "postgresql://app:app@localhost:5432/app")
     )
     redis_url: AnyUrl = Field(default=cast(AnyUrl, "redis://localhost:6379/0"))
+    home_cache_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("HOME_CACHE_ENABLED", "APP_HOME_CACHE_ENABLED"),
+    )
+    home_cache_redis_url: AnyUrl | None = Field(
+        default=None,
+        validation_alias=AliasChoices("HOME_CACHE_REDIS_URL", "APP_HOME_CACHE_URL"),
+    )
+    home_cache_ttl: int = Field(
+        default=300,
+        validation_alias=AliasChoices("HOME_CACHE_TTL", "APP_HOME_CACHE_TTL"),
+    )
+    home_cache_key_prefix: str = Field(
+        default="home:public",
+        validation_alias=AliasChoices(
+            "HOME_CACHE_KEY_PREFIX", "APP_HOME_CACHE_KEY_PREFIX"
+        ),
+    )
     database_allow_remote: bool = Field(
         default=False,
         validation_alias=AliasChoices(

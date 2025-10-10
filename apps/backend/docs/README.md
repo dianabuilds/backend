@@ -1,6 +1,6 @@
 # Backend Documentation
 
-- uth_api.md – API notes for auth module.
-- worker-platform.md – worker responsibilities and architecture.
-- dr/ – architectural decision records.
-- knowledge/ – prompts/specs reference material.
+- uth_api.md â€“ API notes for auth module.
+- worker-platform.md â€“ worker responsibilities and architecture.
+- dr/ â€“ architectural decision records.
+- knowledge/ â€“ prompts/specs reference material.

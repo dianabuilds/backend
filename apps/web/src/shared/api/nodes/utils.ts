@@ -1,4 +1,4 @@
-import type { EmbeddingStatus, NodeItem } from '../../types/nodes';
+﻿import { DEV_BLOG_HOME_TAG, DEV_BLOG_TAG, type EmbeddingStatus, type NodeItem } from '../../types/nodes';
 
 export function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -96,6 +96,33 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
     embeddingStatus = 'ready';
   }
 
+  let tags: string[] | undefined;
+  const rawTagsSource = (raw as Record<string, unknown>).tags ?? (raw as Record<string, unknown>).tag_slugs ?? (raw as Record<string, unknown>).tagSlugs;
+  if (Array.isArray(rawTagsSource)) {
+    const normalizedTags: string[] = [];
+    for (const entry of rawTagsSource) {
+      if (typeof entry === 'string') {
+        const slug = entry.trim();
+        if (slug) {
+          normalizedTags.push(slug);
+        }
+      } else if (isObjectRecord(entry)) {
+        const slug = pickString(entry.slug);
+        if (slug) {
+          normalizedTags.push(slug);
+        }
+      }
+    }
+    if (normalizedTags.length) {
+      tags = Array.from(new Set(normalizedTags));
+    }
+  }
+
+  const tagSet = tags ? new Set(tags.map((tag) => tag.toLowerCase())) : undefined;
+
+  const isDevBlog = tagSet?.has(DEV_BLOG_TAG) ?? false;
+  const showOnHome = tagSet?.has(DEV_BLOG_HOME_TAG) ?? false;
+
   return {
     id,
     title: pickNullableString(raw.title) ?? undefined,
@@ -107,6 +134,9 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
     updated_at: updatedAt,
     embedding_status: embeddingStatus,
     embedding_ready: embeddingReady,
+    tags,
+    isDevBlog,
+    showOnHome,
   };
 }
 
@@ -119,4 +149,9 @@ export function firstNumberCandidate(...values: Array<unknown>): number | null {
   }
   return null;
 }
+
+
+
+
+
 

@@ -1,0 +1,98 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.caves.dev/product/home_config.schema.json",
+  "title": "HomePageConfiguration",
+  "type": "object",
+  "required": ["blocks"],
+  "additionalProperties": false,
+  "properties": {
+    "blocks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/block" },
+      "minItems": 0,
+      "maxItems": 30
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "block": {
+      "type": "object",
+      "required": ["id", "type", "enabled"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "dev_blog_list",
+            "quests_carousel",
+            "nodes_carousel",
+            "popular_carousel",
+            "editorial_picks",
+            "recommendations",
+            "custom_carousel"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "slots": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "layout": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "dataSource": {
+          "$ref": "#/definitions/dataSource"
+        }
+      }
+    },
+    "dataSource": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["manual", "auto"]
+        },
+        "entity": {
+          "type": "string",
+          "enum": ["node", "quest", "dev_blog", "custom"],
+          "default": "node"
+        },
+        "filter": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "tag": { "type": "string", "maxLength": 128 },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "order": { "type": "string", "maxLength": 128 }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": ["string", "integer"],
+            "minLength": 1
+          },
+          "maxItems": 24
+        }
+      }
+    }
+  }
+}

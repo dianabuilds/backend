@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { Button, Collapse, Input, Select } from "@ui";
+import React from 'react';
+import { Button, Collapse, Input, Select } from '@ui';
 import { CASE_PRIORITY_OPTIONS, CASE_SEVERITY_OPTIONS, CASE_STATUS_OPTIONS, CASE_TYPE_OPTIONS } from './constants';
 import { CaseFiltersState } from './types';
 
