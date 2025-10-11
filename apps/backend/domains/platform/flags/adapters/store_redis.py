@@ -9,17 +9,29 @@ from domains.platform.flags.ports import FlagStore
 
 
 class AsyncRedisCommands(Protocol):
-    async def get(self, key: str) -> Any: ...
+    async def get(self, key: str) -> Any:
+        del key
+        raise NotImplementedError
 
-    async def set(self, key: str, value: str) -> Any: ...
+    async def set(self, key: str, value: str) -> Any:
+        del key, value
+        raise NotImplementedError
 
-    async def sadd(self, key: str, *members: str) -> Any: ...
+    async def sadd(self, key: str, *members: str) -> Any:
+        del key, members
+        raise NotImplementedError
 
-    async def smembers(self, key: str) -> Iterable[Any]: ...
+    async def smembers(self, key: str) -> Iterable[Any]:
+        del key
+        raise NotImplementedError
 
-    async def delete(self, *keys: str) -> Any: ...
+    async def delete(self, *keys: str) -> Any:
+        del keys
+        raise NotImplementedError
 
-    async def srem(self, key: str, *members: str) -> Any: ...
+    async def srem(self, key: str, *members: str) -> Any:
+        del key, members
+        raise NotImplementedError
 
 
 class RedisFlagStore(FlagStore):

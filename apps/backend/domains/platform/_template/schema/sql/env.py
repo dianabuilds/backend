@@ -8,7 +8,8 @@ def run_migrations_online() -> None:  # pragma: no cover - template
     cfg = context.config
     x = context.get_x_argument(as_dictionary=True)
     db_url = cfg.get_main_option("sqlalchemy.url") or x.get("db_url")
-    assert db_url, "db_url required"
+    if not db_url:
+        raise RuntimeError("db_url required")
     schema = "<your_domain>"
     version_table = f"alembic_version_{schema}"
     engine = create_engine(db_url, future=True)

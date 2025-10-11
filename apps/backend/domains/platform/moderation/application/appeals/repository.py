@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -52,14 +52,12 @@ class AppealsRepository:
         if not ids:
             return {}
         await self._ensure_schema(engine)
-        placeholders = ",".join(f":id_{idx}" for idx, _ in enumerate(ids))
-        params = {f"id_{idx}": aid for idx, aid in enumerate(ids)}
-        sql = (
+        sql = text(
             "SELECT id, status, decided_at, decided_by, decision_reason, meta"
-            " FROM moderation_appeals WHERE id IN (" + placeholders + ")"
-        )
+            " FROM moderation_appeals WHERE id IN :ids"
+        ).bindparams(bindparam("ids", expanding=True))
         async with engine.connect() as conn:
-            rows = (await conn.execute(text(sql), params)).mappings().all()
+            rows = (await conn.execute(sql, {"ids": tuple(ids)})).mappings().all()
         return {row["id"]: self._map_row(row) for row in rows}
 
     async def fetch_appeal(self, appeal_id: str) -> dict[str, Any] | None:

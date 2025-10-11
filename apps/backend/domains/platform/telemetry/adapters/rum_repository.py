@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import builtins
+import hashlib
 import json
+import logging
 import math
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass
-from hashlib import sha1
 from typing import Any
 from urllib.parse import urlparse
 
@@ -17,6 +18,8 @@ from domains.platform.telemetry.ports.rum_port import IRumRepository
 _DEFAULT_KEY_PREFIX = "telemetry:rum"
 _STATE_TTL_SECONDS = 72 * 3600
 _ERROR_TTL_SECONDS = 30 * 24 * 3600
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -80,7 +83,7 @@ def _normalise_route(url: str | None) -> str:
 
 
 def _hash_route(route: str) -> str:
-    return sha1(route.encode("utf-8")).hexdigest()[:12]
+    return hashlib.sha1(route.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
 
 
 def _iter_numeric_metrics(data: Any) -> Iterable[tuple[str, float]]:
@@ -178,7 +181,8 @@ class RumRedisRepository(IRumRepository):
                 )
                 obj = json.loads(decoded)
                 obj["ts"] = _coerce_ts(obj.get("ts"))
-            except Exception:
+            except Exception as exc:
+                logger.debug("rum repository: failed to parse event payload: %s", exc)
                 continue
             events.append(obj)
 

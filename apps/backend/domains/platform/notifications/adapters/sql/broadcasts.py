@@ -65,7 +65,9 @@ class SQLBroadcastRepo(BroadcastRepo):
                 .mappings()
                 .first()
             )
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             return self._row_to_model(cast(Mapping[str, Any], row))
 
     async def update(

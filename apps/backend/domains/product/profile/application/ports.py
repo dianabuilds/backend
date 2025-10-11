@@ -54,7 +54,9 @@ class Outbox(Protocol):
 
 @runtime_checkable
 class IamClient(Protocol):
-    def allow(self, subject: dict, action: str, resource: dict) -> bool: ...
+    def allow(self, subject: dict, action: str, resource: dict) -> bool:
+        del subject, action, resource
+        raise NotImplementedError
 
 
 __all__ = ["Repo", "Outbox", "IamClient"]

@@ -59,7 +59,9 @@ class SQLWorkerJobRepository:
         try:
             async with self._engine.begin() as conn:
                 row = (await conn.execute(sql, payload)).mappings().first()
-                assert row is not None
+                if row is None:
+
+                    raise RuntimeError("database_row_missing")
                 await conn.execute(
                     text(
                         "INSERT INTO worker_job_events (job_id, event, details) VALUES (:job_id, :event, :details)"
@@ -163,7 +165,9 @@ class SQLWorkerJobRepository:
         jobs: list[WorkerJob] = []
         async with self._engine.begin() as conn:
             if not job_ids:
-                assert select_sql is not None
+                if select_sql is None:
+
+                    raise RuntimeError("lease_jobs_filter_missing")
                 raw_ids = (
                     (await conn.execute(select_sql, select_params)).scalars().all()
                 )

@@ -1,6 +1,5 @@
 /* Bridge to vendor theme CSS; compiled via Tailwind/PostCSS */
-/* Base Quill styles first, then our theme overrides */
-@import "quill/dist/quill.snow.css";
+/* Quill base styles load lazily via RichTextEditor to keep entry light */
 @import "../../vendor/template/src/styles/index.css";
 
 /* Autofill fix for inputs */

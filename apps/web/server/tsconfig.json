@@ -1,0 +1,20 @@
+﻿{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "target": "ES2021",
+    "moduleResolution": "NodeNext",
+    "rootDir": "./",
+    "outDir": "../dist/server-runtime",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "noEmit": false,
+    "isolatedModules": true,
+    "types": ["node"],
+    "allowImportingTsExtensions": false
+  },
+  "include": ["./**/*.ts"],
+  "exclude": ["../node_modules", "../dist"]
+}
+

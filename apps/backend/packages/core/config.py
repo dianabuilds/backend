@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Literal, cast
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
@@ -18,6 +19,8 @@ TRUTHY_SSL_VALUES = {
     "on",
 }
 FALSY_SSL_VALUES = {"disable", "false", "0", "no", "off"}
+
+logger = logging.getLogger(__name__)
 
 
 def _map_ssl_value(value: str | None) -> str:
@@ -67,7 +70,8 @@ def _normalize_async_ssl(url: str) -> str:
                 parsed.fragment,
             )
         )
-    except Exception:
+    except (ValueError, TypeError) as exc:
+        logger.debug("sanitize_async_dsn: parse failed for %s", url, exc_info=exc)
         return url
     try:
         url = re.sub(
@@ -77,8 +81,8 @@ def _normalize_async_ssl(url: str) -> str:
             flags=re.IGNORECASE,
         )
         url = re.sub(r"[?&]$", "", url)
-    except Exception:
-        pass
+    except re.error as exc:
+        logger.debug("sanitize_async_dsn: cleanup failed for %s", url, exc_info=exc)
     return url
 
 
@@ -109,7 +113,10 @@ class Settings(BaseSettings):
             return None
         try:
             return sanitize_async_dsn(str(value))
-        except Exception:
+        except (ValueError, TypeError) as exc:
+            logger.debug(
+                "sanitize_async_dsn: database value normalisation failed", exc_info=exc
+            )
             return value
 
     # base
@@ -273,7 +280,8 @@ class Settings(BaseSettings):
             return None
         try:
             text_value = str(value).strip()
-        except Exception:
+        except (ValueError, TypeError) as exc:
+            logger.debug("notify_webhook_url: normalisation failed", exc_info=exc)
             return value
         return value if text_value else None
 

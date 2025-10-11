@@ -338,7 +338,7 @@
 **Definition of Done**:
 - Показатели LCP/CLS укладываются в целевые значения.
 - Метатеги формируются корректно на RU/EN.
-- Документация обновлена.
+- Документация обновлена (`apps/web/homepage-seo-guidelines.md`, раздел Lighthouse в `apps/web/frontend-audit.md`).
 **Acceptance Criteria**:
 - Lighthouse score ≥ 85 для мобильной версии главной.
 - На странице нет незаполненных canonical/OG-тегов.

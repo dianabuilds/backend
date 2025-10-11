@@ -22,15 +22,15 @@ def _log_duration(name: str, started_at: float) -> None:
     try:
         dt = (time.perf_counter() - started_at) * 1000.0
         logger.info("trace %s %.2fms", name, dt)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("trace logging failed for %s", name, exc_info=exc)
 
 
 def _log_error(name: str) -> None:
     try:
         logger.exception("trace.error %s", name)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("trace logging failed for %s", name, exc_info=exc)
 
 
 def _is_async_callable(fn: Callable[..., Any]) -> bool:

@@ -1,5 +1,20 @@
 import React from 'react';
 
+let quillStylesPromise: Promise<unknown> | null = null;
+
+async function ensureQuillStyles(): Promise<void> {
+  if (quillStylesPromise) {
+    await quillStylesPromise;
+    return;
+  }
+  quillStylesPromise = import('quill/dist/quill.snow.css').catch((error) => {
+    quillStylesPromise = null;
+    throw error;
+  });
+  await quillStylesPromise;
+}
+
+
 type RteProps = {
   value: string; // HTML
   onChange: (html: string) => void;
@@ -46,20 +61,27 @@ export function RichTextEditor({ value, onChange, label, placeholder, className 
     let mounted = true;
     const editorEl = editorRef.current;
     (async () => {
-      const Quill = (await import('quill')).default;
-      if (!mounted || !editorEl) return;
-      const toolbarModules = modules || DEFAULT_MODULES;
-      const q = new Quill(editorEl, {
-        theme: 'snow',
-        placeholder: placeholder || 'Enter your content…',
-        modules: toolbarModules,
-        readOnly,
-      });
-      quillRef.current = q;
-      q.on('text-change', () => {
-        if (readOnlyRef.current) return;
-        onChangeRef.current(q.root.innerHTML);
-      });
+      try {
+        await ensureQuillStyles();
+        const Quill = (await import('quill')).default;
+        if (!mounted || !editorEl) return;
+        const toolbarModules = modules || DEFAULT_MODULES;
+        const q = new Quill(editorEl, {
+          theme: 'snow',
+          placeholder: placeholder || 'Enter your content...',
+          modules: toolbarModules,
+          readOnly,
+        });
+        quillRef.current = q;
+        q.on('text-change', () => {
+          if (readOnlyRef.current) return;
+          onChangeRef.current(q.root.innerHTML);
+        });
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to load Quill editor', error);
+        }
+      }
     })();
     return () => {
       mounted = false;

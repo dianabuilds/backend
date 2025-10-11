@@ -164,7 +164,9 @@ class SQLQuestsRepo(Repo):
                     .mappings()
                     .first()
                 )
-                assert r is not None
+                if r is None:
+
+                    raise RuntimeError("database_row_missing")
                 qid = str(r["id"])  # type: ignore[redundant-cast]
                 for s in data.tags or []:
                     v = str(s).strip().lower()
@@ -177,7 +179,9 @@ class SQLQuestsRepo(Repo):
                         {"id": qid, "slug": v},
                     )
             got = await self._araw_get(qid)
-            assert got is not None
+            if got is None:
+
+                raise RuntimeError("database_row_missing")
             return got
 
         return run_sync(_run())
@@ -214,7 +218,9 @@ class SQLQuestsRepo(Repo):
                         {"id": str(quest_id), "slug": s},
                     )
             got = await self._araw_get(str(quest_id))
-            assert got is not None
+            if got is None:
+
+                raise RuntimeError("database_row_missing")
             return got
 
         return run_sync(_run())

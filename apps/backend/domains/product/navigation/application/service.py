@@ -4,23 +4,11 @@ import hashlib
 import logging
 import math
 import random
-import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
 
-try:
-    from prometheus_client import Counter  # type: ignore
-except ImportError:  # pragma: no cover
-    Counter = None  # type: ignore
-
-from sqlalchemy.exc import SQLAlchemyError
-
-from domains.product.navigation.application.ports import (
-    NodesPort,
-    TransitionRequest,
-)
 from domains.product.navigation.config import (
     DEFAULT_BADGES_BY_PROVIDER,
     DEFAULT_BASE_WEIGHTS,
@@ -33,12 +21,7 @@ from domains.product.navigation.domain.transition import (
     TransitionDecision,
 )
 
-try:
-    from domains.platform.telemetry.application.transition_metrics_service import (
-        transition_metrics,
-    )
-except ModuleNotFoundError:  # pragma: no cover - telemetry optional in some tools
-    transition_metrics = None  # type: ignore[assignment]
+from .ports import NodesPort, TransitionRequest
 
 logger = logging.getLogger(__name__)
 
@@ -46,774 +29,666 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class NodeSnapshot:
     id: int
-    author_id: str
+    author_id: str | None
     title: str | None
     tags: tuple[str, ...]
     is_public: bool
-    embedding: tuple[float, ...] | None = None
+    embedding: tuple[float, ...] | None
 
 
-BASE_WEIGHTS: dict[str, float] = DEFAULT_BASE_WEIGHTS.copy()
-BADGES_BY_PROVIDER: dict[str, str] = DEFAULT_BADGES_BY_PROVIDER.copy()
-MODE_CONFIGS: dict[str, ModeConfig] = DEFAULT_MODE_CONFIGS.copy()
-
-UI_SLOTS: dict[str, dict[str, int]] = {
-    "normal": {"free": 3, "premium": 3, "premium+": 4},
-    "echo_boost": {"free": 3, "premium": 3, "premium+": 4},
-    "discover": {"free": 3, "premium": 3, "premium+": 4},
-    "editorial": {"free": 3, "premium": 3, "premium+": 4},
-    "near_limit": {"free": 3, "premium": 3, "premium+": 4},
-    "lite": {"free": 2, "premium": 2, "premium+": 2},
-}
-
-if Counter is not None:
-    NAV_EMBEDDING_QUERIES = Counter(
-        "navigation_embedding_queries_total",
-        "Embedding retrieval usage in navigation",
-        labelnames=("status",),
-    )
-else:
-    NAV_EMBEDDING_QUERIES = None
-
-ALLOWED_REASON_KEYS = {
-    "curated",
-    "tag_sim",
-    "echo",
-    "fresh",
-    "diversity_bonus",
-    "policy_penalty",
-}
+@dataclass
+class _CandidateEnvelope:
+    snapshot: NodeSnapshot
+    provider: str
+    score: float
+    factors: dict[str, float]
 
 
 class NavigationService:
-    def __init__(self, nodes: NodesPort):
+    """Entry point for navigation recommendations."""
+
+    def __init__(
+        self,
+        *,
+        nodes: NodesPort,
+        mode_configs: Mapping[str, ModeConfig] | None = None,
+        base_weights: Mapping[str, float] | None = None,
+        badges: Mapping[str, str] | None = None,
+    ) -> None:
         self.nodes = nodes
+        self._mode_configs = {
+            key.lower(): cfg for key, cfg in DEFAULT_MODE_CONFIGS.items()
+        }
+        if mode_configs:
+            for key, cfg in mode_configs.items():
+                if isinstance(cfg, ModeConfig):
+                    self._mode_configs[str(key).lower()] = cfg
+        self._base_weights = dict(DEFAULT_BASE_WEIGHTS)
+        if base_weights:
+            for key, value in base_weights.items():
+                try:
+                    self._base_weights[str(key)] = float(value)
+                except (TypeError, ValueError):
+                    continue
+        self._badges = dict(DEFAULT_BADGES_BY_PROVIDER)
+        if badges:
+            for key, badge_value in badges.items():
+                self._badges[str(key)] = str(badge_value)
+        self._default_mode = "normal"
+        self._random = random.Random()
+        self._search_multiplier = 2
 
-    def _record_embedding_usage(self, status: str) -> None:
-        if NAV_EMBEDDING_QUERIES is None:
-            return
-        try:
-            NAV_EMBEDDING_QUERIES.labels(status=status).inc()
-        except (RuntimeError, ValueError) as exc:
-            logger.debug(
-                "nav_embedding_metric_failed", extra={"status": status}, exc_info=exc
-            )
-
-    def next(self, data: TransitionRequest) -> TransitionDecision:
-        context = self._build_context(data)
-        start = time.perf_counter()
-        base_nodes, origin_node, route_nodes = self._prepare_universe(context)
-        config = MODE_CONFIGS[context.mode]
-
-        diversity_strength = 1.0
-        k_limit = config.k_base
-        random_enabled = config.allow_random
-        relaxation_step = 0
-        curated_blocked_reason: str | None = None
-        rng = self._seeded_rng(context.cache_seed)
-        pool_size = 0
-        candidates: Sequence[TransitionCandidate] = ()
-        empty_pool = False
-        empty_pool_reason: str | None = None
-
-        while relaxation_step < 4:
-            seeds, curated_blocked = self._build_candidates(
-                context=context,
-                origin_node=origin_node,
-                route_nodes=route_nodes,
-                nodes=base_nodes,
-                k_limit=k_limit,
-                random_enabled=random_enabled,
-                rng=rng,
-            )
-            curated_blocked_reason = curated_blocked_reason or curated_blocked
-            scored = self._score_candidates(
-                context=context,
-                seeds=seeds,
-                origin_node=origin_node,
-                route_nodes=route_nodes,
-                diversity_strength=diversity_strength,
-                config=config,
-            )
-            pool_size = len(scored)
-            if scored:
-                candidates = self._select_candidates(
-                    context=context,
-                    scored=scored,
-                    config=config,
-                )
-                if candidates:
-                    break
-            # relax per ladder
-            relaxation_step += 1
-            if relaxation_step == 1:
-                diversity_strength = max(0.0, diversity_strength - 0.5)
-            elif relaxation_step == 2:
-                k_limit = int(math.ceil(k_limit * 1.25))
-            elif relaxation_step == 3:
-                if context.mode != "lite":
-                    random_enabled = True
-                    logger.info(
-                        "nav_relaxation_enable_random",
-                        extra={
-                            "mode": context.mode,
-                            "limit_state": context.limit_state,
-                            "relaxation_step": relaxation_step,
-                        },
-                    )
-                else:
-                    # Lite mode disallows random; mark for final fallback
-                    random_enabled = False
-                    logger.info(
-                        "nav_relaxation_random_blocked",
-                        extra={
-                            "mode": context.mode,
-                            "limit_state": context.limit_state,
-                            "reason": "lite_mode",
-                        },
-                    )
-            else:
-                empty_pool = True
-                empty_pool_reason = "relaxation_exhausted"
-                candidates = ()
-
-            if relaxation_step >= 4:
-                empty_pool = True
-                empty_pool_reason = empty_pool_reason or "no_candidates"
-                break
-
-        if curated_blocked_reason:
-            logger.debug(
-                "nav_curated_blocked",
-                extra={
-                    "mode": context.mode,
-                    "limit_state": context.limit_state,
-                    "reason": curated_blocked_reason,
-                },
-            )
-        if empty_pool or not candidates:
-            logger.warning(
-                "nav_candidates_fallback",
-                extra={
-                    "mode": context.mode,
-                    "limit_state": context.limit_state,
-                    "pool_size": pool_size,
-                    "relaxation_step": relaxation_step,
-                    "empty_pool_reason": empty_pool_reason
-                    or ("no_candidates" if not candidates else None),
-                    "curated_blocked_reason": curated_blocked_reason,
-                },
-            )
-        elapsed_ms = (time.perf_counter() - start) * 1000.0
+    def next(self, request: TransitionRequest) -> TransitionDecision:
+        mode_key = str(request.mode or self._default_mode).strip().lower()
+        if not mode_key:
+            mode_key = self._default_mode
+        mode_config = self._resolve_mode_config(mode_key)
+        provider_filter = self._normalize_provider_filter(
+            request.requested_provider_overrides
+        )
+        providers = self._select_providers(mode_config, provider_filter)
+        cache_seed = self._generate_cache_seed(request)
+        context = self._build_context(
+            request,
+            cache_seed=cache_seed,
+            mode_name=mode_config.name,
+        )
+        origin = self._load_node(request.origin_node_id)
+        history = self._load_history(context.route_window)
+        query_embedding = self._compose_query_embedding(origin, history, context)
+        raw_candidates = self._gather_candidates(
+            providers=providers,
+            mode_config=mode_config,
+            context=context,
+            origin=origin,
+            history=history,
+            query_embedding=query_embedding,
+        )
+        candidates = self._finalize_candidates(
+            raw_candidates, limit=max(1, mode_config.k_base)
+        )
+        pool_size = len(candidates)
+        empty_pool = pool_size == 0
+        selected_node_id = candidates[0].node_id if candidates else None
+        ui_slots_granted = (
+            min(context.requested_ui_slots, pool_size) if pool_size else 0
+        )
+        telemetry = self._build_telemetry(candidates, query_embedding=query_embedding)
         decision = TransitionDecision(
             context=context,
             candidates=tuple(candidates),
-            selected_node_id=(candidates[0].node_id if candidates else None),
-            ui_slots_granted=min(context.requested_ui_slots, len(candidates)),
+            selected_node_id=selected_node_id,
+            ui_slots_granted=ui_slots_granted,
             limit_state=context.limit_state,
-            mode=context.mode,
+            mode=mode_config.name,
             pool_size=pool_size,
-            temperature=config.temperature,
-            epsilon=config.epsilon,
-            empty_pool=empty_pool or not candidates,
-            empty_pool_reason=empty_pool_reason,
-            curated_blocked_reason=curated_blocked_reason,
+            temperature=mode_config.temperature,
+            epsilon=mode_config.epsilon,
+            empty_pool=empty_pool,
+            empty_pool_reason="no_candidates" if empty_pool else None,
+            curated_blocked_reason=None,
             served_from_cache=False,
-            emergency_used=data.emergency,
-            telemetry={"time_ms": elapsed_ms},
+            emergency_used=bool(request.emergency),
+            telemetry=telemetry,
         )
-        self._record_transition_metrics(decision, elapsed_ms)
         return decision
 
-    def _record_transition_metrics(
-        self, decision: TransitionDecision, elapsed_ms: float
-    ) -> None:
-        if transition_metrics is None:
-            return
-        mode = (
-            decision.mode or decision.context.mode or "default"
-        ).strip().lower() or "default"
-        try:
-            transition_metrics.observe_latency(mode, elapsed_ms)
-            candidates = decision.candidates
-            if candidates:
-                entropy = self._candidate_entropy(candidates)
-                transition_metrics.observe_entropy(mode, entropy)
-                transition_metrics.observe_repeat_rate(
-                    mode, self._repeat_rate(decision.context.route_window, candidates)
-                )
-                transition_metrics.observe_novelty_rate(
-                    mode, self._novelty_rate(candidates)
-                )
-            if decision.empty_pool or decision.pool_size == 0:
-                transition_metrics.inc_no_route(mode)
-            if (
-                decision.empty_pool
-                or decision.curated_blocked_reason
-                or decision.emergency_used
-            ):
-                transition_metrics.inc_fallback(mode)
-        except Exception:  # pragma: no cover - metrics must not disrupt traffic
-            logger.debug(
-                "nav_transition_metrics_record_failed",
-                extra={"mode": mode},
-                exc_info=True,
-            )
+    def _generate_cache_seed(self, request: TransitionRequest) -> str:
+        material = f"{request.session_id}:{request.user_id}:{datetime.now(UTC).timestamp()}:{self._random.random()}"
+        digest = hashlib.sha1(material.encode("utf-8"), usedforsecurity=False)
+        return digest.hexdigest()
 
-    @staticmethod
-    def _repeat_rate(
-        route_window: Sequence[int], candidates: Sequence[TransitionCandidate]
-    ) -> float:
-        if not candidates:
-            return 0.0
-        window: set[int] = set()
-        for node_id in route_window:
-            try:
-                window.add(int(node_id))
-            except (TypeError, ValueError):
-                continue
-        if not window:
-            return 0.0
-        repeats = sum(1 for candidate in candidates if candidate.node_id in window)
-        return repeats / len(candidates)
-
-    @staticmethod
-    def _novelty_rate(candidates: Sequence[TransitionCandidate]) -> float:
-        if not candidates:
-            return 0.0
-        novel = 0
-        for candidate in candidates:
-            factors = candidate.factors or {}
-            try:
-                diversity_bonus = float(factors.get("diversity_bonus", 0.0))
-            except (TypeError, ValueError):
-                diversity_bonus = 0.0
-            if (
-                candidate.badge == "explore"
-                or candidate.provider == "random"
-                or diversity_bonus > 0.0
-            ):
-                novel += 1
-        return novel / len(candidates)
-
-    @staticmethod
-    def _candidate_entropy(candidates: Sequence[TransitionCandidate]) -> float:
-        if not candidates:
-            return 0.0
-        probs = []
-        for candidate in candidates:
-            try:
-                value = float(candidate.probability)
-            except (TypeError, ValueError):
-                value = 0.0
-            if value > 0.0:
-                probs.append(value)
-        if not probs:
-            uniform = 1.0 / len(candidates)
-            return -(uniform * math.log(uniform, 2)) * len(candidates)
-        total = sum(probs)
-        if total <= 0.0:
-            uniform = 1.0 / len(candidates)
-            return -(uniform * math.log(uniform, 2)) * len(candidates)
-        entropy = 0.0
-        for prob in probs:
-            frac = prob / total
-            if frac <= 0.0:
-                continue
-            entropy -= frac * math.log(frac, 2)
-        return entropy
-
-    def _build_context(self, data: TransitionRequest) -> TransitionContext:
-        limit_state = data.limit_state or "normal"
-        mode = (data.mode or "normal").lower()
-        if limit_state == "exceeded_lite":
-            mode = "lite"
-        mode = mode if mode in MODE_CONFIGS else "normal"
-        limit_state = (
-            limit_state
-            if limit_state in {"normal", "near_limit", "exceeded_lite"}
-            else "normal"
-        )
-        premium = self._normalize_premium(data.premium_level)
-        slots_map = UI_SLOTS.get(mode, UI_SLOTS["normal"])
-        allowed = slots_map.get(premium, slots_map.get("free", 3))
-        requested = data.requested_ui_slots if data.requested_ui_slots > 0 else allowed
-        ui_slots = max(1, min(requested, allowed))
-        cache_seed = self._compute_seed(
-            user_id=data.user_id,
-            session_id=data.session_id,
-            origin_node_id=data.origin_node_id,
-            limit_state=limit_state,
-            mode=mode,
+    def _build_context(
+        self,
+        request: TransitionRequest,
+        *,
+        cache_seed: str,
+        mode_name: str,
+    ) -> TransitionContext:
+        route_window = self._sanitize_route_window(request.route_window)
+        requested_slots = request.requested_ui_slots
+        if requested_slots is None or requested_slots <= 0:
+            requested_slots = 3
+        now = datetime.now(UTC)
+        policies_hash = (
+            str(request.policies_hash) if request.policies_hash is not None else None
         )
         return TransitionContext(
-            session_id=data.session_id,
-            user_id=data.user_id,
-            origin_node_id=data.origin_node_id,
-            route_window=tuple(int(n) for n in data.route_window),
-            limit_state=limit_state,
-            premium_level=premium,
-            mode=mode,
-            requested_ui_slots=ui_slots,
-            policies_hash=data.policies_hash,
+            session_id=str(request.session_id or ""),
+            user_id=str(request.user_id or "") or None,
+            origin_node_id=(
+                int(request.origin_node_id)
+                if request.origin_node_id is not None
+                else None
+            ),
+            route_window=route_window,
+            limit_state=str(request.limit_state or "normal"),
+            premium_level=str(request.premium_level or "free"),
+            mode=mode_name,
+            requested_ui_slots=int(requested_slots),
+            policies_hash=policies_hash,
             cache_seed=cache_seed,
-            created_at=datetime.now(tz=UTC),
+            created_at=now,
         )
 
-    def _prepare_universe(
-        self, context: TransitionContext
-    ) -> tuple[list[NodeSnapshot], NodeSnapshot | None, list[NodeSnapshot]]:
-        origin_node = self._fetch_node(context.origin_node_id)
-        route_nodes: list[NodeSnapshot] = []
-        seen_route: set[int] = set()
-        for node_id in context.route_window:
-            if node_id in seen_route:
-                continue
-            seen_route.add(node_id)
-            snap = self._fetch_node(node_id)
-            if snap is not None:
-                route_nodes.append(snap)
-        # Candidate universe: authors from origin, route, and user (treated as author)
-        author_ids: set[str] = set()
-        if origin_node is not None:
-            author_ids.add(origin_node.author_id)
-        for snap in route_nodes:
-            author_ids.add(snap.author_id)
-        if context.user_id:
-            author_ids.add(context.user_id)
-        nodes: dict[int, NodeSnapshot] = {}
-        for author in author_ids:
-            samples = self.nodes.list_by_author(author, limit=200)
-            for item in samples:
-                snap = self._normalize_node(item)
-                if snap is None or not snap.is_public:
-                    continue
-                nodes.setdefault(snap.id, snap)
-        # Remove origin from baseline to avoid duplication (curated step re-adds if needed)
-        if origin_node is not None and origin_node.id in nodes:
-            nodes.pop(origin_node.id, None)
-        return list(nodes.values()), origin_node, route_nodes
-
-    def _build_candidates(
-        self,
-        context: TransitionContext,
-        origin_node: NodeSnapshot | None,
-        route_nodes: Sequence[NodeSnapshot],
-        nodes: Sequence[NodeSnapshot],
-        k_limit: int,
-        random_enabled: bool,
-        rng: random.Random,
-    ) -> tuple[list[dict], str | None]:
-        seeds: list[dict] = []
-        curated_blocked_reason: str | None = None
-        route_author_ids = [snap.author_id for snap in route_nodes]
-        recent_authors = route_author_ids[-3:]
-        target_tags = self._aggregate_tags(origin_node, route_nodes)
-        query_embedding = self._compose_query_embedding(
-            origin_node, route_nodes, context
-        )
-
-        nodes_by_id: dict[int, NodeSnapshot] = {snap.id: snap for snap in nodes}
-        ann_nodes: list[NodeSnapshot] = []
-        embedding_status = "query_missing"
-        ann_raw: list[dict[str, Any]] = []
-        if query_embedding is not None:
+    def _sanitize_route_window(self, values: Sequence[int]) -> tuple[int, ...]:
+        seen: set[int] = set()
+        sanitized: list[int] = []
+        for value in values:
             try:
-                ann_raw = list(
-                    self.nodes.search_by_embedding(
-                        list(query_embedding), limit=max(k_limit * 2, 64)
-                    )
-                )
-                embedding_status = "used" if ann_raw else "empty"
-            except (
-                SQLAlchemyError,
-                RuntimeError,
-                ValueError,
-                TypeError,
-                TimeoutError,
-            ) as exc:
-                logger.warning(
-                    "nav_embedding_search_failed",
-                    extra={
-                        "source": "embedding",
-                        "mode": context.mode,
-                        "limit_state": context.limit_state,
-                    },
-                    exc_info=exc,
-                )
-                ann_raw = []
-                embedding_status = "error"
-            for item in ann_raw:
-                snap = self._normalize_node(item)
-                if snap is None or not snap.is_public:
-                    continue
-                if snap.id not in nodes_by_id:
-                    nodes_by_id[snap.id] = snap
-                    ann_nodes.append(snap)
-        self._record_embedding_usage(embedding_status)
-
-        def calc_similarity(snapshot: NodeSnapshot) -> float:
-            sim = self._embedding_similarity(query_embedding, snapshot.embedding)
-            if sim == 0.0:
-                return self._tag_similarity(target_tags, snapshot.tags)
-            return sim
-
-        # Curated candidate: next node by origin author if available
-        if origin_node is not None:
-            same_author = [
-                snap for snap in nodes if snap.author_id == origin_node.author_id
-            ]
-            same_author_sorted = sorted(same_author, key=lambda s: s.id)
-            curated_candidate = None
-            for snap in same_author_sorted:
-                if snap.id != origin_node.id and snap.id not in context.route_window:
-                    curated_candidate = snap
-                    break
-            if curated_candidate is not None:
-                seeds.append(
-                    {
-                        "node": curated_candidate,
-                        "provider": "curated",
-                        "tag_sim": calc_similarity(curated_candidate),
-                        "echo": 0.0,
-                        "fresh_rank": curated_candidate.id,
-                    }
-                )
-            else:
-                curated_blocked_reason = "no_curated_candidate"
-        # Score non-curated candidates
-        combined_nodes = list(nodes_by_id.values())
-        combined_nodes.extend(ann_nodes)
-        ranked = sorted(
-            combined_nodes,
-            key=lambda snap: (calc_similarity(snap), snap.id),
-            reverse=True,
-        )
-        trimmed = ranked[: max(k_limit, len(seeds))]
-        used_ids = {seed["node"].id for seed in seeds}
-        for snap in trimmed:
-            if snap.id in used_ids:
+                normalized = int(value)
+            except (TypeError, ValueError):
                 continue
-            provider = "compass"
-            echo_score = 0.0
-            if snap.author_id in recent_authors:
-                provider = "echo"
-                echo_score = 1.0
-            seeds.append(
-                {
-                    "node": snap,
-                    "provider": provider,
-                    "tag_sim": self._tag_similarity(target_tags, snap.tags),
-                    "echo": echo_score,
-                    "fresh_rank": snap.id,
-                }
-            )
-            used_ids.add(snap.id)
-        if random_enabled:
-            pool_ids = {seed["node"].id for seed in seeds}
-            remaining = [snap for snap in combined_nodes if snap.id not in pool_ids]
-            rng.shuffle(remaining)
-            for snap in remaining[: max(0, k_limit - len(seeds))]:
-                seeds.append(
-                    {
-                        "node": snap,
-                        "provider": "random",
-                        "tag_sim": calc_similarity(snap),
-                        "echo": 0.0,
-                        "fresh_rank": snap.id,
-                    }
-                )
-        return seeds, curated_blocked_reason
-
-    def _score_candidates(
-        self,
-        context: TransitionContext,
-        seeds: Iterable[dict],
-        origin_node: NodeSnapshot | None,
-        route_nodes: Sequence[NodeSnapshot],
-        diversity_strength: float,
-        config: ModeConfig,
-    ) -> list[dict]:
-        if origin_node is None and not route_nodes and not seeds:
-            return []
-        route_author_ids = [snap.author_id for snap in route_nodes]
-        last_author = route_author_ids[-1] if route_author_ids else None
-        results: list[dict] = []
-        if not seeds:
-            return results
-        max_rank = max(seed["fresh_rank"] for seed in seeds)
-        for seed in seeds:
-            node: NodeSnapshot = seed["node"]
-            if node.id in context.route_window:
+            if normalized in seen:
                 continue
-            factors = {
-                "curated": 1.0 if seed["provider"] == "curated" else 0.0,
-                "tag_sim": float(seed.get("tag_sim") or 0.0),
-                "echo": float(seed.get("echo") or 0.0),
-                "fresh": 1.0 - ((max_rank - seed["fresh_rank"]) / max(1, max_rank)),
-                "diversity_bonus": (
-                    1.0 if node.author_id not in route_author_ids else 0.0
-                ),
-                "policy_penalty": 0.0,
-            }
-            penalty = 0.0
-            if (
-                diversity_strength > 0
-                and last_author is not None
-                and node.author_id == last_author
-                and len(route_author_ids) >= config.author_threshold
-            ):
-                penalty = diversity_strength * 0.5
-            score = sum(BASE_WEIGHTS[k] * factors.get(k, 0.0) for k in BASE_WEIGHTS)
-            if seed["provider"] == "curated":
-                score += config.curated_boost
-            score -= penalty
-            results.append(
-                {
-                    "node": node,
-                    "provider": seed["provider"],
-                    "score": score,
-                    "factors": {
-                        k: factors[k] for k in ALLOWED_REASON_KEYS if k in factors
-                    },
-                }
-            )
-        results.sort(key=lambda item: item["score"], reverse=True)
-        return results
+            seen.add(normalized)
+            sanitized.append(normalized)
+        return tuple(sanitized)
 
-    def _select_candidates(
-        self,
-        context: TransitionContext,
-        scored: Sequence[dict],
-        config: ModeConfig,
-    ) -> list[TransitionCandidate]:
-        if not scored:
-            return []
-        t = max(config.temperature, 1e-6)
-        scores = [item["score"] for item in scored]
-        max_score = max(scores)
-        exp_values = [math.exp((score - max_score) / t) for score in scores]
-        total = sum(exp_values) or 1.0
-        probabilities = [val / total for val in exp_values]
-        ranked = list(zip(scored, probabilities, strict=False))
-        ranked.sort(key=lambda pair: pair[1], reverse=True)
-        limit = min(context.requested_ui_slots, len(ranked))
-        results: list[TransitionCandidate] = []
-        for item, prob in ranked[:limit]:
-            node: NodeSnapshot = item["node"]
-            provider = item["provider"]
-            badge = BADGES_BY_PROVIDER.get(provider, "similar")
-            if context.mode == "lite":
-                badge = "limited"
-            explain = self._explain(provider)
-            factors = dict(item["factors"].items())
-            # Ensure allowed keys only
-            for key in list(factors.keys()):
-                if key not in ALLOWED_REASON_KEYS:
-                    factors.pop(key)
-            results.append(
-                TransitionCandidate(
-                    node_id=node.id,
-                    provider=provider,
-                    score=item["score"],
-                    probability=prob,
-                    factors=factors,
-                    badge=badge,
-                    explain=explain,
-                )
-            )
-        return results
+    def _load_history(self, window: Sequence[int]) -> list[NodeSnapshot]:
+        history: list[NodeSnapshot] = []
+        for node_id in window:
+            snapshot = self._load_node(node_id)
+            if snapshot is not None:
+                history.append(snapshot)
+        return history
 
-    def _fetch_node(self, node_id: int | None) -> NodeSnapshot | None:
+    def _load_node(self, node_id: int | None) -> NodeSnapshot | None:
         if node_id is None:
             return None
-        raw = self.nodes.get(int(node_id))
-        return self._normalize_node(raw)
-
-    def _normalize_node(self, raw: dict[str, Any] | None) -> NodeSnapshot | None:
-        if not raw:
+        try:
+            raw = self.nodes.get(int(node_id))
+        except Exception:  # pragma: no cover - defensive against integration issues
+            logger.debug("navigation: failed to load node %s", node_id, exc_info=True)
             return None
-        raw_id = raw.get("id")
+        return self._to_snapshot(raw)
+
+    def _to_snapshot(self, data: Any) -> NodeSnapshot | None:
+        if data is None:
+            return None
+        if isinstance(data, NodeSnapshot):
+            return data
+        raw: Mapping[str, Any]
+        if isinstance(data, Mapping):
+            raw = cast(Mapping[str, Any], data)
+        else:
+            try:
+                raw = cast(Mapping[str, Any], data.__dict__)
+            except AttributeError:
+                return None
+        raw_id: Any = raw.get("id")
         if raw_id is None:
             return None
         try:
-            node_id = int(cast(int | float | str, raw_id))
+            node_id = int(raw_id)
         except (TypeError, ValueError):
             return None
-        author = str(raw.get("author_id") or "")
-        if not author:
-            return None
-        title_raw = raw.get("title")
-        title = str(title_raw) if isinstance(title_raw, str) else None
-        tags_field = raw.get("tags")
+        author = raw.get("author_id")
+        author_id = str(author) if author not in (None, "") else None
+        title = raw.get("title")
+        title_str = str(title) if isinstance(title, str) else None
+        tags_raw = raw.get("tags") or ()
         tags: tuple[str, ...]
-        if isinstance(tags_field, (list, tuple)):
-            tags = tuple(str(t).lower() for t in tags_field if isinstance(t, str))
+        if isinstance(tags_raw, Sequence) and not isinstance(tags_raw, (str, bytes)):
+            tags = tuple(
+                str(tag).strip()
+                for tag in tags_raw
+                if isinstance(tag, str) and str(tag).strip()
+            )
         else:
-            tags = ()
-        embedding_field = raw.get("embedding")
+            tags = tuple()
+        embedding_raw = raw.get("embedding")
         embedding: tuple[float, ...] | None = None
-        if isinstance(embedding_field, (list, tuple)):
-            try:
-                embedding = tuple(float(v) for v in embedding_field)
-            except (TypeError, ValueError) as exc:
-                logger.debug(
-                    "nav_embedding_parse_failed",
-                    extra={"node_id": node_id},
-                    exc_info=exc,
-                )
-                embedding = None
-        is_public = bool(raw.get("is_public", True))
+        if isinstance(embedding_raw, Sequence) and not isinstance(
+            embedding_raw, (str, bytes)
+        ):
+            coords: list[float] = []
+            for value in embedding_raw:
+                try:
+                    coords.append(float(value))
+                except (TypeError, ValueError):
+                    continue
+            if coords:
+                embedding = tuple(coords)
+        is_public = bool(raw.get("is_public", False))
         return NodeSnapshot(
             id=node_id,
-            author_id=author,
-            title=title,
+            author_id=author_id,
+            title=title_str,
             tags=tags,
             is_public=is_public,
             embedding=embedding,
         )
 
-    def _aggregate_tags(
-        self, origin: NodeSnapshot | None, route_nodes: Sequence[NodeSnapshot]
-    ) -> set[str]:
-        tags: set[str] = set()
-        if origin is not None:
-            tags.update(origin.tags)
-        for snap in route_nodes:
-            tags.update(snap.tags)
-        return tags
-
     def _compose_query_embedding(
         self,
         origin: NodeSnapshot | None,
-        route_nodes: Sequence[NodeSnapshot],
+        history: Sequence[NodeSnapshot],
         context: TransitionContext,
     ) -> tuple[float, ...] | None:
         vectors: list[tuple[float, ...]] = []
-        weights: list[float] = []
-        if origin is not None and origin.embedding is not None:
-            norm = self._normalize_vector(origin.embedding)
-            if norm is not None:
-                vectors.append(tuple(norm))
-                weights.append(0.6)
-        history = [
-            snap.embedding for snap in route_nodes[-3:] if snap.embedding is not None
-        ]
-        if history:
-            mean_vec = self._mean_vector(history)
-            norm_mean = self._normalize_vector(mean_vec)
-            if norm_mean is not None:
-                vectors.append(tuple(norm_mean))
-                weights.append(0.2)
+        if origin and origin.embedding:
+            vectors.append(origin.embedding)
+        for item in history:
+            if item.embedding:
+                if vectors and len(item.embedding) != len(vectors[0]):
+                    continue
+                vectors.append(item.embedding)
         if not vectors:
             return None
-        size = len(vectors[0])
-        combined = [0.0] * size
-        total = sum(weights)
-        for vec, weight in zip(vectors, weights, strict=False):
-            if len(vec) != size:
-                continue
-            for idx, value in enumerate(vec):
-                combined[idx] += weight * value
-        if total <= 0:
-            return None
-        combined = [value / total for value in combined]
-        normalized = self._normalize_vector(combined)
-        if normalized is None:
-            return None
-        return tuple(normalized)
+        dimension = len(vectors[0])
+        accumulator = [0.0] * dimension
+        for vector in vectors:
+            for idx, value in enumerate(vector):
+                accumulator[idx] += value
+        averaged = [value / len(vectors) for value in accumulator]
+        return self._normalize_vector(averaged)
 
-    @staticmethod
-    def _mean_vector(vectors: Sequence[Sequence[float]]) -> list[float] | None:
-        if not vectors:
-            return None
-        size = len(vectors[0])
-        acc = [0.0] * size
-        count = 0
-        for vec in vectors:
-            if len(vec) != size:
-                continue
-            for idx, value in enumerate(vec):
-                acc[idx] += float(value)
-            count += 1
-        if count == 0:
-            return None
-        return [value / count for value in acc]
-
-    @staticmethod
-    def _normalize_vector(values: Sequence[float] | None) -> list[float] | None:
-        if values is None:
-            return None
-        acc = [float(v) for v in values]
-        norm = math.sqrt(sum(v * v for v in acc))
+    def _normalize_vector(self, vector: Sequence[float]) -> tuple[float, ...]:
+        norm = math.sqrt(sum(value * value for value in vector))
         if norm <= 0:
-            return None
-        return [v / norm for v in acc]
+            return tuple(float(value) for value in vector)
+        return tuple(float(value) / norm for value in vector)
 
-    @staticmethod
     def _embedding_similarity(
-        query: Sequence[float] | None, candidate: Sequence[float] | None
+        self, left: Sequence[float], right: Sequence[float]
     ) -> float:
-        if query is None or candidate is None:
+        if not left or not right:
             return 0.0
-        if len(query) != len(candidate):
+        length = min(len(left), len(right))
+        if length == 0:
             return 0.0
-        score = sum(a * b for a, b in zip(query, candidate, strict=False))
-        return max(-1.0, min(1.0, score))
+        dot = sum(float(left[i]) * float(right[i]) for i in range(length))
+        norm_left = math.sqrt(sum(float(value) ** 2 for value in left[:length]))
+        norm_right = math.sqrt(sum(float(value) ** 2 for value in right[:length]))
+        denominator = norm_left * norm_right
+        if denominator <= 0:
+            return 0.0
+        result = dot / denominator
+        return max(min(result, 1.0), -1.0)
 
-    @staticmethod
-    def _tag_similarity(target_tags: set[str], candidate_tags: Sequence[str]) -> float:
-        if not target_tags or not candidate_tags:
-            return 0.0
-        cand = set(candidate_tags)
-        inter = len(target_tags & cand)
-        union = len(target_tags | cand)
-        if union == 0:
-            return 0.0
-        return inter / union
+    def _normalize_provider_filter(
+        self, overrides: Sequence[str] | None
+    ) -> set[str] | None:
+        if not overrides:
+            return None
+        normalized = {
+            str(item).strip().lower() for item in overrides if str(item).strip()
+        }
+        return normalized or None
 
-    @staticmethod
-    def _compute_seed(
-        *,
-        user_id: str,
-        session_id: str,
-        origin_node_id: int | None,
-        limit_state: str,
-        mode: str,
-    ) -> str:
-        payload = "|".join(
-            [
-                user_id,
-                session_id,
-                str(origin_node_id or 0),
-                limit_state,
-                mode,
-            ]
+    def _resolve_mode_config(self, mode_key: str) -> ModeConfig:
+        config = self._mode_configs.get(mode_key)
+        if config is not None:
+            return config
+        default = self._mode_configs.get(self._default_mode)
+        if default is not None:
+            return default
+        return next(iter(self._mode_configs.values()))
+
+    def _select_providers(
+        self,
+        mode_config: ModeConfig,
+        provider_filter: set[str] | None,
+    ) -> tuple[str, ...]:
+        providers = tuple(
+            provider
+            for provider in mode_config.providers
+            if provider_filter is None or provider in provider_filter
         )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        if providers:
+            return providers
+        if provider_filter:
+            return tuple(provider_filter)
+        return mode_config.providers
 
-    @staticmethod
-    def _seeded_rng(seed_hex: str) -> random.Random:
-        seed_int = int(seed_hex[:16], 16)
-        return random.Random(seed_int)
+    def _search_by_embedding(
+        self, embedding: Sequence[float], *, limit: int
+    ) -> Sequence[Any]:
+        search = getattr(self.nodes, "search_by_embedding", None)
+        if not callable(search):
+            return []
+        try:
+            return search(list(float(value) for value in embedding), limit=limit)
+        except Exception:  # pragma: no cover - defensive logging only
+            logger.debug("navigation: embedding search failed", exc_info=True)
+            return []
 
-    @staticmethod
-    def _normalize_premium(level: str | None) -> str:
-        if not level:
-            return "free"
-        value = level.strip().lower()
-        if value in {"premium+", "premium-plus", "premium_plus"}:
-            return "premium+"
-        if value == "premium":
-            return "premium"
-        return "free"
+    def _list_by_author(
+        self, author_id: str, *, limit: int, offset: int = 0
+    ) -> list[NodeSnapshot]:
+        try:
+            records = self.nodes.list_by_author(
+                author_id, limit=max(1, limit), offset=max(0, offset)
+            )
+        except Exception:  # pragma: no cover - defensive logging only
+            logger.debug(
+                "navigation: author listing failed for %s", author_id, exc_info=True
+            )
+            return []
+        snapshots = [self._to_snapshot(item) for item in records]
+        return [snap for snap in snapshots if snap is not None]
 
-    @staticmethod
-    def _explain(provider: str) -> str:
-        if provider == "curated":
-            return "Next trail step"
-        if provider == "echo":
-            return "Similar topic seen earlier"
-        if provider == "random":
-            return "New branch for diversity"
-        return "Similar topic"
+    def _snapshots_from_records(self, records: Iterable[Any]) -> list[NodeSnapshot]:
+        snapshots: list[NodeSnapshot] = []
+        for record in records:
+            snapshot = self._to_snapshot(record)
+            if snapshot is not None:
+                snapshots.append(snapshot)
+        return snapshots
+
+    def _gather_candidates(
+        self,
+        *,
+        providers: Sequence[str],
+        mode_config: ModeConfig,
+        context: TransitionContext,
+        origin: NodeSnapshot | None,
+        history: Sequence[NodeSnapshot],
+        query_embedding: tuple[float, ...] | None,
+    ) -> list[_CandidateEnvelope]:
+        used_ids: set[int] = {snap.id for snap in history}
+        if origin is not None:
+            used_ids.add(origin.id)
+        per_provider_limit = max(1, mode_config.k_base)
+        collected: list[_CandidateEnvelope] = []
+        for provider in providers:
+            if provider == "compass":
+                items = self._embedding_candidates(
+                    query_embedding,
+                    origin=origin,
+                    used_ids=used_ids,
+                    limit=per_provider_limit,
+                )
+            elif provider in {"echo", "curated"}:
+                items = self._author_candidates(
+                    context,
+                    origin=origin,
+                    used_ids=used_ids,
+                    limit=per_provider_limit,
+                )
+            elif provider == "random":
+                items = self._random_candidates(
+                    context,
+                    origin=origin,
+                    history=history,
+                    used_ids=used_ids,
+                    limit=per_provider_limit,
+                )
+            else:
+                items = self._author_candidates(
+                    context,
+                    origin=origin,
+                    used_ids=used_ids,
+                    limit=per_provider_limit,
+                )
+            for item in items:
+                if item.snapshot.id in used_ids:
+                    continue
+                collected.append(item)
+                used_ids.add(item.snapshot.id)
+        if not collected and origin is not None:
+            fallback = self._author_candidates(
+                context,
+                origin=origin,
+                used_ids=used_ids,
+                limit=mode_config.k_base,
+            )
+            for item in fallback:
+                if item.snapshot.id in used_ids:
+                    continue
+                collected.append(item)
+                used_ids.add(item.snapshot.id)
+        return collected
+
+    def _embedding_candidates(
+        self,
+        query_embedding: tuple[float, ...] | None,
+        *,
+        origin: NodeSnapshot | None,
+        used_ids: set[int],
+        limit: int,
+    ) -> list[_CandidateEnvelope]:
+        if query_embedding is None:
+            return []
+        records = self._search_by_embedding(
+            query_embedding, limit=limit * self._search_multiplier
+        )
+        snapshots = self._snapshots_from_records(records)
+        return self._score_snapshots(
+            snapshots,
+            provider="compass",
+            origin=origin,
+            query_embedding=query_embedding,
+            used_ids=used_ids,
+            limit=limit,
+        )
+
+    def _author_candidates(
+        self,
+        context: TransitionContext,
+        *,
+        origin: NodeSnapshot | None,
+        used_ids: set[int],
+        limit: int,
+    ) -> list[_CandidateEnvelope]:
+        author_id = None
+        if origin and origin.author_id:
+            author_id = origin.author_id
+        elif context.user_id:
+            author_id = context.user_id
+        if not author_id:
+            return []
+        snapshots = self._list_by_author(
+            author_id, limit=limit * self._search_multiplier
+        )
+        return self._score_snapshots(
+            snapshots,
+            provider="echo",
+            origin=origin,
+            query_embedding=None,
+            used_ids=used_ids,
+            limit=limit,
+        )
+
+    def _random_candidates(
+        self,
+        context: TransitionContext,
+        *,
+        origin: NodeSnapshot | None,
+        history: Sequence[NodeSnapshot],
+        used_ids: set[int],
+        limit: int,
+    ) -> list[_CandidateEnvelope]:
+        pool: list[NodeSnapshot] = []
+        author_id = origin.author_id if origin and origin.author_id else context.user_id
+        if author_id:
+            pool.extend(
+                self._list_by_author(author_id, limit=limit * self._search_multiplier)
+            )
+        if not pool:
+            pool.extend(history)
+        deduplicated: list[NodeSnapshot] = []
+        seen: set[int] = set()
+        for item in pool:
+            if item.id in seen or item.id in used_ids:
+                continue
+            seen.add(item.id)
+            deduplicated.append(item)
+        self._random.shuffle(deduplicated)
+        return self._score_snapshots(
+            deduplicated,
+            provider="random",
+            origin=origin,
+            query_embedding=None,
+            used_ids=used_ids,
+            limit=limit,
+        )
+
+    def _score_snapshots(
+        self,
+        snapshots: Sequence[NodeSnapshot],
+        *,
+        provider: str,
+        origin: NodeSnapshot | None,
+        query_embedding: tuple[float, ...] | None,
+        used_ids: set[int],
+        limit: int,
+    ) -> list[_CandidateEnvelope]:
+        envelopes: list[_CandidateEnvelope] = []
+        for snapshot in snapshots:
+            if snapshot.id in used_ids:
+                continue
+            scored = self._score_snapshot(
+                snapshot,
+                provider=provider,
+                origin=origin,
+                query_embedding=query_embedding,
+            )
+            if scored is None:
+                continue
+            score, factors = scored
+            envelopes.append(
+                _CandidateEnvelope(
+                    snapshot=snapshot,
+                    provider=provider,
+                    score=score,
+                    factors=factors,
+                )
+            )
+            if len(envelopes) >= limit:
+                break
+        return envelopes
+
+    def _score_snapshot(
+        self,
+        snapshot: NodeSnapshot,
+        *,
+        provider: str,
+        origin: NodeSnapshot | None,
+        query_embedding: tuple[float, ...] | None,
+    ) -> tuple[float, dict[str, float]] | None:
+        factors: dict[str, float] = {}
+        score = 0.0
+        overlap = self._tag_overlap(origin, snapshot)
+        if provider == "compass":
+            similarity = 0.0
+            if query_embedding and snapshot.embedding:
+                similarity = max(
+                    0.0, self._embedding_similarity(query_embedding, snapshot.embedding)
+                )
+            elif origin and origin.embedding and snapshot.embedding:
+                similarity = max(
+                    0.0,
+                    self._embedding_similarity(origin.embedding, snapshot.embedding),
+                )
+            if similarity > 0:
+                factors["similarity"] = similarity
+            if overlap > 0:
+                factors["tag_overlap"] = overlap
+            score = similarity * self._base_weights.get(
+                "tag_sim", 0.35
+            ) + overlap * self._base_weights.get("diversity_bonus", 0.2)
+        elif provider in {"echo", "curated"}:
+            same_author = (
+                1.0 if origin and origin.author_id == snapshot.author_id else 0.0
+            )
+            factors["author_match"] = same_author
+            if overlap > 0:
+                factors["tag_overlap"] = overlap
+            score = (
+                self._base_weights.get("echo", 0.25)
+                + overlap * 0.1
+                + same_author * 0.05
+            )
+        elif provider == "random":
+            score = self._base_weights.get("fresh", 0.15)
+            factors["baseline"] = score
+        else:
+            if overlap > 0:
+                factors["tag_overlap"] = overlap
+            score = max(0.05, overlap)
+        score = float(score)
+        if not math.isfinite(score) or score <= 0:
+            score = 0.05
+        normalized_factors = {
+            key: float(value) for key, value in factors.items() if math.isfinite(value)
+        }
+        return score, normalized_factors
+
+    def _tag_overlap(self, left: NodeSnapshot | None, right: NodeSnapshot) -> float:
+        if left is None or not left.tags or not right.tags:
+            return 0.0
+        left_tags = {tag.lower() for tag in left.tags if tag}
+        right_tags = {tag.lower() for tag in right.tags if tag}
+        if not left_tags or not right_tags:
+            return 0.0
+        intersection = left_tags & right_tags
+        if not intersection:
+            return 0.0
+        return len(intersection) / float(len(left_tags))
+
+    def _finalize_candidates(
+        self,
+        envelopes: Sequence[_CandidateEnvelope],
+        *,
+        limit: int,
+    ) -> list[TransitionCandidate]:
+        if not envelopes:
+            return []
+        ordered = sorted(envelopes, key=lambda item: item.score, reverse=True)
+        limited = ordered[:limit]
+        total = sum(max(item.score, 0.0) for item in limited)
+        if total <= 0:
+            probability = 1.0 / len(limited)
+            probabilities = [probability] * len(limited)
+        else:
+            probabilities = [max(item.score, 0.0) / total for item in limited]
+        candidates: list[TransitionCandidate] = []
+        for item, probability in zip(limited, probabilities, strict=False):
+            factors = dict(item.factors)
+            explain = self._format_explain(factors)
+            badge = self._badges.get(item.provider, item.provider)
+            candidates.append(
+                TransitionCandidate(
+                    node_id=item.snapshot.id,
+                    provider=item.provider,
+                    score=float(item.score),
+                    probability=float(probability),
+                    factors=factors,
+                    badge=badge,
+                    explain=explain,
+                )
+            )
+        return candidates
+
+    def _format_explain(self, factors: Mapping[str, float]) -> str:
+        if not factors:
+            return ""
+        parts = []
+        for key in sorted(factors):
+            value = factors[key]
+            parts.append(f"{key}={value:.2f}")
+        return ", ".join(parts)
+
+    def _build_telemetry(
+        self,
+        candidates: Sequence[TransitionCandidate],
+        *,
+        query_embedding: tuple[float, ...] | None,
+    ) -> dict[str, float]:
+        telemetry: dict[str, float] = {
+            "candidates_total": float(len(candidates)),
+            "query_embedding": 1.0 if query_embedding is not None else 0.0,
+        }
+        provider_counts: dict[str, int] = {}
+        for candidate in candidates:
+            provider_counts[candidate.provider] = (
+                provider_counts.get(candidate.provider, 0) + 1
+            )
+        for provider, count in provider_counts.items():
+            telemetry[f"provider_{provider}_count"] = float(count)
+        return telemetry
+
+
+__all__ = ["NavigationService", "NodeSnapshot"]

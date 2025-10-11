@@ -11,6 +11,8 @@ from packages.core.errors import ApiError
 
 SETTINGS_SCHEMA_VERSION = "1.0.0"
 SETTINGS_SCHEMA_HEADER = "X-Settings-Schema"
+# RFC 7232 allows * as a wildcard validator.
+WILDCARD_ETAG = "*"
 
 
 def attach_settings_schema(
@@ -58,7 +60,7 @@ def assert_if_match(header_value: str | None, current_etag: str) -> None:
         token = token.strip()
         if not token:
             continue
-        if token == "*":
+        if token == WILDCARD_ETAG:
             return
         if token.startswith('"') and token.endswith('"'):
             token = token[1:-1]

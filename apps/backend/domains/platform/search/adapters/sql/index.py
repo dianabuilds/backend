@@ -109,7 +109,7 @@ class SQLSearchIndex(IndexPort, QueryPort):
               {order_clause}
               LIMIT :limit OFFSET :offset
             """
-        )
+        )  # nosec
         async with self._engine.begin() as conn:
             rows = (await conn.execute(sql, params)).mappings().all()
         hits: list[Hit] = []

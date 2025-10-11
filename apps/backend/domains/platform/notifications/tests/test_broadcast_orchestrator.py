@@ -80,7 +80,6 @@ class _FailingAudienceResolver:
         self, audience: BroadcastAudience, *, batch_size: int | None = None
     ):
         raise AudienceResolutionError("boom")
-        yield []  # pragma: no cover - satisfies async generator signature
 
 
 class _MemoryBroadcastRepo(BroadcastRepo):

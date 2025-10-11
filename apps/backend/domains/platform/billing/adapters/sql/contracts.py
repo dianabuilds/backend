@@ -111,7 +111,9 @@ class SQLContractsRepo(ContractsRepo):
         }
         async with self._engine.begin() as conn:
             r = (await conn.execute(sql, payload)).mappings().first()
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             return {
                 "id": str(r["id"]),
                 "slug": str(r["slug"]),

@@ -1,7 +1,8 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Protocol
 
 from fastapi import HTTPException
@@ -28,23 +29,47 @@ class NodesServiceProtocol(Protocol):
 
     def get_by_slug(self, slug: str): ...
 
+    def list_by_author(self, author_id: str, *, limit: int = 50, offset: int = 0): ...
+
 
 @dataclass
 class DevBlogService:
     engine_factory: Callable[[], Awaitable[Any]]
     repository: DevBlogRepository
 
-    async def list_posts(self, *, limit: int, offset: int) -> dict[str, Any]:
+    async def list_posts(
+        self,
+        *,
+        limit: int,
+        offset: int,
+        tags: Sequence[str] | None = None,
+        published_from: datetime | None = None,
+        published_to: datetime | None = None,
+    ) -> dict[str, Any]:
         engine = await self.engine_factory()
         if engine is None:
             raise HTTPException(status_code=503, detail="database_unavailable")
         limit = max(1, int(limit))
         offset = max(0, int(offset))
-        rows, total_count = await self.repository.fetch_page(
-            engine, limit=limit, offset=offset
+        items, total_count, metadata = await self.repository.fetch_page(
+            engine,
+            limit=limit,
+            offset=offset,
+            tags=tags,
+            published_from=published_from,
+            published_to=published_to,
         )
-        has_next = offset + len(rows) < total_count
-        return {"items": rows, "total": total_count, "has_next": has_next}
+        has_next = offset + len(items) < total_count
+        result: dict[str, Any] = {
+            "items": items,
+            "total": total_count,
+            "has_next": has_next,
+            "available_tags": metadata.get("available_tags", []),
+            "date_range": metadata.get("date_range"),
+        }
+        if metadata.get("applied_tags"):
+            result["applied_tags"] = metadata["applied_tags"]
+        return result
 
     async def list_latest_for_home(self, *, limit: int) -> list[dict[str, Any]]:
         engine = await self.engine_factory()
@@ -104,6 +129,39 @@ class NodeCatalogService:
     ) -> dict[str, Any]:
         view = self.nodes_service.get_by_slug(slug)
         return self._prepare_view(view, claims)
+
+    def list_nodes(
+        self,
+        *,
+        claims: Mapping[str, Any] | None,
+        author_id: str | None,
+        limit: int,
+        offset: int,
+    ) -> dict[str, Any]:
+        actor_id = normalize_actor_id(claims)
+        requested_author = str(author_id or "").strip()
+        target_author = requested_author or (actor_id or "").strip()
+        if not target_author:
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if (
+            requested_author
+            and requested_author != (actor_id or "")
+            and not has_role(claims, "admin")
+        ):
+            raise HTTPException(status_code=403, detail="forbidden")
+        effective_limit = max(1, int(limit))
+        effective_offset = max(0, int(offset))
+        views = self.nodes_service.list_by_author(
+            target_author, limit=effective_limit, offset=effective_offset
+        )
+        items = [self._prepare_view(view, claims) for view in views]
+        return {
+            "items": items,
+            "limit": effective_limit,
+            "offset": effective_offset,
+            "count": len(items),
+            "author_id": target_author,
+        }
 
     async def _resolve_node_ref(self, node_ref: str):
         svc = self.nodes_service

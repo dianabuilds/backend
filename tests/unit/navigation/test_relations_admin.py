@@ -114,3 +114,89 @@ async def test_update_strategy_unavailable(monkeypatch):
 
     with pytest.raises(RelationsUnavailableError):
         await service.update_strategy("tags", {})
+
+
+@pytest.mark.asyncio
+async def test_update_strategy_rejects_invalid_meta(monkeypatch):
+    gateway = StubGateway()
+    service = RelationsAdminService(gateway)
+
+    with pytest.raises(RelationsValidationError):
+        await service.update_strategy("tags", {"meta": object()})
+
+
+@pytest.mark.asyncio
+async def test_overview_builds_metrics(monkeypatch):
+    gateway = StubGateway()
+    service = RelationsAdminService(gateway)
+
+    async def fake_fetch_strategy_rows(engine):
+        return [
+            {
+                "strategy": "tags",
+                "weight": 1.0,
+                "enabled": True,
+                "updated_at": "2025-10-07T00:00:00Z",
+            },
+            {
+                "strategy": "embedding",
+                "weight": 0.5,
+                "enabled": True,
+                "updated_at": "2025-10-06T00:00:00Z",
+            },
+        ]
+
+    async def fake_fetch_usage_rows(engine):
+        return {"tags": {"links": 6}, "embedding": {"links": 4}}
+
+    popular_calls: list[str] = []
+
+    async def fake_fetch_top_relations(engine, key, *, limit):
+        popular_calls.append((key, limit))
+        return [{"source_id": 1, "target_id": 2, "algo": key}]
+
+    monkeypatch.setattr(admin, "fetch_strategy_rows", fake_fetch_strategy_rows)
+    monkeypatch.setattr(admin, "fetch_usage_rows", fake_fetch_usage_rows)
+    monkeypatch.setattr(admin, "fetch_top_relations", fake_fetch_top_relations)
+
+    payload = await service.overview()
+
+    assert payload["diversity"]["coverage"] == 1.0
+    assert payload["diversity"]["gini"] == pytest.approx(0.48)
+    assert payload["diversity"]["entropy"] == pytest.approx(0.97095, rel=1e-3)
+    assert {call[0] for call in popular_calls} == {"tags", "embedding"}
+    assert payload["popular"]["tags"]
+
+
+@pytest.mark.asyncio
+async def test_top_relations_returns_payload(monkeypatch):
+    gateway = StubGateway()
+    service = RelationsAdminService(gateway)
+
+    async def fake_fetch_top_relations(engine, key, *, limit):
+        return [{"source_id": 1, "target_id": 2, "algo": key}]
+
+    monkeypatch.setattr(admin, "fetch_top_relations", fake_fetch_top_relations)
+
+    payload = await service.top_relations("fts", limit=3)
+
+    assert payload["strategy"] == "embedding"
+    assert payload["items"][0]["algo"] == "embedding"
+
+
+@pytest.mark.asyncio
+async def test_build_relations_admin_service_uses_container(monkeypatch):
+    container = object()
+    observed = {}
+
+    async def fake_ensure_engine(arg):
+        observed["container"] = arg
+        return "engine"
+
+    monkeypatch.setattr(admin, "ensure_engine", fake_ensure_engine)
+
+    service = admin.build_relations_admin_service(container)
+    engine = await service.gateway.get_engine()
+
+    assert engine == "engine"
+    assert observed["container"] is container

@@ -44,7 +44,8 @@ class SQLOutbox:
         if self._session is not None:
             await self._session.execute(sql, params)
             return
-        assert self._engine is not None
+        if self._engine is None:
+            raise RuntimeError("outbox_engine_missing")
         async with self._engine.begin() as conn:
             await conn.execute(sql, params)
 

@@ -180,12 +180,12 @@ class RumRollupWorker(PeriodicWorker):
         if redis_client is not None:
             try:
                 await redis_client.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                self.logger.debug("RUM rollup: redis close failed: %s", exc)
             try:
                 await redis_client.wait_closed()
-            except Exception:
-                pass
+            except Exception as exc:
+                self.logger.debug("RUM rollup: redis wait_closed failed: %s", exc)
         await super().shutdown()
 
     def _serialize(self, agg: RumAggregate) -> dict[str, Any]:

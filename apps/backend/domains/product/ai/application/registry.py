@@ -278,7 +278,9 @@ class _SQLBackend:
         try:
             async with engine.begin() as conn:
                 row = (await conn.execute(sql, params)).mappings().first()
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             stored_extras = (
                 row["extras"] if row["extras"] is None else dict(row["extras"])
             )
@@ -387,7 +389,9 @@ class _SQLBackend:
         try:
             async with engine.begin() as conn:
                 row = (await conn.execute(sql, params)).mappings().first()
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             stored_params = (
                 row["params"] if row["params"] is None else dict(row["params"])
             )
@@ -489,7 +493,9 @@ class _SQLBackend:
         try:
             async with engine.begin() as conn:
                 row = (await conn.execute(sql, params)).mappings().first()
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             return FallbackRule(
                 id=str(row["id"]),
                 primary_model=row["primary_model"],

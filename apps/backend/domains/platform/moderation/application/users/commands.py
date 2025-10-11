@@ -279,8 +279,10 @@ async def add_note(
 
     try:
         await service.ensure_user_stub(user_id=user_id, username=user_id, email=None)
-    except Exception:  # pragma: no cover - service bootstrap failures ignored
-        pass
+    except Exception as exc:  # pragma: no cover - service bootstrap failures ignored
+        logger.debug(
+            "moderation users: failed to bootstrap stub for %s: %s", user_id, exc
+        )
 
     try:
         note = await service.add_note(

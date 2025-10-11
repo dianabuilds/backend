@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { ContentLayout } from '../../../../pages/content/ContentLayout';
+import { ContentLayout } from '@shared/layouts/content';
 import { Badge, Card, TablePagination, useToast } from '@ui';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
 import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';

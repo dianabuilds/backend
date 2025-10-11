@@ -330,7 +330,7 @@ class NotificationRepository(INotificationRepository):
             meta_text,
         ]
         joined = "|".join(parts)
-        return hashlib.md5(joined.encode("utf-8")).hexdigest()
+        return hashlib.md5(joined.encode("utf-8"), usedforsecurity=False).hexdigest()
 
     def _normalize_row(self, row: Any) -> dict[str, Any]:
         data = dict(row)

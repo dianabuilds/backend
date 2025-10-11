@@ -8,7 +8,7 @@ import {
   PlatformAdminFrame,
   type PlatformAdminIntegration,
   type PlatformAdminQuickLink,
-} from '../../../../pages/management/platform-admin/PlatformAdminFrame';
+} from '@shared/layouts/management';
 import type {
   SystemIncident,
   SystemIncidents,

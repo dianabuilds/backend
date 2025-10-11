@@ -1,4 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
+
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request
 
@@ -12,14 +14,59 @@ from domains.product.nodes.application.use_cases.catalog import (
 )
 
 
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        try:
+            return datetime.fromisoformat(f"{text}T00:00:00")
+        except ValueError:
+            return None
+
+
 def register_catalog_routes(router: APIRouter) -> None:
+    @router.get("", summary="List nodes for current actor")
+    async def list_nodes(
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0),
+        author_id: str | None = Query(default=None),
+        service: NodeCatalogService = Depends(_get_catalog_service),
+        claims=Depends(get_current_user),
+    ):
+        return service.list_nodes(
+            claims=claims,
+            author_id=author_id,
+            limit=int(limit),
+            offset=int(offset),
+        )
+
     @router.get("/dev-blog", summary="List public dev blog posts")
     async def list_dev_blog_posts(
         limit: int = Query(default=12, ge=1, le=50),
         offset: int = Query(default=0, ge=0),
+        tags: list[str] = Query(default=[]),
+        published_from: str | None = Query(default=None, alias="from"),
+        published_to: str | None = Query(default=None, alias="to"),
         service: DevBlogService = Depends(_get_dev_blog_service),
     ):
-        return await service.list_posts(limit=int(limit), offset=int(offset))
+        parsed_from = _parse_iso_datetime(published_from)
+        parsed_to = _parse_iso_datetime(published_to)
+        normalized_tags = [
+            tag.strip() for tag in tags if isinstance(tag, str) and tag.strip()
+        ]
+        return await service.list_posts(
+            limit=int(limit),
+            offset=int(offset),
+            tags=normalized_tags or None,
+            published_from=parsed_from,
+            published_to=parsed_to,
+        )
 
     @router.get("/dev-blog/{slug}", summary="Get public dev blog post")
     async def get_dev_blog_post(

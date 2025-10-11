@@ -73,7 +73,7 @@ class FakeBegin:
     async def __aenter__(self):
         return FakeConnection(self._handlers)
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(self, _exc_type, _exc, _tb):
         return False
 
 

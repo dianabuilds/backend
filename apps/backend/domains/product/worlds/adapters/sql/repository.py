@@ -139,7 +139,9 @@ class SQLWorldsRepo(Repo):
             try:
                 async with engine.begin() as conn:
                     row = (await conn.execute(sql, params)).mappings().first()
-                assert row is not None
+                if row is None:
+
+                    raise RuntimeError("database_row_missing")
                 return WorldTemplate(
                     id=str(row["id"]),
                     title=str(row["title"]),
@@ -341,7 +343,9 @@ class SQLWorldsRepo(Repo):
                     if not exists:
                         raise ValueError("world_not_found")
                     row = (await conn.execute(insert_sql, params)).mappings().first()
-                assert row is not None
+                if row is None:
+
+                    raise RuntimeError("database_row_missing")
                 return Character(
                     id=str(row["id"]),
                     world_id=str(row["world_id"]),

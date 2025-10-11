@@ -209,7 +209,9 @@ class SQLAdminRepo(AdminRepo):
                     )
                 except IntegrityError as exc:
                     raise ValueError("alias_conflict") from exc
-                assert r is not None
+                if r is None:
+
+                    raise RuntimeError("database_row_missing")
                 return AliasView(
                     id=str(r["id"]),
                     tag_id=str(r["tag_id"]),
@@ -271,7 +273,9 @@ class SQLAdminRepo(AdminRepo):
                     .mappings()
                     .first()
                 )
-                assert r is not None
+                if r is None:
+
+                    raise RuntimeError("database_row_missing")
                 return BlacklistItem(
                     slug=str(r["slug"]), reason=r["reason"], created_at=r["created_at"]
                 )

@@ -213,19 +213,21 @@ class ModerationUsersRepository:
                     "AND (s.ends_at IS NULL OR s.ends_at > now()))"
                 )
 
-                sql_txt = f"""
-                    SELECT u.id::text AS id,
-                           {name_expr} AS username,
-                           u.email,
-                           {roles_select},
-                           {ban_exists} AS is_banned,
-                           {notes_select}
-                    FROM users u
-                    {roles_join}
-                    WHERE {' OR '.join(where_parts)}
-                    ORDER BY {order_by}
-                    LIMIT :lim OFFSET :off
-                """
+                sql_lines = [
+                    "SELECT u.id::text AS id,",
+                    f"{name_expr} AS username,",
+                    "u.email,",
+                    f"{roles_select},",
+                    f"{ban_exists} AS is_banned,",
+                    f"{notes_select}",
+                    "FROM users u",
+                    roles_join,
+                ]
+                if where_parts:
+                    sql_lines.append("WHERE " + " OR ".join(where_parts))
+                sql_lines.append("ORDER BY " + order_by)
+                sql_lines.append("LIMIT :lim OFFSET :off")
+                sql_txt = "\n".join(sql_lines)
 
                 rows = (
                     (

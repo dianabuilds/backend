@@ -104,7 +104,9 @@ class SQLTemplateRepo(TemplateRepo):
                 data[key] = value
         async with self._engine.begin() as conn:
             row = (await conn.execute(sql, data)).mappings().first()
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             return self._row_to_model(row)
 
     async def list(self, limit: int = 50, offset: int = 0) -> list[Template]:

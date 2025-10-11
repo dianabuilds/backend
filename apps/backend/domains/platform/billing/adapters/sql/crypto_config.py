@@ -54,7 +54,9 @@ class SQLCryptoConfigRepo(CryptoConfigRepo):
                 .mappings()
                 .first()
             )
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             return {
                 "slug": r["slug"],
                 "config": dict(r["config"]) if r["config"] is not None else {},

@@ -22,8 +22,10 @@ class RedisStreamsClient(Protocol):
     """Protocol describing the subset of Redis stream commands we rely on."""
 
     def xgroup_create(
-        self, name: str, groupname: str, id: str, mkstream: bool = ...  # noqa: A002
-    ) -> Any: ...
+        self, name: str, groupname: str, id: str, mkstream: bool = False  # noqa: A002
+    ) -> Any:
+        del name, groupname, id, mkstream
+        raise NotImplementedError
 
     def xreadgroup(
         self,
@@ -33,13 +35,21 @@ class RedisStreamsClient(Protocol):
         *,
         count: int | None = None,
         block: int | None = None,
-    ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]: ...
+    ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]:
+        del groupname, consumername, streams, count, block
+        raise NotImplementedError
 
-    def xack(self, name: str, groupname: str, *ids: str) -> Any: ...
+    def xack(self, name: str, groupname: str, *ids: str) -> Any:
+        del name, groupname, ids
+        raise NotImplementedError
 
-    def xlen(self, name: str) -> int: ...
+    def xlen(self, name: str) -> int:
+        del name
+        raise NotImplementedError
 
-    def xpending(self, name: str, groupname: str) -> Any: ...
+    def xpending(self, name: str, groupname: str) -> Any:
+        del name, groupname
+        raise NotImplementedError
 
 
 class RedisBus:

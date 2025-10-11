@@ -59,7 +59,9 @@ class SQLReferralsRepo(Repo):
                 .mappings()
                 .first()
             )
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             return ReferralCode(
                 id=str(r["id"]),
                 owner_user_id=str(r["owner_user_id"]),
@@ -121,7 +123,9 @@ class SQLReferralsRepo(Repo):
                 .mappings()
                 .first()
             )
-        assert r is not None
+        if r is None:
+
+            raise RuntimeError("database_row_missing")
         # Increment counter separately
         await self._increment_uses(code.id)
         return ReferralEvent(

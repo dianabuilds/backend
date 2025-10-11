@@ -207,7 +207,9 @@ class SQLRepo(Repo):
             }
             async with self._engine.begin() as conn:
                 r = (await conn.execute(sql, params)).mappings().first()
-                assert r is not None
+                if r is None:
+
+                    raise RuntimeError("database_row_missing")
                 return Achievement(
                     id=str(r["id"]),
                     code=str(r["code"]),

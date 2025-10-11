@@ -20,6 +20,7 @@ class DummyOutbox:
 
 class DummyIam:
     def allow(self, subject: dict, action: str, resource: dict) -> bool:
+        _ = (subject, action, resource)
         return True
 
 

@@ -4,7 +4,7 @@ import { Badge, Button, Card, Input, Select, Spinner, Surface, Table, TablePagin
 import { apiGet } from '@shared/api/client';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
 import { extractErrorMessage } from '@shared/utils/errors';
-import { PlatformAdminFrame, PlatformAdminQuickLink } from '../../../../pages/management/platform-admin/PlatformAdminFrame';
+import { PlatformAdminFrame, type PlatformAdminQuickLink } from '@shared/layouts/management';
 
 type AuditEventMeta = {
   module?: string;

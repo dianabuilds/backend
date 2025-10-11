@@ -15,6 +15,26 @@ logger = logging.getLogger(__name__)
 _TABLE = "platform_moderation_state"
 _ROW_KEY = "singleton"
 
+_SELECT_SQL = text("SELECT payload FROM platform_moderation_state WHERE id = :id")
+_UPSERT_SQL = text(
+    """
+    INSERT INTO platform_moderation_state (id, payload)
+    VALUES (:id, :payload)
+    ON CONFLICT (id) DO UPDATE SET
+        payload = EXCLUDED.payload,
+        updated_at = now()
+    """
+)
+_CREATE_TABLE_SQL = text(
+    """
+    CREATE TABLE IF NOT EXISTS platform_moderation_state (
+        id text PRIMARY KEY,
+        payload jsonb NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now()
+    )
+    """
+)
+
 __all__ = ["SQLModerationStorage"]
 
 
@@ -38,7 +58,7 @@ class SQLModerationStorage:
                 row = (
                     (
                         await conn.execute(
-                            text(f"SELECT payload FROM {_TABLE} WHERE id = :id"),
+                            _SELECT_SQL,
                             {"id": _ROW_KEY},
                         )
                     )
@@ -65,15 +85,7 @@ class SQLModerationStorage:
             await self._ensure_table()
             async with self._engine.begin() as conn:
                 await conn.execute(
-                    text(
-                        f"""
-                        INSERT INTO {_TABLE} (id, payload)
-                        VALUES (:id, :payload)
-                        ON CONFLICT (id) DO UPDATE SET
-                            payload = EXCLUDED.payload,
-                            updated_at = now()
-                        """
-                    ),
+                    _UPSERT_SQL,
                     {"id": _ROW_KEY, "payload": blob},
                 )
 
@@ -81,15 +93,5 @@ class SQLModerationStorage:
         if self._engine is None or self._ready:
             return
         async with self._engine.begin() as conn:
-            await conn.execute(
-                text(
-                    f"""
-                    CREATE TABLE IF NOT EXISTS {_TABLE} (
-                        id text PRIMARY KEY,
-                        payload jsonb NOT NULL,
-                        updated_at timestamptz NOT NULL DEFAULT now()
-                    )
-                    """
-                )
-            )
+            await conn.execute(_CREATE_TABLE_SQL)
         self._ready = True

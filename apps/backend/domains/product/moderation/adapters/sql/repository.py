@@ -202,7 +202,9 @@ class SQLModerationRepo(Repo):
                 .mappings()
                 .first()
             )
-            assert row is not None
+            if row is None:
+
+                raise RuntimeError("database_row_missing")
             return str(row["id"])
 
     async def add_note(

@@ -13,6 +13,8 @@ from packages.core.db import get_async_engine
 
 from . import get_worker_container
 
+LOGGER = logging.getLogger("nodes.scheduler")
+
 
 async def _ensure_engine(dsn: str) -> AsyncEngine | None:
     try:
@@ -21,6 +23,7 @@ async def _ensure_engine(dsn: str) -> AsyncEngine | None:
             return None
         return get_async_engine("nodes-scheduler", url=adsn, future=True)
     except Exception:
+        LOGGER.exception("Failed to initialise scheduler engine")
         return None
 
 
@@ -72,7 +75,7 @@ async def run_once(engine: AsyncEngine, publish_cb, unpublish_cb) -> None:
                 key=f"node:{r['id']}",
             )
         except Exception:
-            pass
+            LOGGER.exception("Failed to emit node.posted event for id=%s", r.get("id"))
     for r in unposted:
         try:
             unpublish_cb(
@@ -86,12 +89,13 @@ async def run_once(engine: AsyncEngine, publish_cb, unpublish_cb) -> None:
                 key=f"node:{r['id']}",
             )
         except Exception:
-            pass
+            LOGGER.exception(
+                "Failed to emit node.unposted event for id=%s", r.get("id")
+            )
 
 
 async def _main_async(interval: int | None) -> None:
-    logger = logging.getLogger("nodes.scheduler")
-    if not logger.handlers and not logging.getLogger().handlers:
+    if not LOGGER.handlers and not logging.getLogger().handlers:
         logging.basicConfig(
             level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
         )
@@ -99,16 +103,16 @@ async def _main_async(interval: int | None) -> None:
     container = get_worker_container()
     engine = await _ensure_engine(str(container.settings.database_url))
     if engine is None:
-        logger.warning("No database engine available; exiting")
+        LOGGER.warning("No database engine available; exiting")
         return
 
     tick_interval = interval or int(os.getenv("NODES_SCHEDULER_INTERVAL", "30"))
-    logger.info("Starting scheduler worker; interval=%ss", tick_interval)
+    LOGGER.info("Starting scheduler worker; interval=%ss", tick_interval)
     while True:
         try:
             await run_once(engine, container.events.publish, container.events.publish)
         except Exception as exc:  # pragma: no cover - log for observability
-            logger.error("Scheduler tick failed: %s", exc)
+            LOGGER.exception("Scheduler tick failed: %s", exc)
         await asyncio.sleep(tick_interval)
 
 

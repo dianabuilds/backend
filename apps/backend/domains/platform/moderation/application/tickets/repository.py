@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import bindparam
 from sqlalchemy import text as sa_text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -42,14 +43,12 @@ class TicketsRepository:
         if not ids:
             return {}
         await self._ensure_schema(engine)
-        placeholders = ",".join(f":id_{idx}" for idx, _ in enumerate(ids))
-        params = {f"id_{idx}": tid for idx, tid in enumerate(ids)}
-        sql = (
+        sql = sa_text(
             "SELECT id, status, priority, assignee_id, updated_at, last_message_at, unread_count, meta"
-            " FROM moderation_tickets WHERE id IN (" + placeholders + ")"
-        )
+            " FROM moderation_tickets WHERE id IN :ids"
+        ).bindparams(bindparam("ids", expanding=True))
         async with engine.connect() as conn:
-            rows = (await conn.execute(sa_text(sql), params)).mappings().all()
+            rows = (await conn.execute(sql, {"ids": tuple(ids)})).mappings().all()
         return {row["id"]: self._map_ticket(row) for row in rows}
 
     async def fetch_ticket(self, ticket_id: str) -> dict[str, Any] | None:

@@ -181,7 +181,9 @@ class SQLPlanRepo(PlanRepo):
         async with self._engine.begin() as conn:
             res = await conn.execute(sql, payload)
             r = res.mappings().first()
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             return Plan(
                 id=str(r["id"]),
                 slug=str(r["slug"]),
@@ -262,7 +264,9 @@ class SQLSubscriptionRepo(SubscriptionRepo):
                 .mappings()
                 .first()
             )
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             return Subscription(
                 id=str(r["id"]),
                 user_id=str(r["user_id"]),
@@ -403,7 +407,9 @@ class SQLGatewaysRepo(GatewayRepo):
         }
         async with self._engine.begin() as conn:
             r = (await conn.execute(sql, payload)).mappings().first()
-            assert r is not None
+            if r is None:
+
+                raise RuntimeError("database_row_missing")
             item = {
                 "slug": str(r["slug"]),
                 "type": str(r["type"]),

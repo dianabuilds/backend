@@ -33,7 +33,7 @@ uvloop>=0.17,<0.18; sys_platform != "win32"
 httptools>=0.6,<0.7; sys_platform != "win32"
 watchfiles>=0.24,<0.25; sys_platform != "win32"
 colorama>=0.4,<0.5; sys_platform == "win32"
-gunicorn>=21.2.0,<22.0
+gunicorn>=22.0.0,<23.0
 orjson>=3.9.10,<4.0.0
 
 ## Environment variables
@@ -66,3 +66,9 @@ opentelemetry-instrumentation-sqlalchemy~=0.57b0
 opentelemetry-instrumentation-httpx~=0.57b0
 opentelemetry-instrumentation-requests~=0.57b0
 prometheus-client~=0.20.0
+
+
+## Tooling
+pip-audit>=2.9.0
+vulture>=2.14
+cyclonedx-bom>=7.1.0

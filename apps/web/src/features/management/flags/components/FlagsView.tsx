@@ -7,7 +7,7 @@ import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';
 import {
   PlatformAdminFrame,
   type PlatformAdminQuickLink,
-} from '../../../../pages/management/platform-admin/PlatformAdminFrame';
+} from '@shared/layouts/management';
 import { useManagementFlags } from '../hooks';
 import type { FeatureFlag, FeatureFlagStatus, FeatureFlagUpsertPayload } from '@shared/types/management';
 

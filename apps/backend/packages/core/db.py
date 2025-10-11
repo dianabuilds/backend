@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 """Async database engine helpers and FastAPI dependency utilities."""
+import logging
 import re
 import ssl
 from collections.abc import AsyncIterator, Callable, Mapping
@@ -12,6 +13,8 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from .config import load_settings, sanitize_async_dsn
+
+logger = logging.getLogger(__name__)
 
 EngineKey = tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...]]
 
@@ -157,8 +160,12 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str
             flags=re.IGNORECASE,
         )
         sanitized = re.sub(r"[?&]$", "", sanitized)
-    except Exception:
-        pass
+    except (re.error, TypeError) as exc:
+        logger.debug(
+            "sanitize_database_url: failed to strip ssl params for %s",
+            sanitized,
+            exc_info=exc,
+        )
 
     connect_args_final: dict[str, Any] = {}
     fingerprint_final: dict[str, str] = {}

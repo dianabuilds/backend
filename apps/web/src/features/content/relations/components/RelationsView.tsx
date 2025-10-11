@@ -1,5 +1,5 @@
 import React from 'react';
-import { ContentLayout } from '../../../../pages/content/ContentLayout';
+import { ContentLayout } from '@shared/layouts/content';
 import { Card, Button, Input, Switch, Badge, Spinner, Skeleton, useToast } from '@ui';
 import { Table as UITable } from '@ui/table';
 import { apiGet, apiPatch } from '@shared/api/client';

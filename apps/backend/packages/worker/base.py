@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
+import secrets
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+
+_secure_random = secrets.SystemRandom()
 
 
 class Worker(ABC):
@@ -77,7 +79,7 @@ class PeriodicWorker(Worker):
     ) -> None:
         delay = interval
         if jitter > 0:
-            delay += random.uniform(-jitter, jitter)
+            delay += _secure_random.uniform(-jitter, jitter)
         delay = max(0.1, delay)
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=delay)

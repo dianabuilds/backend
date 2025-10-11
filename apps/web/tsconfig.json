@@ -56,7 +56,8 @@
     "src/test/**/*.ts",
     "src/test/**/*.tsx",
     "src/test/**/*.d.ts",
-    "src/shared/schemas/**/*.ts"
+    "src/shared/schemas/**/*.ts",
+    "src/entry-server.tsx"
   ],
   "exclude": [
     "vendor",

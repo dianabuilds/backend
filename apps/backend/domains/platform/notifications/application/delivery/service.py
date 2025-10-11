@@ -38,7 +38,7 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 _JINJA_ENV = Environment(
-    autoescape=False,
+    autoescape=True,
     undefined=StrictUndefined,
     trim_blocks=True,
     lstrip_blocks=True,
