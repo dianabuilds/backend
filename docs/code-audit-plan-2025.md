@@ -32,7 +32,7 @@
 - Entry bundle (JS): 1.84 MB (`var/frontend-bundle.json`).
 - pytest coverage: 82.83% общий показатель (`coverage.xml`, `var/coverage-summary.json`).
 - Bandit: падение на B110/B105/B311 (`reports/validate_repo.md`).
-- API benchmarks: AttributeError по `NavigationService`, `nodes:list` и `moderation:cases` не проходят (`var/api-benchmarks.json`).
+- API benchmarks (11.10.2025): `/v1/nodes` ? 12.4???, `/v1/moderation/cases` ? 18.6???, `/v1/notifications` ? 9.8??? (`var/api-benchmarks.json`).
 - Import linter: нарушений не найдено (`var/backend-import-lint.txt`).
 ### Волна 1 — Фронтенд
 - **Слои и архитектура**: зафиксировать референтную схему `layout → pages → widgets/features → entities/shared`; прогнать dependency graph, составить список нарушений и план миграции.
@@ -43,11 +43,13 @@
 - **Задачи Wave-1**: см. `docs/wave-1-tasks.md` для подробных описаний (DoR/DoD/AC).
 
 ### Волна 2 — Бэкенд
-- **Доменные границы**: ревизия `platform/*` и `product/*` модулей, выявление прямых импортов между доменами, план по выносу фасадов/событий.
+- **Доменные границы**: W2-1 — фасады `domains.platform.{iam,events,telemetry,audit,media}` и контракт importlinter `forbid_product_to_platform_facades` закрывают прямые импорты product→platform.
 - **Типизация и линтеры**: обработать 79 ошибок из `mypy.log` (например, `Cannot assign to a method` в `domains/platform/moderation/application/service.py`).
 - **Бизнес-логика**: анализ горячих путей (nodes, moderation, notifications) на предмет дублирования и нарушений SRP.
+- **API фронта**: W2-6 — фронтовые клиенты nodes/moderation/notifications обновлены под Wave 2 OpenAPI (Vitest сценарии синхронизированы).
 - **Производительность**: профилировать async операции, проверить индексы и кеши (redis, postgres), зафиксировать планы по оптимизации.
-- **Безопасность**: валидация auth/iam, проверка rate-limit и CSRF, аудит .env и fallback настроек.
+- **W2-4 async pipeline**: flamegraph в "var/profiling/", индексы из миграции "0110_nodes_notifications_indexes.py", Redis-кеш "product:nodes" (TTL 300s, лимит 5k записей), шаги и триггеры задокументированы в "docs/performance-playbook.md".
+- **Безопасность**: CSRF двойная отправка (`issue_csrf_token` + `csrf_protect`), централизованный конфиг `infra/security/rate_limits.py` для публичных маршрутов, `SecretStr` в `packages.core.config.Settings`, тесты `test_security_csrf`/`test_security_rate_limit`, аудит `.env` и fallback настроек; W2-7 — фронт читает имена cookie/header из настроек, учитывает TTL CSRF, показывает глобальные тосты и повторяет запросы после 429 (Vitest/Cypress покрытие).
 
 ### Волна 3 — Инфраструктура и процессы
 - **CI/CD**: убедиться, что lint/typecheck/pytest/coverage выполняются на PR, добавить missing checks (bandit, vulture, pip-audit, sbom) при необходимости.
@@ -87,5 +89,6 @@
 - Бэкенд > Покрытие pytest 82.83% против цели 85% > `coverage.xml`, `var/coverage-summary.json` > Добавить тесты для `api_gateway.debug` и домена navigation, закрыть критические ветки до Wave-1 > P1 / 2 дня
 - Бэкенд > Bandit падает на B110/B105/B311 > `reports/validate_repo.md` > Сузить перехваты исключений в `core.*`, заменить случайный jitter на детерминированный бэкофф или `secrets`-генератор > P2 / 1 день
 - Платформа.navigation > API-бенчмарки падают с AttributeError по `NavigationService` > `var/api-benchmarks.json` > Восстановить `NavigationService` в контейнере или адаптировать мок, добавить smoke-тест `nodes:list` > P0 / 1 день
+
 
 

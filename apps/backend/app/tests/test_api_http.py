@@ -13,7 +13,11 @@ from packages.core.config import load_settings
 def _admin_token(sub: str = "u1") -> str:
     s = load_settings()
     payload = {"sub": sub, "role": "admin", "exp": int(time.time()) + 600}
-    return jwt.encode(payload, key=s.auth_jwt_secret, algorithm=s.auth_jwt_algorithm)
+    return jwt.encode(
+        payload,
+        key=s.auth_jwt_secret.get_secret_value(),
+        algorithm=s.auth_jwt_algorithm,
+    )
 
 
 @pytest.fixture()

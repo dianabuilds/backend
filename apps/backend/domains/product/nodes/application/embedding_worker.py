@@ -5,7 +5,7 @@ import logging
 from collections.abc import Awaitable
 from typing import Any, cast
 
-from domains.platform.events.service import Events
+from domains.platform.events.application.publisher import Events
 from domains.product.nodes.application.service import NodeService
 
 logger = logging.getLogger("nodes.embedding.worker")

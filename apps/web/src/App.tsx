@@ -1,6 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/auth/Login';
+import { AuthProvider } from '@shared/auth';
 import { HomePage, NodePublicPage } from './pages/public';
 import { RouteFallback } from './routes/fallback';
 import { AppShell, RumRouteTracker } from './AppShell';
@@ -22,7 +23,14 @@ export function AppRoutes(): React.ReactElement {
         }
       />
       <Route path="/n/:slug" element={<NodePublicPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <AuthProvider>
+            <LoginPage />
+          </AuthProvider>
+        }
+      />
       <Route
         path="/*"
         element={

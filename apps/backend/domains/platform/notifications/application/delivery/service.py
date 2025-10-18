@@ -8,6 +8,9 @@ from typing import Any
 from jinja2 import Environment, StrictUndefined, TemplateError
 
 from domains.platform.flags.application.service import FlagService
+from domains.platform.notifications.application.interactors.commands import (
+    NotificationCreateCommand,
+)
 from domains.platform.notifications.application.notify_service import NotifyService
 from domains.platform.notifications.application.preference_service import (
     _default_opt_in,
@@ -103,7 +106,7 @@ class DeliveryService:
         )
         payload_meta.setdefault("priority", sanitized_priority)
 
-        dto = await self._notify.create_notification(
+        command = NotificationCreateCommand(
             user_id=event.user_id,
             title=title,
             message=body,
@@ -118,6 +121,7 @@ class DeliveryService:
             meta=payload_meta,
             event_id=event.event_id,
         )
+        dto = await self._notify.create_notification(command)
 
         await self._maybe_send_email(
             event=event,

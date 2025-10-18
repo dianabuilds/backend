@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiFetch, apiGet } from './base';
+import { ApiRequestError, apiFetch, apiGet } from './base';
 import { clearCsrfToken, setCsrfToken } from './csrf';
 import { setAuthLostHandler } from './auth';
 
@@ -81,8 +81,43 @@ describe('api base client', () => {
     const handler = vi.fn();
     setAuthLostHandler(handler);
 
-    await expect(apiFetch('/v1/protected')).rejects.toThrow('missing_token');
+    let error: unknown;
+    try {
+      await apiFetch('/v1/protected');
+    } catch (err) {
+      error = err;
+    }
+
     expect(handler).toHaveBeenCalledTimes(1);
+    expect(error).toBeInstanceOf(ApiRequestError);
+    const typed = error as ApiRequestError;
+    expect(typed.status).toBe(403);
+    expect(typed.body).toBe('{"detail":"missing_token"}');
+  });
+
+  it('exposes retry-after and error code for rate-limited responses', async () => {
+    const fetchMock = vi.mocked(globalThis.fetch);
+    fetchMock.mockResolvedValue(
+      mockResponse(
+        JSON.stringify({ error: { code: 'rate_limited', message: 'Slow down', extra: { limit: 5 } } }),
+        429,
+        { 'Retry-After': '120' },
+      ),
+    );
+
+    let error: unknown;
+    try {
+      await apiFetch('/v1/rate-limited', { method: 'POST' });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(ApiRequestError);
+    const typed = error as ApiRequestError;
+    expect(typed.status).toBe(429);
+    expect(typed.code).toBe('rate_limited');
+    expect(typed.retryAfter).toBe(120);
+    expect(typed.details).toEqual({ limit: 5 });
   });
 
   it('injects admin key for admin endpoints', async () => {

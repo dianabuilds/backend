@@ -3,7 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import csrf_protect, get_current_user
+from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 from domains.product.navigation.application.use_cases.transition import (
     TransitionCommand,
     TransitionError,
@@ -15,7 +16,12 @@ from domains.product.navigation.application.use_cases.transition import (
 def register_transition_routes(router: APIRouter) -> None:
     """Attach public navigation transition endpoints."""
 
-    @router.post("/next")
+    NAVIGATION_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["navigation"].as_dependencies()
+
+    @router.post(
+        "/next",
+        dependencies=NAVIGATION_PUBLIC_RATE_LIMIT,
+    )
     def next_step(
         body: dict,
         req: Request,

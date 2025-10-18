@@ -3,7 +3,14 @@ export function isObjectRecord(value: unknown): value is Record<string, unknown>
 }
 
 export function pickString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
 }
 
 export function pickNullableString(value: unknown): string | null | undefined {
@@ -25,7 +32,15 @@ export function pickNumber(value: unknown): number | undefined {
 }
 
 export function pickBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return undefined;
 }
 
 export function ensureArray<T>(value: unknown, map: (item: unknown) => T | null | undefined): T[] {

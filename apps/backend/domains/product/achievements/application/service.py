@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from domains.platform.events.ports import OutboxPublisher
+from domains.platform.events.application.publisher import OutboxPublisher
 from domains.product.achievements.application.ports import Repo
 
 logger = logging.getLogger(__name__)

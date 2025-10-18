@@ -14,13 +14,21 @@ from packages.core.config import load_settings
 def _admin_token(sub: str = "admin-user") -> str:
     s = load_settings()
     payload = {"sub": sub, "role": "admin", "exp": int(time.time()) + 600}
-    return jwt.encode(payload, key=s.auth_jwt_secret, algorithm=s.auth_jwt_algorithm)
+    return jwt.encode(
+        payload,
+        key=s.auth_jwt_secret.get_secret_value(),
+        algorithm=s.auth_jwt_algorithm,
+    )
 
 
 def _user_token(sub: str) -> str:
     s = load_settings()
     payload = {"sub": sub, "role": "user", "exp": int(time.time()) + 600}
-    return jwt.encode(payload, key=s.auth_jwt_secret, algorithm=s.auth_jwt_algorithm)
+    return jwt.encode(
+        payload,
+        key=s.auth_jwt_secret.get_secret_value(),
+        algorithm=s.auth_jwt_algorithm,
+    )
 
 
 def _with_csrf(headers: dict[str, str] | None = None) -> dict[str, str]:

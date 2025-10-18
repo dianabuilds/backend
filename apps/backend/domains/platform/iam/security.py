@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import logging
+from secrets import token_urlsafe
 from typing import Any
 
 import jwt
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from domains.platform.users.application.service import (
     ROLE_ORDER,
     UsersService,
 )
-from packages.core.config import load_settings, to_async_dsn
+from packages.core.config import Settings, load_settings, to_async_dsn
 from packages.core.db import get_async_engine
 
 try:
@@ -34,7 +35,7 @@ def _decode(token: str) -> dict[str, Any]:
     try:
         claims = jwt.decode(
             token,
-            key=s.auth_jwt_secret,
+            key=s.auth_jwt_secret.get_secret_value(),
             algorithms=[s.auth_jwt_algorithm],
             options={"require": ["exp", "sub"], "verify_aud": False},
         )
@@ -60,6 +61,35 @@ def _get_token_from_request(req: Request) -> str | None:
     if auth and auth.startswith("Bearer "):
         return auth.replace("Bearer ", "", 1)
     return None
+
+
+def issue_csrf_token(
+    response: Response, settings: Settings | None = None
+) -> tuple[str, int]:
+    """Generate a CSRF token, persist it via cookie/header, and return (token, ttl)."""
+
+    cfg = settings or load_settings()
+    ttl_value = getattr(cfg, "auth_csrf_ttl_seconds", None)
+    if ttl_value is None:
+        ttl_value = int(getattr(cfg, "auth_jwt_expires_min", 15)) * 60
+    ttl = int(ttl_value)
+    token = token_urlsafe(32)
+    cookie_name = cfg.auth_csrf_cookie_name
+    header_name = cfg.auth_csrf_header_name
+    response.set_cookie(
+        cookie_name,
+        token,
+        max_age=ttl,
+        path="/",
+        httponly=False,
+        samesite="lax",
+        secure=(cfg.env == "prod"),
+    )
+    try:
+        response.headers[header_name] = token
+    except Exception:
+        response.headers["X-CSRF-Token"] = token
+    return token, ttl
 
 
 async def get_current_user(req: Request) -> dict[str, Any]:
@@ -129,8 +159,9 @@ async def csrf_protect(req: Request) -> None:
         s = load_settings()
         admin_key = req.headers.get("X-Admin-Key") or req.headers.get("x-admin-key")
         accepted_admin: set[str] = set()
-        if s.admin_api_key:
-            accepted_admin.add(str(s.admin_api_key))
+        admin_secret = s.admin_api_key
+        if admin_secret:
+            accepted_admin.add(admin_secret.get_secret_value())
         if admin_key and admin_key in accepted_admin:
             return
         cookie_name = s.auth_csrf_cookie_name
@@ -148,8 +179,9 @@ async def require_admin(req: Request) -> None:
     info: dict[str, Any] | None = None
     key = req.headers.get("X-Admin-Key") or req.headers.get("x-admin-key")
     accepted_keys: set[str] = set()
-    if s.admin_api_key:
-        accepted_keys.add(str(s.admin_api_key))
+    admin_secret = s.admin_api_key
+    if admin_secret:
+        accepted_keys.add(admin_secret.get_secret_value())
     if key and key in accepted_keys:
         info = {"auth_via": "admin-key"}
     else:
@@ -200,4 +232,10 @@ def require_role_db(min_role: str):
     return _guard
 
 
-__all__ = ["get_current_user", "csrf_protect", "require_admin", "require_role_db"]
+__all__ = [
+    "get_current_user",
+    "csrf_protect",
+    "require_admin",
+    "require_role_db",
+    "issue_csrf_token",
+]

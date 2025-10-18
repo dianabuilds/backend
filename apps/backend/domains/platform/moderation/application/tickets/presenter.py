@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, cast
 
 from ...domain.dtos import TicketDTO, TicketMessageDTO, TicketPriority, TicketStatus
 from ..common import isoformat_utc
-from ..presenters import build_list_response, merge_metadata, merge_model
+from ..presenters import build_list_response, field, merge_metadata, merge_model
 
 
 def _coerce_status(value: Any, fallback: TicketStatus) -> TicketStatus:
@@ -26,25 +27,28 @@ def _coerce_priority(value: Any, fallback: TicketPriority) -> TicketPriority:
 
 
 def merge_ticket_with_db(
-    ticket: TicketDTO, db_info: dict[str, Any] | None
+    ticket: TicketDTO, db_info: Mapping[str, object] | None
 ) -> TicketDTO:
     merged = merge_model(
         ticket,
         db_info,
         field_map={
-            "status": ("status", lambda value: _coerce_status(value, ticket.status)),
-            "priority": (
-                "priority",
-                lambda value: _coerce_priority(value, ticket.priority),
+            "status": field(
+                "status",
+                transform=lambda value: _coerce_status(value, ticket.status),
             ),
-            "assignee_id": "assignee_id",
-            "updated_at": ("updated_at", isoformat_utc),
-            "last_message_at": ("last_message_at", isoformat_utc),
-            "unread_count": "unread_count",
-            "meta": (
+            "priority": field(
+                "priority",
+                transform=lambda value: _coerce_priority(value, ticket.priority),
+            ),
+            "assignee_id": field("assignee_id"),
+            "updated_at": field("updated_at", transform=isoformat_utc),
+            "last_message_at": field("last_message_at", transform=isoformat_utc),
+            "unread_count": field("unread_count"),
+            "meta": field(
                 "meta",
-                lambda value: merge_metadata(
-                    ticket.meta, value if isinstance(value, dict) else {}
+                transform=lambda value: merge_metadata(
+                    ticket.meta, value if isinstance(value, Mapping) else {}
                 ),
             ),
         },

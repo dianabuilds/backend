@@ -4,15 +4,20 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from domains.platform.iam.security import csrf_protect, get_current_user
+from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 
 from .deps import get_catalog_mutations_service
 
 
 def register_catalog_mutation_routes(router: APIRouter) -> None:
     service_dep = Depends(get_catalog_mutations_service)
+    NODES_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["nodes"].as_dependencies()
 
-    @router.put("/{node_id}/tags")
+    @router.put(
+        "/{node_id}/tags",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def set_tags(
         node_id: str,
         body: dict[str, Any],
@@ -26,7 +31,10 @@ def register_catalog_mutation_routes(router: APIRouter) -> None:
             raise HTTPException(status_code=400, detail="tags_list_required")
         return await service.set_tags(node_id, tags, claims)
 
-    @router.post("")
+    @router.post(
+        "",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def create_node(
         body: dict[str, Any],
         _req: Request,
@@ -45,7 +53,10 @@ def register_catalog_mutation_routes(router: APIRouter) -> None:
             raise HTTPException(status_code=400, detail="is_public_invalid")
         return await service.create(body, claims)
 
-    @router.patch("/{node_id}")
+    @router.patch(
+        "/{node_id}",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def patch_node(
         node_id: str,
         body: dict[str, Any],
@@ -65,7 +76,10 @@ def register_catalog_mutation_routes(router: APIRouter) -> None:
             raise HTTPException(status_code=400, detail="status_invalid")
         return await service.update(node_id, body, claims)
 
-    @router.delete("/{node_id}")
+    @router.delete(
+        "/{node_id}",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def delete_node(
         node_id: str,
         _req: Request,

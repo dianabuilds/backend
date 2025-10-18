@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from datetime import UTC, datetime
-from typing import Any, Protocol, cast, runtime_checkable
+from inspect import isawaitable
+from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 try:
     from prometheus_client import Counter, Histogram  # type: ignore
@@ -19,7 +19,12 @@ from domains.product.nodes.application.engagement import (
     NodeReactionsService,
     NodeViewsService,
 )
+from domains.product.nodes.application.interactors.events import (
+    NodeEvent,
+    NodeEventPublisher,
+)
 from domains.product.nodes.application.ports import (
+    NodeCache,
     NodeCommentBanDTO,
     NodeCommentDTO,
     NodeDTO,
@@ -32,7 +37,7 @@ from domains.product.nodes.application.ports import (
 )
 from domains.product.nodes.domain.results import NodeView
 from packages.core import with_trace
-from packages.core.async_utils import run_sync
+from packages.core.async_utils import run_sync, submit_async
 
 
 @runtime_checkable
@@ -43,6 +48,15 @@ class _EmbeddingRepo(Protocol):
 
 
 logger = logging.getLogger(__name__)
+
+TResult = TypeVar("TResult")
+
+
+async def _await_maybe(value: TResult | Awaitable[TResult]) -> TResult:
+    if isawaitable(value):
+        return await cast(Awaitable[TResult], value)
+    return cast(TResult, value)
+
 
 if Counter is not None:
     EMBEDDING_REQUESTS = Counter(
@@ -70,20 +84,72 @@ class NodeService:
         repo: Repo,
         tags: TagCatalog,
         outbox: Outbox,
+        event_publisher: NodeEventPublisher | None = None,
         usage: UsageProjection | None = None,
         embedding: EmbeddingClient | None = None,
         views: NodeViewsService | None = None,
         reactions: NodeReactionsService | None = None,
         comments: NodeCommentsService | None = None,
+        cache: NodeCache | None = None,
     ) -> None:
         self.repo = repo
         self.tags = tags
         self.outbox = outbox
+        self._events = event_publisher or NodeEventPublisher(outbox)
         self.usage = usage
         self.embedding = embedding
         self.views_service = views
         self.reactions_service = reactions
         self.comments_service = comments
+        self.cache = cache
+
+    async def _cache_get_by_id(self, node_id: int) -> NodeDTO | None:
+        if self.cache is None:
+            return None
+        try:
+            return await self.cache.get(node_id)
+        except Exception as exc:
+            logger.debug(
+                "node_cache_get_failed", extra={"node_id": node_id}, exc_info=exc
+            )
+            return None
+
+    async def _cache_get_by_slug(self, slug: str) -> NodeDTO | None:
+        if self.cache is None:
+            return None
+        try:
+            return await self.cache.get_by_slug(slug)
+        except Exception as exc:
+            logger.debug(
+                "node_cache_get_slug_failed", extra={"slug": slug}, exc_info=exc
+            )
+            return None
+
+    async def _cache_store(self, dto: NodeDTO) -> None:
+        if self.cache is None:
+            return
+        try:
+            await self.cache.set(dto)
+        except Exception as exc:
+            logger.debug(
+                "node_cache_store_failed", extra={"node_id": dto.id}, exc_info=exc
+            )
+
+    async def _cache_invalidate(self, node_id: int, slug: str | None = None) -> None:
+        if self.cache is None:
+            return
+        try:
+            await self.cache.invalidate(node_id, slug=slug)
+        except Exception as exc:
+            logger.debug(
+                "node_cache_invalidate_failed", extra={"node_id": node_id}, exc_info=exc
+            )
+
+    async def _cache_store_many(self, dtos: Sequence[NodeDTO]) -> None:
+        if self.cache is None:
+            return
+        for dto in dtos:
+            await self._cache_store(dto)
 
     def _require_views_service(self) -> NodeViewsService:
         if self.views_service is None:
@@ -108,15 +174,14 @@ class NodeService:
         key: str | None = None,
         context: dict[str, Any] | None = None,
     ) -> None:
-        if self.outbox is None:
-            return
-        try:
-            self.outbox.publish(event, payload, key=key)  # type: ignore[attr-defined]
-        except Exception as exc:
-            extra = {"event": event}
-            if context:
-                extra.update(context)
-            logger.warning("node_outbox_publish_failed", extra=extra, exc_info=exc)
+        self._events.publish(
+            NodeEvent(
+                name=event,
+                payload=dict(payload),
+                key=key,
+                context=dict(context) if context else None,
+            )
+        )
 
     def _record_embedding_metric(
         self,
@@ -145,40 +210,53 @@ class NodeService:
                 logger.debug("embedding_latency_emit_failed", exc_info=exc)
 
     async def _repo_get_async(self, node_id: int) -> NodeDTO | None:
+        cached = await self._cache_get_by_id(node_id)
+        if cached is not None:
+            return cached
         getter = getattr(self.repo, "_araw_get", None)
         if callable(getter):
             result = getter(node_id)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-        maybe = self.repo.get(node_id)
-        if asyncio.iscoroutine(maybe):
-            return await maybe
-        return maybe
+            dto = await _await_maybe(
+                cast(NodeDTO | None | Awaitable[NodeDTO | None], result)
+            )
+        else:
+            result = self.repo.get(node_id)
+            dto = await _await_maybe(
+                cast(NodeDTO | None | Awaitable[NodeDTO | None], result)
+            )
+        if dto is not None:
+            await self._cache_store(dto)
+        return dto
 
     async def _repo_get_by_slug_async(self, slug: str) -> NodeDTO | None:
+        cached = await self._cache_get_by_slug(slug)
+        if cached is not None:
+            return cached
         getter = getattr(self.repo, "_araw_get_by_slug", None)
         if callable(getter):
             result = getter(slug)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-        maybe = self.repo.get_by_slug(slug)
-        if asyncio.iscoroutine(maybe):
-            return await maybe
-        return maybe
+            dto = await _await_maybe(
+                cast(NodeDTO | None | Awaitable[NodeDTO | None], result)
+            )
+        else:
+            result = self.repo.get_by_slug(slug)
+            dto = await _await_maybe(
+                cast(NodeDTO | None | Awaitable[NodeDTO | None], result)
+            )
+        if dto is not None:
+            await self._cache_store(dto)
+        return dto
 
     async def _repo_set_tags_async(self, node_id: int, tags: Sequence[str]) -> NodeDTO:
         setter = getattr(self.repo, "_aset_tags", None)
         if callable(setter):
             result = setter(node_id, tags)
-            if asyncio.iscoroutine(result):
-                return await result
-            return result
-        result = self.repo.set_tags(node_id, tags)
-        if asyncio.iscoroutine(result):
-            return await result
-        return result
+            dto = await _await_maybe(cast(NodeDTO | Awaitable[NodeDTO], result))
+        else:
+            result = self.repo.set_tags(node_id, tags)
+            dto = await _await_maybe(cast(NodeDTO | Awaitable[NodeDTO], result))
+        await self._cache_store(dto)
+        return dto
 
     def _queue_embedding_job(self, node_id: int, *, reason: str) -> None:
         """Publish embedding recompute event if embedding is enabled."""
@@ -283,13 +361,13 @@ class NodeService:
         return [float(v) for v in vector]
 
     def get(self, node_id: int) -> NodeView | None:
-        dto = self.repo.get(node_id)
+        dto = run_sync(self._repo_get_async(node_id))
         if dto is None:
             return None
         return self._to_view(dto)
 
     def get_by_slug(self, slug: str) -> NodeView | None:
-        dto = self.repo.get_by_slug(slug)
+        dto = run_sync(self._repo_get_by_slug_async(slug))
         if dto is None:
             return None
         return self._to_view(dto)
@@ -298,6 +376,8 @@ class NodeService:
         self, author_id: str, *, limit: int = 50, offset: int = 0
     ) -> list[NodeView]:
         items = self.repo.list_by_author(author_id, limit=limit, offset=offset)
+        if items:
+            submit_async(self._cache_store_many(items))
         return [self._to_view(item) for item in items]
 
     def search_by_embedding(
@@ -311,6 +391,8 @@ class NodeService:
             return await repo.search_by_embedding(embedding, limit=limit)
 
         dtos = run_sync(_run())
+        if dtos:
+            submit_async(self._cache_store_many(dtos))
         return [self._to_view(dto) for dto in dtos]
 
     async def update_tags(
@@ -389,6 +471,7 @@ class NodeService:
                 },
             )
             raise RuntimeError("node_create_failed")
+        await self._cache_store(dto)
         self._safe_publish(
             "node.created.v1",
             {
@@ -743,6 +826,7 @@ class NodeService:
             content_html=content_html,
             cover_url=cover_url,
         )
+        await self._cache_store(dto)
         changed: list[str] = []
         if title is not None:
             changed.append("title")
@@ -795,9 +879,11 @@ class NodeService:
         if vector is None:
             if force:
                 dto = await self.repo.update(node_id, embedding=None)
+                await self._cache_store(dto)
                 return self._to_view(dto)
             return self._to_view(dto)
         dto = await self.repo.update(node_id, embedding=vector)
+        await self._cache_store(dto)
         if reason:
             logger.debug(
                 "embedding_recompute_done", extra={"node_id": node_id, "reason": reason}
@@ -808,6 +894,7 @@ class NodeService:
     async def delete(self, node_id: int) -> bool:
         ok = await self.repo.delete(node_id)
         if ok:
+            await self._cache_invalidate(node_id)
             self._safe_publish(
                 "node.deleted.v1",
                 {"id": node_id},

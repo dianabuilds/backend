@@ -18,11 +18,11 @@ function ItemsGridCard({ blockType, item }: ItemsGridCardProps): React.ReactElem
   return (
     <Card className="flex flex-col gap-2 border border-gray-200 p-4 dark:border-dark-600">
       <p className="text-sm uppercase tracking-wide text-gray-500 dark:text-dark-200">{blockType}</p>
-      <p className="text-lg font-semibold text-gray-900 dark:text-white">{item.title ?? 'Без названия'}</p>
+      <p className="text-lg font-semibold text-gray-900 dark:text-white">{item.title ?? 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ'}</p>
       {item.summary && <p className="text-sm text-gray-600 dark:text-dark-100">{item.summary}</p>}
       {href && (
         <Link to={href} className="text-sm font-medium text-primary-600 hover:text-primary-500" {...prefetchHandlers}>
-          перейти
+          РїРµСЂРµР№С‚Рё
         </Link>
       )}
     </Card>
@@ -42,7 +42,7 @@ export default function ItemsGridBlock({ block }: HomeBlockComponentProps): Reac
       </header>
       {items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-dark-500 dark:text-dark-200">
-          Для этого раздела пока нет материалов.
+          Р”Р»СЏ СЌС‚РѕРіРѕ СЂР°Р·РґРµР»Р° РїРѕРєР° РЅРµС‚ РјР°С‚РµСЂРёР°Р»РѕРІ.
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

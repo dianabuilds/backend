@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from collections.abc import Sequence
 from fastapi import HTTPException
 
 from domains.product.nodes.application.use_cases.catalog import (
@@ -36,8 +37,24 @@ class StubDevBlogRepository:
             None,
         )
 
-    async def fetch_page(self, engine, *, limit: int, offset: int):
-        return self.page_items[:limit], 5
+    async def fetch_page(
+        self,
+        engine,
+        *,
+        limit: int,
+        offset: int,
+        tags: Sequence[str] | None = None,
+        published_from=None,
+        published_to=None,
+    ) -> tuple[list[dict[str, object]], int, dict[str, object]]:
+        available_tags: list[str] = []
+        meta: dict[str, object] = {
+            "available_tags": available_tags,
+            "date_range": {"start": None, "end": None},
+        }
+        if tags:
+            meta["applied_tags"] = list(tags)
+        return self.page_items[:limit], 5, meta
 
     async def fetch_latest_for_home(self, engine, *, limit: int):
         return self.page_items[:limit]

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import fakeredis
 
@@ -6,7 +6,7 @@ from domains.platform.events.adapters.event_bus_redis import (
     RedisEventBus,
 )
 from domains.platform.events.adapters.outbox_redis import RedisOutbox
-from domains.platform.events.service import Events
+from domains.platform.events.application.publisher import Events
 from domains.platform.notifications.application.delivery import (
     NotificationEvent,
 )

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from domains.platform.moderation.api.http import (
     router as moderation_router,
@@ -22,8 +23,8 @@ def moderation_client() -> TestClient:
     settings = SimpleNamespace(
         env="test",
         database_url=None,
-        admin_api_key="integration-admin",
-        auth_jwt_secret="secret",
+        admin_api_key=SecretStr("integration-admin"),
+        auth_jwt_secret=SecretStr("secret"),
         auth_jwt_algorithm="HS256",
         auth_csrf_cookie_name="csrftest",
     )

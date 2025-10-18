@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 import logging
@@ -9,7 +9,7 @@ import redis.asyncio as redis  # type: ignore
 from pydantic import ValidationError
 from redis.exceptions import RedisError  # type: ignore[import]
 
-from domains.platform.events.service import Events
+from domains.platform.events.application.publisher import Events
 from domains.platform.search.adapters.cache_memory import (
     InMemorySearchCache,
 )

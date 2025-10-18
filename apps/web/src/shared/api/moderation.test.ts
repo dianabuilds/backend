@@ -115,43 +115,43 @@ describe('moderation api', () => {
 
   it('normalizes moderation overview payload', async () => {
     vi.mocked(apiGet).mockResolvedValue({
-      complaints: { open: '5', resolved: 2 },
-      tickets: { backlog: '3' },
+      complaints_new: { count: '5', by_category: { abuse: '3', spam: 2 } },
+      tickets: { open: '3', waiting: '1', appeals_open: 2 },
       content_queues: { urgent: 7 },
+      last_sanctions: [
+        { id: 's-1', type: 'ban', status: 'active', issued_at: '2025-10-01T00:00:00Z' },
+      ],
       cards: [
         {
           id: 'sla',
           title: 'SLA breaches',
-          value: '4',
-          delta: '+2',
+          subtitle: 'Active sanctions: 4',
           trend: 'up',
           description: 'Breaches in the last 24h',
-          actions: [{ label: 'Open incidents', to: '/incidents' }],
+          meta: { count: '4' },
+          actions: [{ label: 'Open incidents' }],
         },
       ],
-      charts: [
-        {
-          id: 'volume',
-          title: 'Queue volume',
-          type: 'bar',
-          series: [{ name: 'Urgent', data: [1, 2, 3] }],
-          options: { stacked: true },
-        },
-      ],
-      last_sanctions: [
-        { id: 's-1', type: 'ban', status: 'active', issued_at: '2025-10-01T00:00:00Z' },
-      ],
+      charts: {
+        complaint_sources: [
+          { label: 'Users', value: '3' },
+          { label: 'AI', value: 2 },
+        ],
+        avg_response_time_hours: '4.5',
+        ai_autodecisions_share: 0.4,
+      },
     });
 
     const result = await fetchModerationOverview();
 
     expect(apiGet).toHaveBeenCalledWith('/api/moderation/overview', { signal: undefined });
-    expect(result.complaints).toEqual({ open: 5, resolved: 2 });
-    expect(result.tickets).toEqual({ backlog: 3 });
+    expect(result.complaints).toEqual({ total: 5, abuse: 3, spam: 2 });
+    expect(result.tickets).toEqual({ open: 3, waiting: 1, appeals_open: 2 });
     expect(result.contentQueues).toEqual({ urgent: 7 });
-    expect(result.cards[0]).toMatchObject({ id: 'sla', title: 'SLA breaches', value: '4', delta: '+2', trend: 'up' });
-    expect(result.charts[0]).toMatchObject({ id: 'volume', type: 'bar' });
     expect(result.lastSanctions[0]).toMatchObject({ id: 's-1', type: 'ban', status: 'active' });
+    expect(result.cards[0]).toMatchObject({ id: 'sla', title: 'SLA breaches', value: '4', trend: 'up' });
+    expect(result.charts).toHaveLength(3);
+    expect(result.charts[0]).toMatchObject({ id: 'complaint-sources', type: 'pie' });
   });
 
   it('normalizes AI rules list and computes hasNext flag', async () => {

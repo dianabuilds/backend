@@ -139,7 +139,7 @@ export default function ManagementAI() {
       },
       {
         title: 'Средняя латентность',
-        value: avgLatency != null ? `${avgLatency} мс` : 'вЂ”',
+        value: avgLatency != null ? `${avgLatency} мс` : '—',
         hint: `провайдеров: ${enabledProviders}`,
         icon: Gauge,
         tone: 'bg-emerald-50 text-emerald-700',

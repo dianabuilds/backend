@@ -1,4 +1,10 @@
-﻿import { DEV_BLOG_HOME_TAG, DEV_BLOG_TAG, type EmbeddingStatus, type NodeItem } from '../../types/nodes';
+import {
+  DEV_BLOG_HOME_TAG,
+  DEV_BLOG_TAG,
+  type EmbeddingStatus,
+  type NodeItem,
+  type NodeModerationStatus,
+} from '../../types/nodes';
 
 export function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -60,9 +66,19 @@ export function ensureArray<T>(value: unknown, map: (item: unknown) => T | null 
 }
 
 const NODE_EMBEDDING_STATUSES: EmbeddingStatus[] = ['ready', 'pending', 'disabled', 'error', 'unknown'];
+const NODE_MODERATION_STATUSES: NodeModerationStatus[] = ['pending', 'resolved', 'hidden', 'restricted', 'escalated'];
+const NODE_MODERATION_STATUS_SET = new Set<NodeModerationStatus>(NODE_MODERATION_STATUSES);
 
 function isEmbeddingStatus(value: string | null | undefined): value is EmbeddingStatus {
   return value != null && NODE_EMBEDDING_STATUSES.includes(value as EmbeddingStatus);
+}
+
+function normalizeModerationStatus(value: unknown): NodeModerationStatus | undefined {
+  const normalized = pickString(value)?.toLowerCase();
+  if (normalized && NODE_MODERATION_STATUS_SET.has(normalized as NodeModerationStatus)) {
+    return normalized as NodeModerationStatus;
+  }
+  return undefined;
 }
 
 export function normalizeNodeItem(raw: unknown): NodeItem | null {
@@ -83,7 +99,7 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
 
   let embeddingReady = pickBoolean(raw.embedding_ready) ?? false;
   const embeddingArray = Array.isArray((raw as Record<string, unknown>).embedding)
-    ? (raw as Record<string, unknown>).embedding as unknown[]
+    ? ((raw as Record<string, unknown>).embedding as unknown[])
     : undefined;
   if (embeddingArray && embeddingArray.length > 0) {
     embeddingReady = true;
@@ -97,19 +113,22 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
   }
 
   let tags: string[] | undefined;
-  const rawTagsSource = (raw as Record<string, unknown>).tags ?? (raw as Record<string, unknown>).tag_slugs ?? (raw as Record<string, unknown>).tagSlugs;
+  const rawTagsSource =
+    (raw as Record<string, unknown>).tags ??
+    (raw as Record<string, unknown>).tag_slugs ??
+    (raw as Record<string, unknown>).tagSlugs;
   if (Array.isArray(rawTagsSource)) {
     const normalizedTags: string[] = [];
     for (const entry of rawTagsSource) {
       if (typeof entry === 'string') {
-        const slug = entry.trim();
-        if (slug) {
-          normalizedTags.push(slug);
+        const slugValue = entry.trim();
+        if (slugValue) {
+          normalizedTags.push(slugValue);
         }
       } else if (isObjectRecord(entry)) {
-        const slug = pickString(entry.slug);
-        if (slug) {
-          normalizedTags.push(slug);
+        const slugValue = pickString(entry.slug);
+        if (slugValue) {
+          normalizedTags.push(slugValue);
         }
       }
     }
@@ -119,6 +138,9 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
   }
 
   const tagSet = tags ? new Set(tags.map((tag) => tag.toLowerCase())) : undefined;
+
+  const moderationStatus = normalizeModerationStatus((raw as Record<string, unknown>).moderation_status);
+  const moderationStatusUpdatedAt = pickNullableString((raw as Record<string, unknown>).moderation_status_updated_at) ?? null;
 
   const isDevBlog = tagSet?.has(DEV_BLOG_TAG) ?? false;
   const showOnHome = tagSet?.has(DEV_BLOG_HOME_TAG) ?? false;
@@ -134,6 +156,8 @@ export function normalizeNodeItem(raw: unknown): NodeItem | null {
     updated_at: updatedAt,
     embedding_status: embeddingStatus,
     embedding_ready: embeddingReady,
+    moderation_status: moderationStatus,
+    moderation_status_updated_at: moderationStatusUpdatedAt,
     tags,
     isDevBlog,
     showOnHome,
@@ -149,9 +173,3 @@ export function firstNumberCandidate(...values: Array<unknown>): number | null {
   }
   return null;
 }
-
-
-
-
-
-

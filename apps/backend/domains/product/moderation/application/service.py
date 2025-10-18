@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
 from typing import Any
 
-from domains.platform.events.errors import OutboxError
-from domains.platform.events.ports import OutboxPublisher
+from domains.platform.events.application.publisher import OutboxPublisher
+from domains.product.moderation.application.interactors.cases import (
+    ModerationCaseCreateCommand,
+    ModerationCaseFilters,
+    ModerationCaseNoteCommand,
+    ModerationCaseUpdateCommand,
+)
+from domains.product.moderation.application.interactors.events import (
+    ModerationEvent,
+    ModerationEventPublisher,
+)
 from domains.product.moderation.application.ports import Repo
+from packages.core import with_trace
 
 logger = logging.getLogger(__name__)
 
@@ -23,99 +32,98 @@ JsonDictList = list[JsonDict]
 
 
 class ModerationService:
-    def __init__(self, repo: Repo, outbox: OutboxPublisher | None = None):
+    def __init__(
+        self,
+        repo: Repo,
+        outbox: OutboxPublisher | None = None,
+        event_publisher: ModerationEventPublisher | None = None,
+    ):
         self.repo = repo
         self.outbox = outbox
-
-    def _publish(self, event: str, payload: dict[str, Any]) -> None:
-        if not self.outbox:
-            return
-        extra = {"topic": event, "case_id": payload.get("id") or payload.get("case_id")}
-        try:
-            self.outbox.publish(event, payload)
-        except _OUTBOX_EXPECTED_ERRORS as exc:
-            logger.warning(
-                "moderation_outbox_publish_failed", extra=extra, exc_info=exc
-            )
-        except Exception as exc:  # pragma: no cover - unexpected failure
-            logger.exception(
-                "moderation_outbox_publish_unexpected", extra=extra, exc_info=exc
-            )
-            raise OutboxError(
-                "moderation_outbox_publish_unexpected", topic=event
-            ) from exc
-
-    async def list(
-        self,
-        *,
-        page: int = 1,
-        size: int = 20,
-        statuses: Sequence[str] | None = None,
-        types: Sequence[str] | None = None,
-        queues: Sequence[str] | None = None,
-        assignees: Sequence[str] | None = None,
-        query: str | None = None,
-    ) -> dict[str, Any]:
-        return await self.repo.list_cases(
-            page=page,
-            size=size,
-            statuses=statuses,
-            types=types,
-            queues=queues,
-            assignees=assignees,
-            query=query,
+        self._events = event_publisher or ModerationEventPublisher(
+            outbox, expected_errors=_OUTBOX_EXPECTED_ERRORS
         )
 
-    async def create(
-        self, payload: dict[str, Any], *, author_id: str | None = None
-    ) -> dict[str, Any]:
-        data = dict(payload)
-        data.setdefault("status", str(payload.get("status", "open")) or "open")
-        data.setdefault("type", str(payload.get("type", "general")) or "general")
-        cid = await self.repo.create_case(data, created_by=author_id)
+    def _publish(self, event: str, payload: dict[str, Any]) -> None:
+        case_ref = payload.get("id") or payload.get("case_id")
+        case_id = str(case_ref) if case_ref else None
+        self._events.publish(
+            ModerationEvent(
+                name=event,
+                payload=dict(payload),
+                case_id=case_id,
+            )
+        )
+
+    @with_trace
+    async def list(self, filters: ModerationCaseFilters) -> dict[str, Any]:
+        normalized = filters.normalized()
+        return await self.repo.list_cases(
+            page=normalized.page,
+            size=normalized.size,
+            statuses=normalized.statuses,
+            types=normalized.types,
+            queues=normalized.queues,
+            assignees=normalized.assignees,
+            query=normalized.query,
+        )
+
+    @with_trace
+    async def create(self, command: ModerationCaseCreateCommand) -> dict[str, Any]:
+        data = command.to_repo_payload()
+        cid = await self.repo.create_case(data, created_by=command.author_id)
         self._publish(
             "moderation.case.created.v1",
             {
                 "id": cid,
                 "type": data.get("type"),
                 "status": data.get("status"),
-                "actor_id": author_id,
+                "actor_id": command.author_id,
             },
         )
         return {"id": cid}
 
+    @with_trace
     async def add_note(
-        self, case_id: str, note: dict[str, Any], *, author_id: str | None
+        self, command: ModerationCaseNoteCommand
     ) -> dict[str, Any] | None:
-        res = await self.repo.add_note(case_id, note, author_id=author_id)
-        if res:
+        payload = command.to_repo_payload()
+        result = await self.repo.add_note(
+            command.case_id, payload, author_id=command.author_id
+        )
+        if result:
             self._publish(
                 "moderation.case.note_added.v1",
-                {"case_id": case_id, "author_id": author_id},
+                {"case_id": command.case_id, "author_id": command.author_id},
             )
-        return res
+        return result
 
+    @with_trace
     async def get(self, case_id: str) -> dict[str, Any] | None:
         case = await self.repo.get_case(case_id)
         if not case:
             return None
         return await self._build_detail(case_id, case)
 
+    @with_trace
     async def update(
-        self, case_id: str, payload: dict[str, Any], *, actor_id: str | None = None
+        self, command: ModerationCaseUpdateCommand
     ) -> dict[str, Any] | None:
-        updated = await self.repo.update_case(case_id, payload, actor_id=actor_id)
+        payload = command.to_repo_payload()
+        updated = await self.repo.update_case(
+            command.case_id, payload, actor_id=command.actor_id
+        )
         if not updated:
             return None
         self._publish(
             "moderation.case.updated.v1",
             {
-                "id": case_id,
-                "actor_id": actor_id,
+                "id": command.case_id,
+                "actor_id": command.actor_id,
                 "fields": sorted(payload.keys()),
             },
         )
-        return await self._build_detail(case_id, updated)
+        return await self._build_detail(command.case_id, updated)
 
     async def _build_detail(self, case_id: str, case: dict[str, Any]) -> dict[str, Any]:
         notes = await self.repo.list_notes(case_id)

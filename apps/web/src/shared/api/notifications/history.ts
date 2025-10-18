@@ -2,11 +2,14 @@ import { apiGet, apiPost } from '../client';
 import type {
   NotificationHistoryItem,
   NotificationHistoryResponse,
+  NotificationsListResponse,
 } from '../../types/notifications';
 import {
   ensureArray,
   isObjectRecord,
+  pickBoolean,
   pickNullableString,
+  pickNumber,
   pickString,
 } from './utils';
 
@@ -20,58 +23,57 @@ export type NotificationsHistoryPage = {
   items: NotificationHistoryItem[];
   nextOffset: number;
   hasMore: boolean;
+  unread: number;
 };
 
 const HISTORY_ENDPOINT = '/v1/notifications';
 
-function normalizeHistoryItem(value: unknown): NotificationHistoryItem | null {
+function normalizeHistoryItem(value: unknown, fallbackId?: string): NotificationHistoryItem | null {
   if (!isObjectRecord(value)) {
     return null;
   }
-  const id = pickString(value.id);
+  const id = pickString(value.id) ?? fallbackId;
   if (!id) {
     return null;
   }
-  const item: NotificationHistoryItem = { id };
-  const title = pickNullableString(value.title);
-  if (title !== undefined) {
-    item.title = title;
-  }
-  const message = pickNullableString(value.message);
-  if (message !== undefined) {
-    item.message = message;
-  }
-  const type = pickNullableString(value.type);
-  if (type !== undefined) {
-    item.type = type;
-  }
-  const priority = pickNullableString(value.priority);
-  if (priority !== undefined) {
-    item.priority = priority;
-  }
-  const createdAt = pickNullableString(value.created_at);
-  if (createdAt !== undefined) {
-    item.created_at = createdAt;
-  }
-  const readAt = pickNullableString(value.read_at);
-  if (readAt !== undefined) {
-    item.read_at = readAt;
-  }
-  if (value.meta === null) {
-    item.meta = null;
-  } else if (isObjectRecord(value.meta)) {
-    item.meta = value.meta;
-  }
-  return item;
+  const userId = pickString(value.user_id) ?? '';
+  const channel = pickNullableString(value.channel) ?? null;
+  const title = pickNullableString(value.title) ?? null;
+  const message = pickNullableString(value.message) ?? null;
+  const type = pickNullableString(value.type) ?? null;
+  const priority = pickString(value.priority) ?? 'normal';
+  const createdAt = pickNullableString(value.created_at) ?? null;
+  const updatedAt = pickNullableString(value.updated_at) ?? null;
+  const readAt = pickNullableString(value.read_at) ?? null;
+  const isRead = pickBoolean(value.is_read);
+  const meta = isObjectRecord(value.meta) ? value.meta : {};
+
+  return {
+    id,
+    user_id: userId,
+    channel,
+    title,
+    message,
+    type,
+    priority,
+    meta,
+    created_at: createdAt,
+    updated_at: updatedAt,
+    read_at: readAt,
+    is_read: isRead ?? Boolean(readAt),
+  };
 }
 
-function normalizeHistoryResponse(
-  payload: NotificationHistoryResponse | undefined,
-): NotificationHistoryItem[] {
-  if (!payload) {
-    return [];
+function normalizeHistoryResponse(payload: unknown): NotificationsListResponse {
+  if (!isObjectRecord(payload)) {
+    return {
+      items: [],
+      unread: 0,
+    };
   }
-  return ensureArray(payload.items, normalizeHistoryItem);
+  const items = ensureArray(payload.items, normalizeHistoryItem);
+  const unread = pickNumber(payload.unread) ?? 0;
+  return { items, unread };
 }
 
 function sanitizeLimit(limit?: number): number {
@@ -102,12 +104,17 @@ export async function fetchNotificationsHistory(
   const limit = sanitizeLimit(options.limit);
   const offset = sanitizeOffset(options.offset);
   const search = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  const response = await apiGet<NotificationHistoryResponse>(`${HISTORY_ENDPOINT}?${search.toString()}`, {
-    signal: options.signal,
-  });
-  const items = normalizeHistoryResponse(response);
+  const response = await apiGet<NotificationHistoryResponse | NotificationsListResponse>(
+    `${HISTORY_ENDPOINT}?${search.toString()}`,
+    {
+      signal: options.signal,
+    },
+  );
+  const normalized = normalizeHistoryResponse(response);
+  const items = normalized.items;
   return {
     items,
+    unread: normalized.unread,
     nextOffset: offset + items.length,
     hasMore: items.length === limit,
   };
@@ -131,8 +138,5 @@ export async function markNotificationAsRead(
     options.payload ?? {},
     { signal: options.signal },
   );
-  return normalizeHistoryItem(response?.notification);
+  return normalizeHistoryItem(response?.notification, id);
 }
-
-
-

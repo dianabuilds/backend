@@ -4,8 +4,7 @@ import logging
 import re
 from typing import Any
 
-from domains.platform.events.errors import OutboxError
-from domains.platform.events.ports import OutboxPublisher
+from domains.platform.events.application.publisher import OutboxError, OutboxPublisher
 from domains.product.tags.application.admin_ports import AdminRepo
 from domains.product.tags.domain.admin_models import TagGroupSummary
 

@@ -72,7 +72,7 @@ export function useManagementTariffs(
 
     const message = results
       .filter((result) => result.status === 'rejected')
-      .map((result) => extractErrorMessage((result as PromiseRejectedResult).reason, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ С‚Р°СЂРёС„С‹.'))
+      .map((result) => extractErrorMessage((result as PromiseRejectedResult).reason, 'Не удалось загрузить тарифы.'))
       .shift();
 
     setError(message ?? null);
@@ -113,7 +113,7 @@ export function useManagementTariffs(
       const items = await fetchBillingPlanHistory(slug);
       setHistory(Array.isArray(items) ? items : []);
     } catch (err) {
-      setError(extractErrorMessage(err, 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РёСЃС‚РѕСЂРёСЋ С‚Р°СЂРёС„РЅРѕРіРѕ РїР»Р°РЅР°.'));
+      setError(extractErrorMessage(err, 'Не удалось загрузить историю тарифного плана.'));
       setHistory([]);
     }
   }, []);

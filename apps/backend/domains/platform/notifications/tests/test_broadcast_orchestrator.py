@@ -80,6 +80,8 @@ class _FailingAudienceResolver:
         self, audience: BroadcastAudience, *, batch_size: int | None = None
     ):
         raise AudienceResolutionError("boom")
+        if False:  # pragma: no cover - satisfy async generator protocol
+            yield []
 
 
 class _MemoryBroadcastRepo(BroadcastRepo):

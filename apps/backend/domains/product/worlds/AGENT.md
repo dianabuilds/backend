@@ -1,4 +1,4 @@
-# AGENT вЂ” Worlds
+# AGENT — Worlds
 
 Structure: api/, application/, domain/, adapters/.
 

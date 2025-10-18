@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user, require_role_db
+from domains.platform.iam.application.facade import get_current_user, require_role_db
 from domains.product.nodes.application.use_cases.catalog import (
     DevBlogService,
     NodeCatalogService,

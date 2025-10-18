@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { buildDevBlogPostKey } from './DevBlogPostPage.shared';
@@ -28,62 +28,62 @@ const HEADER_KICKER: Record<Locale, string> = {
 
 const BACK_LABEL: Record<Locale, string> = {
   en: 'Back to blog',
-  ru: 'РќР°Р·Р°Рґ Рє Р±Р»РѕРіСѓ',
+  ru: 'Назад к блогу',
 };
 
 const AUTHOR_LABEL: Record<Locale, string> = {
   en: 'Author',
-  ru: 'РђРІС‚РѕСЂ',
+  ru: 'Автор',
 };
 
 const SHARE_TITLE: Record<Locale, string> = {
   en: 'Share this post',
-  ru: 'РџРѕРґРµР»РёС‚СЊСЃСЏ РїРѕСЃС‚РѕРј',
+  ru: 'Поделиться постом',
 };
 
 const SHARE_PRIMARY: Record<Locale, string> = {
   en: 'Share',
-  ru: 'РџРѕРґРµР»РёС‚СЊСЃСЏ',
+  ru: 'Поделиться',
 };
 
 const SHARE_COPY: Record<Locale, string> = {
   en: 'Copy link',
-  ru: 'РЎРєРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ',
+  ru: 'Скопировать ссылку',
 };
 
 const SHARE_COPIED: Record<Locale, string> = {
   en: 'Link copied',
-  ru: 'РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°',
+  ru: 'Ссылка скопирована',
 };
 
 const PREVIOUS_POST: Record<Locale, string> = {
   en: 'Previous post',
-  ru: 'РџСЂРµРґС‹РґСѓС‰РёР№ РїРѕСЃС‚',
+  ru: 'Предыдущий пост',
 };
 
 const NEXT_POST: Record<Locale, string> = {
   en: 'Next post',
-  ru: 'РЎР»РµРґСѓСЋС‰РёР№ РїРѕСЃС‚',
+  ru: 'Следующий пост',
 };
 
 const NO_ADJACENT: Record<Locale, string> = {
   en: 'No other posts yet.',
-  ru: 'Р”СЂСѓРіРёС… РїРѕСЃС‚РѕРІ РїРѕРєР° РЅРµС‚.',
+  ru: 'Других постов пока нет.',
 };
 
 const FALLBACK_ERROR: Record<Locale, string> = {
   en: 'Failed to load the post.',
-  ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїРѕСЃС‚.',
+  ru: 'Не удалось загрузить пост.',
 };
 
 const FALLBACK_MISSING: Record<Locale, string> = {
   en: 'Post slug is missing.',
-  ru: 'РћС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ РїРѕСЃС‚Р°.',
+  ru: 'Отсутствует идентификатор поста.',
 };
 
 const SHARE_DESCRIPTION: Record<Locale, string> = {
   en: 'Stories, research, and platform updates from the Caves team.',
-  ru: 'РСЃС‚РѕСЂРёРё, РёСЃСЃР»РµРґРѕРІР°РЅРёСЏ Рё РѕР±РЅРѕРІР»РµРЅРёСЏ РїР»Р°С‚С„РѕСЂРјС‹ РѕС‚ РєРѕРјР°РЅРґС‹ Caves.',
+  ru: 'Истории, исследования и обновления платформы от команды Caves.',
 };
 
 const OG_LOCALE_MAP: Record<Locale, string> = {
@@ -96,7 +96,7 @@ const TWITTER_CARD = 'summary_large_image';
 
 const UNTITLED_POST: Record<Locale, string> = {
   en: 'Untitled',
-  ru: 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ',
+  ru: 'Без названия',
 };
 
 type PostState = {
@@ -249,11 +249,11 @@ export default function DevBlogPostPage(): React.ReactElement {
             <div className="flex flex-wrap gap-3 text-sm text-gray-500 dark:text-dark-200">
               {formattedPublishAt && <span>{formattedPublishAt}</span>}
               {formattedUpdatedAt && formattedUpdatedAt !== formattedPublishAt && (
-                <span>вЂў {formattedUpdatedAt}</span>
+                <span>• {formattedUpdatedAt}</span>
               )}
               {authorName && (
                 <span>
-                  вЂў {pick(AUTHOR_LABEL, locale)}: <span className="font-medium text-gray-700 dark:text-dark-50">{authorName}</span>
+                  • {pick(AUTHOR_LABEL, locale)}: <span className="font-medium text-gray-700 dark:text-dark-50">{authorName}</span>
                 </span>
               )}
             </div>

@@ -281,3 +281,44 @@ def test_home_metrics_smoke() -> None:
     assert b"home_cache_requests_total" in payload
     assert b"home_cache_hit_ratio" in payload
     assert b"public_home_latency_seconds" in payload
+
+
+@pytest.mark.asyncio()
+async def test_compose_static_block_without_data_source() -> None:
+    composer = HomeComposer(
+        cache=InMemoryHomeCache(),
+        node_service=NodeDataService(
+            fetch_many=_empty_many, fetch_filtered=_empty_auto
+        ),
+        quest_service=QuestDataService(
+            fetch_many=_empty_many, fetch_filtered=_empty_auto
+        ),
+        dev_blog_service=DevBlogDataService(
+            fetch_many=_empty_many, fetch_filtered=_empty_auto
+        ),
+    )
+
+    config = _make_config(
+        blocks=[
+            {
+                "id": "hero-1",
+                "type": "hero",
+                "enabled": True,
+                "title": "Hero",
+                "slots": {
+                    "headline": "Headline",
+                    "cta": {"label": "Go", "href": "/"},
+                },
+            }
+        ]
+    )
+
+    result = await composer.compose(config, use_cache=False)
+
+    assert result["blocks"]
+    block = result["blocks"][0]
+    assert block["id"] == "hero-1"
+    assert block["type"] == "hero"
+    assert block.get("items") == []
+    assert block.get("slots", {}).get("headline") == "Headline"
+    assert result["fallbacks"] == []

@@ -124,9 +124,25 @@ describe('notifications api', () => {
   it('fetches notifications history with normalization and pagination metadata', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       items: [
-        { id: 'n-1', title: 'Hello', message: 42, created_at: '2025-10-01T00:00:00Z' },
-        { id: 'n-2', title: 'World', message: 'Second', read_at: null },
+        {
+          id: 'n-1',
+          user_id: 'user-1',
+          channel: 'email',
+          title: 'Hello',
+          message: '42',
+          priority: 'high',
+          created_at: '2025-10-01T00:00:00Z',
+          meta: { topic: 'alerts' },
+          is_read: false,
+        },
+        {
+          id: 'n-2',
+          user_id: 'user-2',
+          message: 'Second',
+          read_at: '2025-10-02T00:00:00Z',
+        },
       ],
+      unread: '5',
     });
 
     const result = await fetchNotificationsHistory({ limit: 200, offset: -5 });
@@ -134,11 +150,38 @@ describe('notifications api', () => {
     expect(apiGet).toHaveBeenCalledWith('/v1/notifications?limit=100&offset=0', { signal: undefined });
     expect(result).toEqual({
       items: [
-        { id: 'n-1', title: 'Hello', created_at: '2025-10-01T00:00:00Z' },
-        { id: 'n-2', title: 'World', message: 'Second', read_at: null },
+        {
+          id: 'n-1',
+          user_id: 'user-1',
+          channel: 'email',
+          title: 'Hello',
+          message: '42',
+          type: null,
+          priority: 'high',
+          meta: { topic: 'alerts' },
+          created_at: '2025-10-01T00:00:00Z',
+          updated_at: null,
+          read_at: null,
+          is_read: false,
+        },
+        {
+          id: 'n-2',
+          user_id: 'user-2',
+          channel: null,
+          title: null,
+          message: 'Second',
+          type: null,
+          priority: 'normal',
+          meta: {},
+          created_at: null,
+          updated_at: null,
+          read_at: '2025-10-02T00:00:00Z',
+          is_read: true,
+        },
       ],
       nextOffset: 2,
       hasMore: false,
+      unread: 5,
     });
   });
 
@@ -146,9 +189,14 @@ describe('notifications api', () => {
     vi.mocked(apiPost).mockResolvedValue({
       notification: {
         id: 'notif/1',
+        user_id: 'user-5',
+        channel: 'push',
         title: 'Marked',
         message: 'Done',
+        type: 'system',
+        priority: 'low',
         read_at: '2025-10-08T00:00:00Z',
+        updated_at: '2025-10-08T00:00:00Z',
         meta: { topic: 'alerts' },
       },
     });
@@ -162,10 +210,17 @@ describe('notifications api', () => {
     );
     expect(result).toEqual({
       id: 'notif/1',
+      user_id: 'user-5',
+      channel: 'push',
       title: 'Marked',
       message: 'Done',
-      read_at: '2025-10-08T00:00:00Z',
+      type: 'system',
+      priority: 'low',
       meta: { topic: 'alerts' },
+      created_at: null,
+      updated_at: '2025-10-08T00:00:00Z',
+      read_at: '2025-10-08T00:00:00Z',
+      is_read: true,
     });
   });
 
@@ -175,27 +230,118 @@ describe('notifications api', () => {
 
   it('fetches broadcasts with parameters and forwards signal', async () => {
     const controller = new AbortController();
-    vi.mocked(apiGet).mockResolvedValue({ items: [] });
+    vi.mocked(apiGet).mockResolvedValue({
+      items: [
+        {
+          id: 'br-1',
+          title: 'Promo',
+          body: null,
+          template_id: 'tpl-1',
+          audience: { type: 'all_users', filters: null, user_ids: null },
+          status: 'draft',
+          created_by: 'admin',
+          created_at: '2025-10-11T00:00:00Z',
+          updated_at: '2025-10-11T00:00:00Z',
+          scheduled_at: null,
+          started_at: null,
+          finished_at: null,
+          total: 0,
+          sent: 0,
+          failed: 0,
+        },
+      ],
+      total: '10',
+      offset: 50,
+      limit: 25,
+      has_next: true,
+      status_counts: { draft: '8', sent: 2 },
+      recipients: '1200',
+    });
 
     const result = await fetchNotificationBroadcasts({
       limit: 25,
       offset: 50,
-      status: 'draft',
+      statuses: ['draft'],
       search: 'promo',
       signal: controller.signal,
     });
 
-    expect(apiGet).toHaveBeenCalledWith('/v1/notifications/admin/broadcasts?limit=25&offset=50&status=draft&q=promo', {
+    expect(apiGet).toHaveBeenCalledWith('/v1/notifications/admin/broadcasts?limit=25&offset=50&statuses=draft&q=promo', {
       signal: controller.signal,
     });
-    expect(result).toEqual({ items: [] });
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'br-1',
+          title: 'Promo',
+          body: null,
+          template_id: 'tpl-1',
+          audience: { type: 'all_users', filters: null, user_ids: null },
+          status: 'draft',
+          created_by: 'admin',
+          created_at: '2025-10-11T00:00:00Z',
+          updated_at: '2025-10-11T00:00:00Z',
+          scheduled_at: null,
+          started_at: null,
+          finished_at: null,
+          total: 0,
+          sent: 0,
+          failed: 0,
+        },
+      ],
+      total: 10,
+      offset: 50,
+      limit: 25,
+      has_next: true,
+      status_counts: { draft: 8, sent: 2 },
+      recipients: 1200,
+    });
   });
 
   it('creates, updates, sends and cancels broadcasts', async () => {
-    vi.mocked(apiPost).mockResolvedValue(undefined);
-    vi.mocked(apiPut).mockResolvedValue(undefined);
+    const createResponse = {
+      id: 'br-1',
+      title: 'Test',
+      body: 'Body',
+      template_id: null,
+      audience: { type: 'all_users', filters: null, user_ids: null },
+      status: 'draft',
+      created_by: 'admin',
+      created_at: '2025-10-11T00:00:00Z',
+      updated_at: '2025-10-11T00:00:00Z',
+      scheduled_at: null,
+      started_at: null,
+      finished_at: null,
+      total: 0,
+      sent: 0,
+      failed: 0,
+    };
+    const updateResponse = {
+      ...createResponse,
+      title: 'Updated',
+      status: 'scheduled',
+      scheduled_at: '2025-10-12T00:00:00Z',
+      audience: { type: 'segment', filters: { region: 'emea' }, user_ids: null },
+      template_id: 'tpl-1',
+    };
+    const sendResponse = {
+      ...createResponse,
+      status: 'sending',
+      started_at: '2025-10-11T12:00:00Z',
+    };
+    const cancelResponse = {
+      ...createResponse,
+      status: 'cancelled',
+      finished_at: '2025-10-11T12:05:00Z',
+    };
 
-    await createNotificationBroadcast({
+    vi.mocked(apiPost)
+      .mockResolvedValueOnce(createResponse)
+      .mockResolvedValueOnce(sendResponse)
+      .mockResolvedValueOnce(cancelResponse);
+    vi.mocked(apiPut).mockResolvedValue(updateResponse);
+
+    const created = await createNotificationBroadcast({
       title: 'Test',
       body: 'Body',
       template_id: null,
@@ -203,15 +349,15 @@ describe('notifications api', () => {
       scheduled_at: null,
       created_by: 'admin',
     });
-    await updateNotificationBroadcast('br-1', {
+    const updated = await updateNotificationBroadcast('br-1', {
       title: 'Updated',
       body: null,
       template_id: 'tpl-1',
       audience: { type: 'segment', filters: { region: 'emea' } },
-      scheduled_at: '2025-10-01T00:00:00Z',
+      scheduled_at: '2025-10-12T00:00:00Z',
     });
-    await sendNotificationBroadcastNow('br-1');
-    await cancelNotificationBroadcast('br-1');
+    const sent = await sendNotificationBroadcastNow('br-1');
+    const cancelled = await cancelNotificationBroadcast('br-1');
 
     expect(apiPost).toHaveBeenNthCalledWith(1, '/v1/notifications/admin/broadcasts', {
       title: 'Test',
@@ -226,10 +372,15 @@ describe('notifications api', () => {
       body: null,
       template_id: 'tpl-1',
       audience: { type: 'segment', filters: { region: 'emea' } },
-      scheduled_at: '2025-10-01T00:00:00Z',
+      scheduled_at: '2025-10-12T00:00:00Z',
     });
     expect(apiPost).toHaveBeenNthCalledWith(2, '/v1/notifications/admin/broadcasts/br-1/actions/send-now', {});
     expect(apiPost).toHaveBeenNthCalledWith(3, '/v1/notifications/admin/broadcasts/br-1/actions/cancel', {});
+
+    expect(created).toEqual(createResponse);
+    expect(updated).toEqual(updateResponse);
+    expect(sent).toEqual(sendResponse);
+    expect(cancelled).toEqual(cancelResponse);
   });
 
   it('fetches notification templates and filters invalid entries', async () => {
@@ -258,6 +409,12 @@ describe('notifications api', () => {
         slug: 'welcome',
         name: 'Welcome',
         body: 'Hello',
+        description: null,
+        subject: null,
+        locale: null,
+        variables: {},
+        meta: {},
+        created_by: null,
         created_at: '2025-10-01T00:00:00Z',
         updated_at: '2025-10-01T00:00:00Z',
       },
@@ -272,7 +429,17 @@ describe('notifications api', () => {
     await saveNotificationTemplate(payload);
     await deleteNotificationTemplate(' tpl-1 ');
 
-    expect(apiPost).toHaveBeenCalledWith('/v1/notifications/admin/templates', payload);
+    expect(apiPost).toHaveBeenCalledWith('/v1/notifications/admin/templates', {
+      name: 'Test',
+      body: 'Hello',
+      slug: null,
+      description: null,
+      subject: null,
+      locale: null,
+      variables: null,
+      meta: null,
+      created_by: null,
+    });
     expect(apiDelete).toHaveBeenCalledWith('/v1/notifications/admin/templates/tpl-1');
   });
 

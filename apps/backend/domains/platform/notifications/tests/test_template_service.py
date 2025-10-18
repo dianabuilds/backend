@@ -113,9 +113,13 @@ class StubNotifyService:
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
 
-    async def create_notification(self, **kwargs: Any) -> dict[str, Any]:
-        self.calls.append(dict(kwargs))
-        result = dict(kwargs)
+    async def create_notification(self, command: Any) -> dict[str, Any]:
+        if hasattr(command, "to_repo_payload"):
+            payload = dict(command.to_repo_payload())
+        else:
+            payload = {}
+        self.calls.append(payload)
+        result = dict(payload)
         result["id"] = str(uuid4())
         return result
 

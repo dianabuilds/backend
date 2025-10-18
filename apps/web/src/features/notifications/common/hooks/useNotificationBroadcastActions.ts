@@ -66,16 +66,17 @@ export function useNotificationBroadcastActions({
   }, []);
 
   const runWithErrorHandling = React.useCallback(
-    async (
-      action: () => Promise<void>,
+    async <T>(
+      action: () => Promise<T>,
       callbacks: ActionCallbacks | undefined,
       fallback: string,
-    ) => {
+    ): Promise<T> => {
       const onSuccess = callbacks?.onSuccess;
       const onErrorCallback = callbacks?.onError;
       try {
-        await action();
+        const result = await action();
         onSuccess?.();
+        return result;
       } catch (err) {
         const message = resolveError(err, fallback, mapError);
         if (!onErrorCallback) {

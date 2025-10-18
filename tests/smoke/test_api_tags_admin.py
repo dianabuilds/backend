@@ -4,7 +4,8 @@ import pytest
 
 from packages.core.config import load_settings
 
-ADMIN_KEY = str(load_settings().admin_api_key or "")
+_ADMIN_SECRET = load_settings().admin_api_key
+ADMIN_KEY = _ADMIN_SECRET.get_secret_value() if _ADMIN_SECRET else ""
 if not ADMIN_KEY:
     pytest.skip(
         "APP_ADMIN_API_KEY is required for admin endpoints", allow_module_level=True

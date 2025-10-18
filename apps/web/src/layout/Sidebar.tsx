@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
@@ -10,6 +10,7 @@ import {
   UserGroupIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
+  HomeModernIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@shared/auth';
 
@@ -82,6 +83,20 @@ const sections: Section[] = [
           { to: '/billing/payments', label: 'Payments' },
           { to: '/billing/payments/monitoring', label: 'Payments Monitoring' },
           { to: '/billing/tariffs', label: 'Tariffs' },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Experience',
+    groups: [
+      {
+        base: '/management',
+        label: 'Public Site',
+        icon: <HomeModernIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
+        children: [
+          { to: '/management/home', label: 'Homepage' },
+          { to: '/management/dev-blog', label: 'Dev Blog' },
         ],
       },
     ],

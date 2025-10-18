@@ -6,7 +6,7 @@ import logging
 from collections.abc import Iterable
 from typing import Any
 
-from domains.platform.audit.infrastructure import AuditLogPayload
+from domains.platform.audit.application.facade import AuditLogPayload
 from domains.product.nodes.infrastructure import (
     AdminEvent,
     emit_admin_activity,

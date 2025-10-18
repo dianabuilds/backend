@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearCsrfToken,
   csrfHeaders,
   getCookie,
   getCsrfToken,
+  getCsrfCookieName,
+  getCsrfHeaderName,
   primeCsrfFromCookies,
   setCsrfToken,
   syncCsrfFromResponse,
@@ -29,6 +31,7 @@ function createStorage() {
 
 function resetCookies() {
   document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+  document.cookie = 'CUSTOM-CSRF=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   document.cookie = 'foo=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
 }
 
@@ -43,6 +46,7 @@ beforeEach(() => {
   });
   resetCookies();
   clearCsrfToken();
+  setCsrfToken(null, { headerName: 'X-CSRF-Token', cookieName: 'XSRF-TOKEN' });
 });
 
 describe('csrf utilities', () => {
@@ -57,16 +61,33 @@ describe('csrf utilities', () => {
     expect(csrfHeaders()).toStrictEqual({ 'X-CSRF-Token': 'token-value' });
   });
 
-  it('primes token from cookies', () => {
-    document.cookie = 'XSRF-TOKEN=from-cookie';
+  it('primes token from cookies and detects cookie name', () => {
+    document.cookie = 'CUSTOM-CSRF=from-cookie';
     primeCsrfFromCookies();
     expect(getCsrfToken()).toBe('from-cookie');
+    expect(getCsrfCookieName()).toBe('CUSTOM-CSRF');
   });
 
-  it('syncs token from response headers', () => {
-    const response = new Response('', { headers: { 'X-CSRF-Token': 'from-response' } });
+  it('syncs token from response headers and stores metadata', () => {
+    const response = new Response('', { headers: { 'X-Test-CSRF': 'from-response' } });
     syncCsrfFromResponse(response);
     expect(getCsrfToken()).toBe('from-response');
-    expect(window.sessionStorage.getItem('auth.csrf_token')).toBe('from-response');
+    expect(getCsrfHeaderName()).toBe('X-Test-CSRF');
+    const raw = window.sessionStorage.getItem('auth.csrf_token');
+    expect(raw).toBeTypeOf('string');
+    const parsed = JSON.parse(raw as string);
+    expect(parsed).toMatchObject({ token: 'from-response', header: 'X-Test-CSRF' });
+  });
+
+  it('expires cached token after ttl', async () => {
+    vi.useFakeTimers();
+    const now = new Date('2025-01-01T00:00:00Z').getTime();
+    vi.setSystemTime(now);
+    setCsrfToken('short-lived', { ttlSeconds: 1 });
+    expect(getCsrfToken()).toBe('short-lived');
+    vi.advanceTimersByTime(1100);
+    expect(getCsrfToken()).toBeNull();
+    expect(csrfHeaders()).toStrictEqual({});
+    vi.useRealTimers();
   });
 });

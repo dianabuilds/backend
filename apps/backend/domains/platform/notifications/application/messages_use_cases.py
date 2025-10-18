@@ -5,6 +5,9 @@ import uuid
 from collections.abc import Mapping
 from typing import Any
 
+from domains.platform.notifications.application.interactors.commands import (
+    NotificationCreateCommand,
+)
 from domains.platform.notifications.application.messages_exceptions import (
     NotificationError,
 )
@@ -107,7 +110,7 @@ async def send_notification(
     meta = _normalize_meta(payload.get("meta"))
     event_id = payload.get("event_id")
 
-    dto = await notify_service.create_notification(
+    command = NotificationCreateCommand(
         user_id=user_id,
         title=title,
         message=message,
@@ -118,9 +121,10 @@ async def send_notification(
         priority=priority,
         cta_label=cta_label,
         cta_url=cta_url,
-        meta=meta,
+        meta=meta or {},
         event_id=event_id,
     )
+    dto = await notify_service.create_notification(command)
     return build_single_response(dto)
 
 

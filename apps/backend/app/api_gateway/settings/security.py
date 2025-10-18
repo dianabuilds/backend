@@ -51,12 +51,13 @@ async def _verify_password(container, user_id: str, password: str) -> None:
             message="Password is required",
         ) from None
     settings = container.settings
+    bootstrap_secret = settings.auth_bootstrap_password
     if (
         settings.auth_bootstrap_user_id
         and str(settings.auth_bootstrap_user_id) == str(user_id)
-        and settings.auth_bootstrap_password is not None
+        and bootstrap_secret is not None
     ):
-        if password == settings.auth_bootstrap_password:
+        if password == bootstrap_secret.get_secret_value():
             return
     try:
         user = await container.users.service.get(user_id)

@@ -59,7 +59,7 @@ describe('useNotificationBroadcasts', () => {
           title: 'Welcome',
           body: null,
           template_id: null,
-          audience: { type: 'all_users' },
+          audience: { type: 'all_users', filters: null, user_ids: null },
           status: 'draft',
           created_by: 'admin',
           created_at: '2025-10-01T00:00:00Z',
@@ -73,6 +73,8 @@ describe('useNotificationBroadcasts', () => {
         },
       ],
       total: 15,
+      offset: 0,
+      limit: 10,
       has_next: true,
       status_counts: { draft: 5, sent: 2 },
       recipients: 100,
@@ -92,8 +94,24 @@ describe('useNotificationBroadcasts', () => {
 
   it('updates page and refreshes data with new offset', async () => {
     vi.mocked(fetchNotificationBroadcasts)
-      .mockResolvedValueOnce({ items: [], total: 30, has_next: true })
-      .mockResolvedValueOnce({ items: [], total: 30, has_next: false });
+      .mockResolvedValueOnce({
+        items: [],
+        total: 30,
+        offset: 0,
+        limit: 10,
+        has_next: true,
+        status_counts: {},
+        recipients: 0,
+      })
+      .mockResolvedValueOnce({
+        items: [],
+        total: 30,
+        offset: 10,
+        limit: 10,
+        has_next: false,
+        status_counts: {},
+        recipients: 0,
+      });
 
     await renderHook({ status: 'all', pageSize: 10, debounceMs: 0 });
 
@@ -109,14 +127,14 @@ describe('useNotificationBroadcasts', () => {
     expect(fetchNotificationBroadcasts).toHaveBeenNthCalledWith(1, {
       limit: 10,
       offset: 0,
-      status: undefined,
+      statuses: undefined,
       search: undefined,
       signal: expect.any(AbortSignal),
     });
     expect(fetchNotificationBroadcasts).toHaveBeenNthCalledWith(2, {
       limit: 10,
       offset: 10,
-      status: undefined,
+      statuses: undefined,
       search: undefined,
       signal: expect.any(AbortSignal),
     });

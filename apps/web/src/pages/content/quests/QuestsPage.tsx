@@ -6,6 +6,7 @@ import { Badge, Button, Card, Input, Select, Switch, Table, TablePagination, Tex
 import { apiGet, apiPost } from '@shared/api/client';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
 import { extractErrorMessage } from '@shared/utils/errors';
+import { formatDateTime } from '@shared/utils/format';
 import { translate } from '@shared/i18n/locale';
 type QuestStatus = 'all' | 'draft' | 'published';
 
@@ -56,7 +57,7 @@ const FALLBACK_QUESTS: Quest[] = Array.from({ length: 24 }, (_, index) => ({
 }));
 
 const QUEST_TOASTS = {
-  loadError: { en: 'Failed to load quests', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РєРІРµСЃС‚С‹' },
+  loadError: { en: 'Failed to load quests', ru: 'Не удалось загрузить квесты' },
 };
 
 
@@ -86,13 +87,6 @@ function formatStatusBadge(quest: Quest): { label: string; color: 'success' | 'w
   const normalized = (quest.status ?? '').toLowerCase();
   const published = normalized === 'published' || quest.is_public === true;
   return published ? { label: 'Published', color: 'success' } : { label: 'Draft', color: 'warning' };
-}
-
-function formatDateTime(value?: string | null): string {
-  if (!value) return 'пїЅ';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
 }
 
 function parseTags(input: string): string[] {
@@ -314,7 +308,7 @@ export default function QuestsPage(): React.ReactElement {
         <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
           <span>
             {items.length
-              ? `Showing ${rangeStart.toLocaleString()}пїЅ${rangeEnd.toLocaleString()}${
+              ? `Showing ${rangeStart.toLocaleString()} to ${rangeEnd.toLocaleString()}${
                   totalCount != null ? ` of ${totalCount.toLocaleString()}` : ''
                 }`
               : 'No quests to display yet.'}
@@ -366,12 +360,12 @@ export default function QuestsPage(): React.ReactElement {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={createQuest} disabled={busy}>
-              {busy ? 'CreatingпїЅ' : 'Create quest'}
+              {busy ? 'Creating...' : 'Create quest'}
             </Button>
             {created && (
               <span className="text-sm text-gray-600">
                 Created quest {created.id}
-                {created.slug ? ` пїЅ ${created.slug}` : ''}
+                {created.slug ? ` (slug: ${created.slug})` : ''}
               </span>
             )}
           </div>
@@ -404,7 +398,7 @@ export default function QuestsPage(): React.ReactElement {
               {loading && items.length === 0 ? (
                 <Table.TR>
                   <Table.TD colSpan={4} className="py-6 text-center text-sm text-gray-500">
-                    Loading questsпїЅ
+                    Loading quests...
                   </Table.TD>
                 </Table.TR>
               ) : null}
@@ -420,13 +414,13 @@ export default function QuestsPage(): React.ReactElement {
                 return (
                   <Table.TR key={quest.id} className="text-sm">
                     <Table.TD className="py-3 font-medium text-gray-900">{quest.title || 'Untitled quest'}</Table.TD>
-                    <Table.TD className="py-3 text-gray-600">{quest.slug || 'пїЅ'}</Table.TD>
+                    <Table.TD className="py-3 text-gray-600">{quest.slug || '--'}</Table.TD>
                     <Table.TD className="py-3">
                       <Badge color={statusBadge.color} variant="soft">
                         {statusBadge.label}
                       </Badge>
                     </Table.TD>
-                    <Table.TD className="py-3 text-gray-500">{formatDateTime(quest.updated_at)}</Table.TD>
+                    <Table.TD className="py-3 text-gray-500">{formatDateTime(quest.updated_at ?? undefined, { fallback: '--' })}</Table.TD>
                   </Table.TR>
                 );
               })}

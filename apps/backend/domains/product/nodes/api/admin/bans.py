@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import require_admin  # type: ignore[import-not-found]
+from domains.platform.iam.application.facade import csrf_protect, require_admin
 from domains.product.nodes.application.admin_queries import (
     AdminQueryError,
     _extract_actor_id,
@@ -49,6 +49,7 @@ def register_comment_ban_routes(router: APIRouter) -> None:
         request: Request,
         body: dict[str, Any] | None = None,
         _: None = Depends(require_admin),
+        _csrf: None = Depends(csrf_protect),
         container=Depends(get_container),
     ) -> dict[str, Any]:
         payload = body or {}
@@ -70,6 +71,7 @@ def register_comment_ban_routes(router: APIRouter) -> None:
         user_id: str,
         request: Request,
         _: None = Depends(require_admin),
+        _csrf: None = Depends(csrf_protect),
         container=Depends(get_container),
     ) -> dict[str, Any]:
         actor_id = _extract_actor_id(request)

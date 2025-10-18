@@ -4,6 +4,10 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import TYPE_CHECKING, Any
 
+from domains.platform.notifications.application.interactors.commands import (
+    NotificationCreateCommand,
+)
+
 from ...domain.records import UserRecord
 from .exceptions import ModerationUserError, UserNotFoundError
 from .presenter import (
@@ -180,24 +184,30 @@ async def issue_sanction(
             reason = sanction_payload.get("reason")
             if sanction_type == "warning":
                 await notify.create_notification(
-                    user_id=user_id,
-                    title="Warning",
-                    message=str(reason or "You have received a warning"),
-                    type_="warning",
+                    NotificationCreateCommand(
+                        user_id=user_id,
+                        title="Warning",
+                        message=str(reason or "You have received a warning"),
+                        type_="warning",
+                    )
                 )
                 if auto_ban_created:
                     await notify.create_notification(
-                        user_id=user_id,
-                        title="Account banned",
-                        message="You have been banned due to multiple warnings.",
-                        type_="ban",
+                        NotificationCreateCommand(
+                            user_id=user_id,
+                            title="Account banned",
+                            message="You have been banned due to multiple warnings.",
+                            type_="ban",
+                        )
                     )
             elif sanction_type == "ban":
                 await notify.create_notification(
-                    user_id=user_id,
-                    title="Account banned",
-                    message=str(reason or "Your account has been banned"),
-                    type_="ban",
+                    NotificationCreateCommand(
+                        user_id=user_id,
+                        title="Account banned",
+                        message=str(reason or "Your account has been banned"),
+                        type_="ban",
+                    )
                 )
         except (AttributeError, RuntimeError, TypeError) as exc:  # pragma: no cover
             logger.debug(

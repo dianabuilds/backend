@@ -4,15 +4,20 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from domains.platform.iam.security import csrf_protect, get_current_user
+from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 
 from .deps import get_engagement_service
 
 
 def register_engagement_routes(router: APIRouter) -> None:
     service_dep = Depends(get_engagement_service)
+    NODES_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["nodes"].as_dependencies()
 
-    @router.post("/{node_id}/views")
+    @router.post(
+        "/{node_id}/views",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def register_view(
         node_id: str,
         body: dict[str, Any] | None,
@@ -33,7 +38,10 @@ def register_engagement_routes(router: APIRouter) -> None:
     ):
         return await service.get_views(node_id, limit=limit, offset=offset)
 
-    @router.post("/{node_id}/reactions/like")
+    @router.post(
+        "/{node_id}/reactions/like",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def add_like(
         node_id: str,
         _req: Request,
@@ -43,7 +51,10 @@ def register_engagement_routes(router: APIRouter) -> None:
     ):
         return await service.add_like(node_id, claims)
 
-    @router.delete("/{node_id}/reactions/like")
+    @router.delete(
+        "/{node_id}/reactions/like",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def remove_like(
         node_id: str,
         _req: Request,
@@ -70,7 +81,10 @@ def register_engagement_routes(router: APIRouter) -> None:
     ):
         return await service.list_saved_views(claims)
 
-    @router.post("/views")
+    @router.post(
+        "/views",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def upsert_saved_view(
         body: dict[str, Any],
         _req: Request,
@@ -80,7 +94,10 @@ def register_engagement_routes(router: APIRouter) -> None:
     ):
         return await service.upsert_saved_view(body, claims)
 
-    @router.delete("/views/{name}")
+    @router.delete(
+        "/views/{name}",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def delete_saved_view(
         name: str,
         _req: Request,
@@ -90,7 +107,10 @@ def register_engagement_routes(router: APIRouter) -> None:
     ):
         return await service.delete_saved_view(name, claims)
 
-    @router.post("/views/{name}/default")
+    @router.post(
+        "/views/{name}/default",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def set_default_saved_view(
         name: str,
         _req: Request,

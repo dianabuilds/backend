@@ -8,7 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from domains.platform.events.service import Events
+from domains.platform.events.application.publisher import Events
 from packages.core.db import get_async_engine
 
 logger = logging.getLogger(__name__)

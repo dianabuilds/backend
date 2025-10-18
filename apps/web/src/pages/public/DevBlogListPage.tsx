@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -22,82 +22,82 @@ const DATE_FORMAT: Record<Locale, string> = {
 
 const HEADER_TITLE: Record<Locale, string> = {
   en: 'Developer blog: news and updates',
-  ru: 'Р”РµРІ-Р±Р»РѕРі: РЅРѕРІРѕСЃС‚Рё Рё РѕР±РЅРѕРІР»РµРЅРёСЏ',
+  ru: 'Дев-блог: новости и обновления',
 };
 
 const HEADER_SUBTITLE: Record<Locale, string> = {
   en: 'Follow milestones, release notes, and behind-the-scenes updates from the Caves team.',
-  ru: 'РЎР»РµРґРёС‚Рµ Р·Р° РІР°Р¶РЅС‹РјРё СЂРµР»РёР·Р°РјРё, Р·Р°РјРµС‚РєР°РјРё Рё Р±СЌРєСЃС‚РµР№РґР¶РµРј РєРѕРјР°РЅРґС‹ Caves.',
+  ru: 'Следите за важными релизами, заметками и бэкстейджем команды Caves.',
 };
 
 const FILTERS_TITLE: Record<Locale, string> = {
   en: 'Filters',
-  ru: 'Р¤РёР»СЊС‚СЂС‹',
+  ru: 'Фильтры',
 };
 
 const TAGS_LABEL: Record<Locale, string> = {
   en: 'Tags',
-  ru: 'РўРµРіРё',
+  ru: 'Теги',
 };
 
 const NO_TAGS_HINT: Record<Locale, string> = {
   en: 'Tags will appear once more posts are published.',
-  ru: 'РўРµРіРё РїРѕСЏРІСЏС‚СЃСЏ, РєРѕРіРґР° РїРѕСЏРІСЏС‚СЃСЏ РЅРѕРІС‹Рµ РїСѓР±Р»РёРєР°С†РёРё.',
+  ru: 'Теги появятся, когда появятся новые публикации.',
 };
 
 const DATE_FROM_LABEL: Record<Locale, string> = {
   en: 'From date',
-  ru: 'РЎ РґР°С‚С‹',
+  ru: 'С даты',
 };
 
 const DATE_TO_LABEL: Record<Locale, string> = {
   en: 'To date',
-  ru: 'РџРѕ РґР°С‚Сѓ',
+  ru: 'По дату',
 };
 
 const RESET_FILTERS_LABEL: Record<Locale, string> = {
   en: 'Reset filters',
-  ru: 'РЎР±СЂРѕСЃРёС‚СЊ С„РёР»СЊС‚СЂС‹',
+  ru: 'Сбросить фильтры',
 };
 
 const PAGINATION_PREV: Record<Locale, string> = {
   en: 'Previous',
-  ru: 'РќР°Р·Р°Рґ',
+  ru: 'Назад',
 };
 
 const PAGINATION_NEXT: Record<Locale, string> = {
   en: 'Next',
-  ru: 'Р’РїРµСЂС‘Рґ',
+  ru: 'Вперёд',
 };
 
 const PAGINATION_INFO: Record<Locale, string> = {
   en: 'Page {{page}} of {{total}}',
-  ru: 'РЎС‚СЂР°РЅРёС†Р° {{page}} РёР· {{total}}',
+  ru: 'Страница {{page}} из {{total}}',
 };
 
 const ERROR_PREFIX: Record<Locale, string> = {
   en: 'Failed to load posts:',
-  ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РїРѕСЃС‚С‹:',
+  ru: 'Не удалось загрузить посты:',
 };
 
 const EMPTY_STATE: Record<Locale, string> = {
   en: 'No posts match the selected filters. Try adjusting the filters or come back later.',
-  ru: 'РџРѕ РІС‹Р±СЂР°РЅРЅС‹Рј С„РёР»СЊС‚СЂР°Рј РїРѕСЃС‚РѕРІ РЅРµ РЅР°Р№РґРµРЅРѕ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РёР·РјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂС‹ РёР»Рё Р·Р°РіР»СЏРЅРёС‚Рµ РїРѕР·Р¶Рµ.',
+  ru: 'По выбранным фильтрам постов не найдено. Попробуйте изменить фильтры или загляните позже.',
 };
 
 const READ_MORE: Record<Locale, string> = {
   en: 'Read more',
-  ru: 'Р§РёС‚Р°С‚СЊ РґР°Р»РµРµ',
+  ru: 'Читать далее',
 };
 
 const UNTITLED_POST: Record<Locale, string> = {
   en: 'Untitled',
-  ru: 'Р‘РµР· РЅР°Р·РІР°РЅРёСЏ',
+  ru: 'Без названия',
 };
 
 const SHARE_DESCRIPTION: Record<Locale, string> = {
   en: 'Stories, research, and platform updates from the Caves team.',
-  ru: 'РСЃС‚РѕСЂРёРё, РёСЃСЃР»РµРґРѕРІР°РЅРёСЏ Рё РѕР±РЅРѕРІР»РµРЅРёСЏ РїР»Р°С‚С„РѕСЂРјС‹ РѕС‚ РєРѕРјР°РЅРґС‹ Caves.',
+  ru: 'Истории, исследования и обновления платформы от команды Caves.',
 };
 
 const OG_LOCALE_MAP: Record<Locale, string> = {
@@ -278,7 +278,7 @@ export default function DevBlogListPage(): React.ReactElement {
   const availableTags = React.useMemo<string[]>(() => data?.availableTags ?? [], [data?.availableTags]);
   const totalPages = data ? Math.max(1, Math.ceil(data.total / DEV_BLOG_PAGE_SIZE)) : 1;
   const headTitle = filters.tags.length
-    ? `${HEADER_TITLE[locale] ?? HEADER_TITLE.ru} вЂ” ${filters.tags.map((tag) => `#${tag}`).join(', ')}`
+    ? `${HEADER_TITLE[locale] ?? HEADER_TITLE.ru} — ${filters.tags.map((tag) => `#${tag}`).join(', ')}`
     : HEADER_TITLE[locale] ?? HEADER_TITLE.ru;
   const metaDescription = SHARE_DESCRIPTION[locale] ?? SHARE_DESCRIPTION.ru;
   const isEmpty = !loading && !error && data != null && data.items.length === 0;

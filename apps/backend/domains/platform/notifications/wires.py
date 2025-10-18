@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import asyncio
 import logging
@@ -8,7 +8,7 @@ from concurrent.futures import Future as ThreadFuture
 from dataclasses import dataclass
 from typing import Any
 
-from domains.platform.events.service import Events
+from domains.platform.events.application.publisher import Events
 from domains.platform.flags.application.service import FlagService
 from domains.platform.notifications.application.delivery import (
     DeliveryService,

@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import csrf_protect, require_admin
+from domains.platform.iam.application.facade import csrf_protect, require_admin
 from domains.product.tags.adapters import create_admin_repo
 from domains.product.tags.application.admin_service import TagAdminService
 from packages.fastapi_rate_limit import optional_rate_limiter

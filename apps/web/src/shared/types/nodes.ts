@@ -1,7 +1,8 @@
-﻿export const DEV_BLOG_TAG = 'dev-blog';
+export const DEV_BLOG_TAG = 'dev-blog';
 export const DEV_BLOG_HOME_TAG = 'dev-blog-home';
 
 export type EmbeddingStatus = 'ready' | 'pending' | 'disabled' | 'error' | 'unknown';
+export type NodeModerationStatus = 'pending' | 'resolved' | 'hidden' | 'restricted' | 'escalated';
 
 export type NodeItem = {
   id: string;
@@ -14,6 +15,8 @@ export type NodeItem = {
   updated_at?: string | null;
   embedding_status?: EmbeddingStatus | null;
   embedding_ready?: boolean;
+  moderation_status?: NodeModerationStatus;
+  moderation_status_updated_at?: string | null;
   tags?: string[];
   isDevBlog?: boolean;
   showOnHome?: boolean;
@@ -50,5 +53,3 @@ export type NodeUserOption = {
   id: string;
   username: string;
 };
-
-

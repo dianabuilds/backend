@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -18,6 +18,7 @@ from domains.platform.iam.adapters.verification_store_redis import (
     RedisVerificationStore,
 )
 from domains.platform.iam.application.auth_service import AuthService
+from domains.platform.iam.application.facade import IamFacade, iam_facade
 from domains.platform.iam.ports.token_port import TokenPort
 from packages.core.config import Settings, load_settings, to_async_dsn
 
@@ -26,6 +27,7 @@ from packages.core.config import Settings, load_settings, to_async_dsn
 class IAMContainer:
     settings: Settings
     service: AuthService
+    facade: IamFacade
 
 
 def build_container(settings: Settings | None = None) -> IAMContainer:
@@ -45,7 +47,7 @@ def build_container(settings: Settings | None = None) -> IAMContainer:
         credentials=credentials,
         settings=s,
     )
-    return IAMContainer(settings=s, service=svc)
+    return IAMContainer(settings=s, service=svc, facade=iam_facade)
 
 
 __all__ = ["IAMContainer", "build_container"]

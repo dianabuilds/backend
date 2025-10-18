@@ -103,6 +103,12 @@ class EntityDataService(Protocol):
     ) -> list[Mapping[str, Any]]: ...
 
 
+class FetchFilteredCallable(Protocol):
+    def __call__(
+        self, *, tag: str | None, limit: int, order: str | None
+    ) -> Awaitable[list[Mapping[str, Any]]]: ...
+
+
 class HomeCache(Protocol):
     async def get(self, key: str) -> Mapping[str, Any] | None: ...
 
@@ -151,9 +157,7 @@ class InMemoryHomeCache(HomeCache):
 @dataclass(slots=True)
 class CallableEntityDataService(EntityDataService):
     fetch_many: Callable[[Sequence[str | int]], Awaitable[list[Mapping[str, Any]]]]
-    fetch_filtered: Callable[
-        [str | None, int, str | None], Awaitable[list[Mapping[str, Any]]]
-    ]
+    fetch_filtered: FetchFilteredCallable
 
     async def fetch_by_ids(self, ids: Sequence[str | int]) -> list[Mapping[str, Any]]:
         return await self.fetch_many(ids)
@@ -161,7 +165,7 @@ class CallableEntityDataService(EntityDataService):
     async def fetch_by_filter(
         self, *, tag: str | None, limit: int, order: str | None
     ) -> list[Mapping[str, Any]]:
-        return await self.fetch_filtered(tag, limit, order)
+        return await self.fetch_filtered(tag=tag, limit=limit, order=order)
 
 
 class NodeDataService(CallableEntityDataService):
@@ -377,7 +381,7 @@ class HomeComposer:
                 continue
             data_source = block_cfg.data_source
             if data_source is None:
-                fallbacks.append({"id": block_cfg.id, "reason": "missing_data_source"})
+                blocks.append(_build_static_block_payload(block_cfg))
                 continue
             service = self._entities.get(data_source.entity)
             if service is None:
@@ -436,6 +440,7 @@ class HomeComposer:
             block_payload: dict[str, Any] = {
                 "id": block_cfg.id,
                 "type": block_cfg.type,
+                "enabled": block_cfg.enabled,
                 "items": items,
                 "dataSource": {
                     "mode": data_source.mode,
@@ -492,6 +497,22 @@ def _ensure_mapping(value: Any) -> dict[str, Any]:
     if isinstance(value, Mapping):
         return dict(value)
     return {}
+
+
+def _build_static_block_payload(block_cfg: BlockConfig) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "id": block_cfg.id,
+        "type": block_cfg.type,
+        "enabled": block_cfg.enabled,
+        "items": [],
+    }
+    if block_cfg.title is not None:
+        payload["title"] = block_cfg.title
+    if block_cfg.slots is not None:
+        payload["slots"] = deepcopy(block_cfg.slots)
+    if block_cfg.layout is not None:
+        payload["layout"] = deepcopy(block_cfg.layout)
+    return payload
 
 
 def _iter_blocks(payload: Mapping[str, Any]) -> list[Mapping[str, Any]]:

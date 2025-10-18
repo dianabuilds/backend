@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from secrets import token_urlsafe
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
@@ -11,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from apps.backend.app.api_gateway.routers import get_container
 from domains.platform.audit.infrastructure import AuditLogPayload, safe_audit_log
 from domains.platform.iam.application.auth_service import AuthError, LoginIn
+from domains.platform.iam.security import issue_csrf_token
 from packages.fastapi_rate_limit import optional_rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -96,17 +96,8 @@ def make_router() -> APIRouter:
                 samesite="lax",
                 secure=(s.env == "prod"),
             )
-        # CSRF cookie (non-HttpOnly)
-        csrf_value = token_urlsafe(32)
-        response.set_cookie(
-            s.auth_csrf_cookie_name,
-            csrf_value,
-            max_age=int(s.auth_jwt_expires_min) * 60,
-            path="/",
-            httponly=False,
-            samesite="lax",
-            secure=(s.env == "prod"),
-        )
+        # CSRF cookie/header (non-HttpOnly)
+        csrf_token, csrf_ttl = issue_csrf_token(response, s)
         # Audit login
         await safe_audit_log(
             getattr(c.audit, "service", None),
@@ -126,7 +117,8 @@ def make_router() -> APIRouter:
         return {
             "access_token": pair.access_token,
             "refresh_token": pair.refresh_token,
-            "csrf_token": csrf_value,
+            "csrf_token": csrf_token,
+            "csrf_expires_in": csrf_ttl,
             "auth": {"source": auth_source},
             "user": {
                 "id": identity.id,
@@ -167,17 +159,13 @@ def make_router() -> APIRouter:
                 samesite="lax",
                 secure=(s.env == "prod"),
             )
-        csrf_value = token_urlsafe(32)
-        response.set_cookie(
-            s.auth_csrf_cookie_name,
-            csrf_value,
-            max_age=int(s.auth_jwt_expires_min) * 60,
-            path="/",
-            httponly=False,
-            samesite="lax",
-            secure=(s.env == "prod"),
-        )
-        return {"access_token": pair.access_token, "refresh_token": pair.refresh_token}
+        csrf_token, csrf_ttl = issue_csrf_token(response, s)
+        return {
+            "access_token": pair.access_token,
+            "refresh_token": pair.refresh_token,
+            "csrf_token": csrf_token,
+            "csrf_expires_in": csrf_ttl,
+        }
 
     @router.post(
         "/signup",
@@ -241,21 +229,13 @@ def make_router() -> APIRouter:
                 samesite="lax",
                 secure=(s.env == "prod"),
             )
-        csrf_value = token_urlsafe(32)
-        response.set_cookie(
-            s.auth_csrf_cookie_name,
-            csrf_value,
-            max_age=int(s.auth_jwt_expires_min) * 60,
-            path="/",
-            httponly=False,
-            samesite="lax",
-            secure=(s.env == "prod"),
-        )
+        csrf_token, csrf_ttl = issue_csrf_token(response, s)
         return {
             "ok": True,
             "access_token": pair.access_token,
             "refresh_token": pair.refresh_token,
-            "csrf_token": csrf_value,
+            "csrf_token": csrf_token,
+            "csrf_expires_in": csrf_ttl,
         }
 
     return router

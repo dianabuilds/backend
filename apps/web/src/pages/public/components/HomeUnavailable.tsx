@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 export const HOME_FALLBACK_DEFAULT_MESSAGE = 'Не удалось загрузить главную страницу';
 export const HOME_FALLBACK_TITLE = 'Раздел временно недоступен';

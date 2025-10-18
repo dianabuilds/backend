@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from domains.platform.events.errors import OutboxError
-from domains.platform.events.ports import OutboxPublisher
+from domains.platform.events.application.publisher import OutboxError, OutboxPublisher
 from domains.product.referrals.application.ports import Repo
 from domains.product.referrals.domain.entities import ReferralCode
 

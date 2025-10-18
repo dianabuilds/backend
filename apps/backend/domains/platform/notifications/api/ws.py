@@ -27,7 +27,7 @@ def make_router() -> APIRouter:
             try:
                 claims: dict[str, Any] = jwt.decode(
                     token,
-                    key=s.auth_jwt_secret,
+                    key=s.auth_jwt_secret.get_secret_value(),
                     algorithms=[s.auth_jwt_algorithm],
                     options={"verify_aud": False},
                 )

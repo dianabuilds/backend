@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from types import SimpleNamespace
 from hashlib import sha256
@@ -6,6 +6,7 @@ from hashlib import sha256
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from unittest.mock import AsyncMock
 
 from apps.backend.app.api_gateway import debug
@@ -33,8 +34,8 @@ def test_debug_config_exposes_safe_settings(app):
     settings = SimpleNamespace(
         env="test",
         auth_jwt_algorithm="HS256",
-        auth_jwt_secret="super-secret",
-        admin_api_key="admin-key",
+        auth_jwt_secret=SecretStr("super-secret"),
+        admin_api_key=SecretStr("admin-key"),
     )
     application = app(settings)
     client = TestClient(application)
@@ -56,8 +57,8 @@ def test_debug_whoami_returns_claims_and_admin_match(app):
     settings = SimpleNamespace(
         env="dev",
         auth_jwt_algorithm="HS256",
-        auth_jwt_secret="secret",
-        admin_api_key="key-123",
+        auth_jwt_secret=SecretStr("secret"),
+        admin_api_key=SecretStr("key-123"),
     )
     current_user = AsyncMock(return_value={"sub": "user-1", "role": "admin"})
     application = app(settings, current_user=current_user)
@@ -78,8 +79,8 @@ def test_debug_whoami_handles_auth_errors(app):
     settings = SimpleNamespace(
         env="dev",
         auth_jwt_algorithm="HS384",
-        auth_jwt_secret="secret",
-        admin_api_key="key-123",
+        auth_jwt_secret=SecretStr("secret"),
+        admin_api_key=SecretStr("key-123"),
     )
     current_user = AsyncMock(side_effect=RuntimeError("boom"))
     application = app(settings, current_user=current_user)

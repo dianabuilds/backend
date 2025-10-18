@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user
+from domains.platform.iam.application.facade import get_current_user
 
 
 def make_router() -> APIRouter:

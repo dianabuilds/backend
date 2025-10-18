@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 from apps.backend.app.api_gateway.main import app
 from packages.core.config import load_settings
 
-ADMIN_KEY = str(load_settings().admin_api_key or "")
+_ADMIN_SECRET = load_settings().admin_api_key
+ADMIN_KEY = _ADMIN_SECRET.get_secret_value() if _ADMIN_SECRET else ""
 if not ADMIN_KEY:
     pytest.skip(
         "APP_ADMIN_API_KEY is required for admin endpoints", allow_module_level=True
@@ -19,7 +20,11 @@ if not ADMIN_KEY:
 def _user_token(sub: str = "u1", role: str = "user") -> str:
     s = load_settings()
     payload = {"sub": sub, "role": role, "exp": int(time.time()) + 600}
-    return jwt.encode(payload, key=s.auth_jwt_secret, algorithm=s.auth_jwt_algorithm)
+    return jwt.encode(
+        payload,
+        key=s.auth_jwt_secret.get_secret_value(),
+        algorithm=s.auth_jwt_algorithm,
+    )
 
 
 def _set_auth(client: TestClient, token: str) -> None:

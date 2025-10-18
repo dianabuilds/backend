@@ -59,7 +59,9 @@ def make_jwt(sub: str, role: str = "user") -> str:
     settings = load_settings()
     payload = {"sub": sub, "role": role, "exp": int(time.time()) + 600}
     return jwt.encode(
-        payload, key=settings.auth_jwt_secret, algorithm=settings.auth_jwt_algorithm
+        payload,
+        key=settings.auth_jwt_secret.get_secret_value(),
+        algorithm=settings.auth_jwt_algorithm,
     )
 
 

@@ -19,7 +19,9 @@ class JWTTokenAdapter(TokenPort):
 
     def _encode(self, payload: dict[str, Any]) -> str:
         return jwt.encode(
-            payload, key=self.s.auth_jwt_secret, algorithm=self.s.auth_jwt_algorithm
+            payload,
+            key=self.s.auth_jwt_secret.get_secret_value(),
+            algorithm=self.s.auth_jwt_algorithm,
         )
 
     def issue(self, subject: str, claims: Mapping[str, Any] | None = None) -> TokenPair:
@@ -59,7 +61,7 @@ class JWTTokenAdapter(TokenPort):
         try:
             claims = jwt.decode(
                 refresh_token,
-                key=self.s.auth_jwt_secret,
+                key=self.s.auth_jwt_secret.get_secret_value(),
                 algorithms=[self.s.auth_jwt_algorithm],
                 options={"require": ["exp", "sub"], "verify_aud": False},
             )

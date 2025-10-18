@@ -36,7 +36,7 @@ export function subscribeLocale(listener: Listener): () => void {
 }
 
 export function useLocale(): Locale {
-  return useSyncExternalStore(subscribeLocale, getLocale);
+  return useSyncExternalStore(subscribeLocale, getLocale, getLocale);
 }
 
 export function translate(map: Record<Locale, string>): string {

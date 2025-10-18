@@ -12,7 +12,7 @@ export function BlockPlaceholder({ block }: BlockPlaceholderProps): React.ReactE
     <section className="rounded-3xl border border-gray-200 bg-white/70 p-8 text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-800/70 dark:text-dark-200">
       <div className="space-y-2">
         <p className="text-base font-medium text-gray-700 dark:text-dark-100">{title}</p>
-        <p className="text-xs text-gray-500 dark:text-dark-300">Загружаем содержимое блока...</p>
+        <p className="text-xs text-gray-500 dark:text-dark-300">Р—Р°РіСЂСѓР¶Р°РµРј СЃРѕРґРµСЂР¶РёРјРѕРµ Р±Р»РѕРєР°...</p>
       </div>
     </section>
   );

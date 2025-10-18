@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING, Any, cast
 
 from domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
 from domains.platform.events.adapters.outbox_memory import InMemoryOutbox
+from domains.product.nodes.infrastructure.cache import (
+    InMemoryNodeCache,
+    NodeCacheConfig,
+    RedisNodeCache,
+)
 from packages.core import Flags
 from packages.core.config import Settings, load_settings, to_async_dsn
 from packages.core.testing import is_test_mode
@@ -94,7 +99,6 @@ NodeViewsService = container_registry.resolve("product.nodes.NodeViewsService")
 NodeReactionsService = container_registry.resolve("product.nodes.NodeReactionsService")
 NodeCommentsService = container_registry.resolve("product.nodes.NodeCommentsService")
 NodesService = container_registry.resolve("product.nodes.NodeService")
-
 _ = container_registry.resolve(
     "product.navigation.NodesPort"
 )  # ensure navigation ports are imported
@@ -252,6 +256,7 @@ def build_container(env: str = "dev") -> Container:
     node_comments_repo = NodeCommentsRepoFactory(settings)
 
     node_views_limiter = None
+    node_views_limiter_client = None
     if not test_mode and aioredis is not None and settings.redis_url:
         try:
             node_views_limiter_client = aioredis.from_url(
@@ -263,6 +268,24 @@ def build_container(env: str = "dev") -> Container:
         except Exception as exc:
             logger.warning("Failed to initialize node view limiter: %s", exc)
             node_views_limiter = None
+            node_views_limiter_client = None
+
+    cache_config = NodeCacheConfig(
+        ttl_seconds=getattr(settings, "nodes_cache_ttl_seconds", 300),
+        max_entries=getattr(settings, "nodes_cache_max_entries", 5000),
+    )
+    node_cache = None
+    if not test_mode and aioredis is not None and settings.redis_url:
+        try:
+            node_cache_client = node_views_limiter_client or aioredis.from_url(
+                str(settings.redis_url), decode_responses=False
+            )
+            node_cache = RedisNodeCache(node_cache_client, cache_config)
+        except Exception as exc:
+            logger.warning("Failed to initialize node cache via redis: %s", exc)
+            node_cache = InMemoryNodeCache(cache_config)
+    else:
+        node_cache = InMemoryNodeCache(cache_config)
 
     node_views_service = NodeViewsService(node_views_repo, limiter=node_views_limiter)
     node_reactions_service = NodeReactionsService(node_reactions_repo)
@@ -289,7 +312,11 @@ def build_container(env: str = "dev") -> Container:
     embedding_client = EmbeddingClient(
         base_url=settings.embedding_api_base,
         model=settings.embedding_model,
-        api_key=settings.embedding_api_key,
+        api_key=(
+            settings.embedding_api_key.get_secret_value()
+            if settings.embedding_api_key
+            else None
+        ),
         provider=settings.embedding_provider,
         timeout=settings.embedding_timeout,
         connect_timeout=settings.embedding_connect_timeout,
@@ -305,6 +332,7 @@ def build_container(env: str = "dev") -> Container:
         views=node_views_service,
         reactions=node_reactions_service,
         comments=node_comments_service,
+        cache=node_cache,
     )
     register_embedding_worker(events, nodes)
 

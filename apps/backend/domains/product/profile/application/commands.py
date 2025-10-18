@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
 
-from domains.platform.media.application.storage_service import StorageService
+from domains.platform.media.application.facade import StorageService
 from domains.product.profile.application.exceptions import (
     ProfileError,
     value_error_to_profile_error,

@@ -19,7 +19,8 @@ export type ModerationSanctionRecord = {
   target_type?: string | null;
   target_id?: string | null;
   moderator?: string | null;
-  meta?: Record<string, unknown>;
+  evidence?: unknown[];
+  meta: Record<string, unknown>;
 };
 
 export type ModerationNote = {
@@ -119,26 +120,32 @@ export type ModerationAIRulesList = {
   hasNext: boolean;
 };
 
+export type ModerationOverviewCardAction = {
+  label: string;
+  to?: string;
+  href?: string;
+  kind?: 'primary' | 'secondary' | 'danger' | 'ghost';
+};
+
 export type ModerationOverviewCard = {
   id: string;
   title: string;
-  value: string;
+  value?: string;
+  subtitle?: string;
   delta?: string;
   trend?: 'up' | 'down' | 'steady';
   description?: string;
-  actions: Array<{
-    label: string;
-    to?: string;
-    href?: string;
-    description?: string;
-  }>;
+  status?: string | null;
+  meta?: Record<string, unknown>;
+  roleVisibility?: string[];
+  actions: ModerationOverviewCardAction[];
 };
 
 export type ModerationOverviewChart = {
   id: string;
   title: string;
   description?: string;
-  type?: string;
+  type?: 'line' | 'bar' | 'pie' | string;
   series?: unknown;
   options?: ApexOptions;
   height?: number;

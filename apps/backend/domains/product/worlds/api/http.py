@@ -6,7 +6,7 @@ import anyio
 from fastapi import APIRouter, Depends, HTTPException
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import (
+from domains.platform.iam.application.facade import (
     csrf_protect,
     get_current_user,
     require_role_db,

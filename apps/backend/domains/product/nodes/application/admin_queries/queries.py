@@ -10,7 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from packages.core.db import get_async_engine  # type: ignore[import-not-found]
+from packages.core.db import get_async_engine
 from packages.core.sql_fallback import evaluate_sql_backend
 
 from .exceptions import AdminQueryError

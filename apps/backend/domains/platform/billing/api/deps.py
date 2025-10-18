@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import Request
+from pydantic import SecretStr
 
 from apps.backend.app.api_gateway.routers import get_container
 from packages.fastapi_rate_limit import optional_rate_limiter
@@ -29,6 +30,13 @@ def _resolve_use_cases(req: Request) -> BillingUseCases:
     billing = container.billing
     audit = container.audit
     settings = getattr(container, "settings", None)
+    webhook_secret: str | None = None
+    if settings is not None:
+        secret_candidate = getattr(settings, "billing_webhook_secret", None)
+        if isinstance(secret_candidate, SecretStr):
+            webhook_secret = secret_candidate.get_secret_value()
+        elif isinstance(secret_candidate, str):
+            webhook_secret = secret_candidate
     use_cases = build_use_cases(
         service=billing.service,
         plans=billing.plans,
@@ -39,7 +47,7 @@ def _resolve_use_cases(req: Request) -> BillingUseCases:
         profile_service=container.profile_service,
         audit_service=audit.service,
         audit_repo=audit.repo,
-        webhook_secret=getattr(settings, "billing_webhook_secret", None),
+        webhook_secret=webhook_secret,
     )
     setattr(state, _USE_CASES_STATE_KEY, use_cases)
     return use_cases

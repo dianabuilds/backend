@@ -72,3 +72,8 @@ stubs/slugify/               # локальный typeshed для mypy
 - ADR (в `adr/`) фиксируют ключевые архитектурные решения и эволюцию доменов.
 
 
+## Границы product ↔ platform
+
+- Продуктовые домены используют платформенные сервисы только через фасады `domains.platform.{iam,events,telemetry,audit,media}.application.*`.
+- Общие зависимости (безопасность, события, аудит, хранилище медиа, метрики) резолвятся из `apps/backend/app/api_gateway/container_registry.py` и подаются в `wires.py` продуктовых сервисов.
+- Import Linter запрещает любые другие импорты `domains.platform.*` внутри product-доменов (контракт `forbid_product_to_platform_facades`).

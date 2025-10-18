@@ -95,9 +95,10 @@ class AuthService:
         if getattr(self.settings, "env", "prod") == "prod":
             return None
         configured_login = (self.settings.auth_bootstrap_login or "").strip()
-        configured_password = self.settings.auth_bootstrap_password
-        if not configured_login or configured_password is None:
+        password_secret = self.settings.auth_bootstrap_password
+        if not configured_login or password_secret is None:
             return None
+        configured_password = password_secret.get_secret_value()
         if not hmac.compare_digest(login.strip().lower(), configured_login.lower()):
             return None
         if not hmac.compare_digest(password, configured_password):

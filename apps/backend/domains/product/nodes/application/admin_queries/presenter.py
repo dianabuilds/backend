@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from io import StringIO
 from typing import Any
 
-from domains.product.nodes.application.ports import (  # type: ignore[import-not-found]
+from domains.product.nodes.application.ports import (
     NodeCommentBanDTO,
     NodeCommentDTO,
 )

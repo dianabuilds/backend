@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchPublicHome } from '@shared/api/publicHome';
@@ -497,9 +497,9 @@ export default function HomePage(): React.ReactElement {
       </Helmet>
       <header className="mb-12 space-y-4 text-center">
         <p data-kicker className="text-xs font-semibold uppercase tracking-[0.3em] text-primary-600 dark:text-primary-300">Caves World</p>
-        <h1 className="text-4xl font-semibold text-gray-900 dark:text-white">РРЅС‚РµСЂР°РєС‚РёРІРЅС‹Рµ РјРёСЂС‹, СЃРѕР±СЂР°РЅРЅС‹Рµ СЂРµРґР°РєС†РёРµР№</h1>
+        <h1 className="text-4xl font-semibold text-gray-900 dark:text-white">Интерактивные миры, собранные редакцией</h1>
         <p data-description className="mx-auto max-w-2xl text-sm text-gray-600 dark:text-dark-100">
-          Р“Р»Р°РІРЅР°СЏ СЃС‚СЂР°РЅРёС†Р° С„РѕСЂРјРёСЂСѓРµС‚СЃСЏ РґРёРЅР°РјРёС‡РµСЃРєРё РЅР° РѕСЃРЅРѕРІРµ Р±Р»РѕРєРѕРІ, РєРѕС‚РѕСЂС‹Рµ РЅР°СЃС‚СЂР°РёРІР°РµС‚ РєРѕРЅС‚РµРЅС‚-РєРѕРјР°РЅРґР°. РњР°С‚РµСЂРёР°Р»С‹ Р·Р°РіСЂСѓР¶Р°СЋС‚СЃСЏ РґРѕ РїРµСЂРІРѕРіРѕ СЂРµРЅРґРµСЂР°.
+          Главная страница формируется динамически на основе блоков, которые настраивает контент-команда. Материалы загружаются до первого рендера.
         </p>
       </header>
 
@@ -521,9 +521,9 @@ export default function HomePage(): React.ReactElement {
 
           {data.fallbacks.length > 0 && (
             <section className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 dark:border-amber-500/50 dark:bg-amber-900/40 dark:text-amber-100">
-              <h2 className="mb-2 text-base font-semibold">РСЃРїРѕР»СЊР·РѕРІР°РЅС‹ Р·Р°РїР°СЃРЅС‹Рµ РёСЃС‚РѕС‡РЅРёРєРё</h2>
+              <h2 className="mb-2 text-base font-semibold">Использованы запасные источники</h2>
               <p className="text-sm">
-                РќРµРєРѕС‚РѕСЂС‹Рµ Р±Р»РѕРєРё РѕС‚РѕР±СЂР°Р¶Р°СЋС‚СЃСЏ СЃ СЂРµР·РµСЂРІРЅС‹РјРё РґР°РЅРЅС‹РјРё, С‚Р°Рє РєР°Рє РѕСЃРЅРѕРІРЅР°СЏ РІС‹РґР°С‡Р° РІСЂРµРјРµРЅРЅРѕ РЅРµРґРѕСЃС‚СѓРїРЅР°.
+                Некоторые блоки отображаются с резервными данными, так как основная выдача временно недоступна.
               </p>
             </section>
           )}

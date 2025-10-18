@@ -115,3 +115,6 @@ coverage run -m pytest -c pytest.ini && coverage html
 - [ ] Прогнать smoke API после фикса и обновить `api-benchmarks.json`.
 - [ ] Автоматизировать публикацию coverage/linters в CI summary.
 
+
+## Типизация
+- 2025-10-11 — включён строгий mypy (flags: warn_unused_ignores, disallow_any_generics) для модулей domains.platform.moderation.*, domains.product.nodes.application.service, domains.product.nodes.adapters.memory.utils, pps.backend.migrations.versions.0100_squashed_base. Ответственные: команда Wave 2 Backend (W2-2).

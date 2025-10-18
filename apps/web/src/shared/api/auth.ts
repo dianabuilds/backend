@@ -1,5 +1,4 @@
-
-import { apiFetch } from './client';
+import { apiFetch, clearCsrfToken, setCsrfToken } from './client';
 
 export type AuthUser = {
   id?: string;
@@ -24,6 +23,7 @@ export type AuthSession = {
   access_token?: string | null;
   refresh_token?: string | null;
   csrf_token?: string | null;
+  csrf_expires_in?: number | null;
   expires_in?: number | null;
   token_type?: string | null;
   user?: AuthUser | null;
@@ -65,7 +65,13 @@ function resolveEndpoint(endpoint: string | undefined, fallback: string): string
 
 export async function login(payload: LoginPayload, options: LoginOptions = {}): Promise<AuthSession> {
   const endpoint = resolveEndpoint(options.endpoint, DEFAULT_LOGIN_ENDPOINT);
-  return apiFetch<AuthSession>(endpoint, { method: 'POST', json: payload, signal: options.signal });
+  const session = await apiFetch<AuthSession>(endpoint, {
+    method: 'POST',
+    json: payload,
+    signal: options.signal,
+  });
+  setCsrfToken(session?.csrf_token ?? null, { ttlSeconds: session?.csrf_expires_in ?? undefined });
+  return session;
 }
 
 export type LogoutOptions = {
@@ -75,7 +81,11 @@ export type LogoutOptions = {
 
 export async function logout(options: LogoutOptions = {}): Promise<{ ok: boolean } | Record<string, unknown>> {
   const endpoint = resolveEndpoint(options.endpoint, DEFAULT_LOGOUT_ENDPOINT);
-  return apiFetch(endpoint, { method: 'POST', json: {}, signal: options.signal });
+  try {
+    return await apiFetch(endpoint, { method: 'POST', json: {}, signal: options.signal });
+  } finally {
+    clearCsrfToken();
+  }
 }
 
 export type RefreshOptions = {
@@ -85,7 +95,9 @@ export type RefreshOptions = {
 
 export async function refresh(options: RefreshOptions = {}): Promise<AuthSession> {
   const endpoint = resolveEndpoint(options.endpoint, DEFAULT_REFRESH_ENDPOINT);
-  return apiFetch<AuthSession>(endpoint, { method: 'POST', signal: options.signal });
+  const session = await apiFetch<AuthSession>(endpoint, { method: 'POST', signal: options.signal });
+  setCsrfToken(session?.csrf_token ?? null, { ttlSeconds: session?.csrf_expires_in ?? undefined });
+  return session;
 }
 
 export type FetchCurrentUserOptions = {

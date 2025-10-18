@@ -4,12 +4,10 @@ import logging
 import time
 from typing import Any
 
-from domains.platform.events.errors import OutboxError
-from domains.platform.telemetry.application.metrics_registry import (
-    llm_metrics,
-)
-from domains.platform.telemetry.ports.llm_metrics_port import (
+from domains.platform.events.application.publisher import OutboxError
+from domains.platform.telemetry.application.facade import (
     LLMCallLabels,
+    llm_metrics,
 )
 from domains.product.ai.application.errors import ProviderError
 from domains.product.ai.application.ports import Provider

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import logging
 import time
 from collections.abc import Iterable, Mapping, Sequence
@@ -16,7 +17,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user
+from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 from domains.product.content.application import (
     DevBlogDataService,
     HomeComposer,
@@ -143,10 +145,13 @@ class PublicHomeResponse(BaseModel):
 def make_public_router() -> APIRouter:
     router = APIRouter(prefix="/v1/public", tags=["public-home"])
 
+    CONTENT_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["content"].as_dependencies()
+
     @router.get(
         "/home",
         response_model=PublicHomeResponse,
         summary="Get published home configuration",
+        dependencies=CONTENT_PUBLIC_RATE_LIMIT,
     )
     async def get_public_home(
         request: Request,
@@ -224,6 +229,7 @@ def make_admin_router() -> APIRouter:
         payload: HomeConfigPayload = Body(...),
         _auth: None = Depends(_require_home_scope("content.home:write")),
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
     ) -> HomeConfigSnapshot:
         service = _get_home_config_service(container)
         actor = _resolve_actor(request)
@@ -260,6 +266,7 @@ def make_admin_router() -> APIRouter:
         payload: HomeConfigPayload = Body(default=HomeConfigPayload()),
         _auth: None = Depends(_require_home_scope("content.home:write")),
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
     ) -> PublishResponse:
         service = _get_home_config_service(container)
         composer = _get_home_composer(container)
@@ -312,6 +319,7 @@ def make_admin_router() -> APIRouter:
         payload: HomeConfigPayload = Body(...),
         _auth: None = Depends(_require_home_scope("content.home:read")),
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
     ) -> PreviewResponse:
         service = _get_home_config_service(container)
         composer = _get_home_composer(container)
@@ -345,6 +353,7 @@ def make_admin_router() -> APIRouter:
         payload: HomeConfigPayload = Body(default=HomeConfigPayload()),
         _auth: None = Depends(_require_home_scope("content.home:write")),
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
     ) -> RestoreResponse:
         service = _get_home_config_service(container)
         composer = _get_home_composer(container)
@@ -657,11 +666,13 @@ def _build_node_data_service(container) -> NodeDataService:
             ref = str(item)
             if ref in cache:
                 continue
-            card = _fetch_node_card(svc, ref)
+            card = await _fetch_node_card(svc, ref)
             if card is None:
                 continue
             cache[ref] = card
-            cache[str(card.get("id"))] = card
+            card_id = card.get("id")
+            if card_id is not None:
+                cache[str(card_id)] = card
             slug = card.get("slug")
             if isinstance(slug, str):
                 cache[slug] = card
@@ -874,39 +885,93 @@ def _resolve_order_clause(order: str | None) -> tuple[str, bool]:
     return "COALESCE(n.publish_at, n.updated_at)", False
 
 
-def _fetch_node_card(service, ref: str) -> dict[str, Any] | None:
+async def _fetch_node_card(service, ref: str) -> dict[str, Any] | None:
+    view = await _resolve_node_view(service, ref)
+    if view is None:
+        return None
+    return _node_to_card(view)
+
+
+async def _resolve_node_view(service, ref: str):
     try:
         node_id = int(ref)
     except (TypeError, ValueError):
         node_id = None
-    dto = None
-    try:
-        if node_id is not None:
-            dto = service.get(node_id)
-    except Exception:  # pragma: no cover - defensive fallback
-        dto = None
-    if dto is None:
+
+    to_view = getattr(service, "_to_view", None)
+
+    if node_id is not None:
+        view = await _call_node_repo_fetch(service, "_repo_get_async", node_id, to_view)
+        if view is not None:
+            return view
+
+    view = await _call_node_repo_fetch(service, "_repo_get_by_slug_async", ref, to_view)
+    if view is not None:
+        return view
+
+    if node_id is not None:
         try:
-            getter = getattr(service, "get_by_slug", None)
+            getter = getattr(service, "get", None)
             if callable(getter):
-                dto = getter(ref)
-        except Exception:  # pragma: no cover - defensive fallback
-            dto = None
-    if dto is None:
+                result = getter(node_id)
+                if result is not None:
+                    return result
+        except Exception:
+            pass
+
+    try:
+        getter = getattr(service, "get_by_slug", None)
+        if callable(getter):
+            result = getter(ref)
+            if result is not None:
+                return result
+    except Exception:
+        pass
+
+    return None
+
+
+async def _call_node_repo_fetch(service, attr: str, value, to_view) -> Any:
+    getter = getattr(service, attr, None)
+    if not callable(getter):
         return None
+    try:
+        result = getter(value)
+        if inspect.isawaitable(result):
+            result = await result
+        if result is None:
+            return None
+        if callable(to_view):
+            try:
+                converted = to_view(result)
+            except Exception:
+                converted = None
+            else:
+                if converted is not None:
+                    return converted
+        return result
+    except Exception:
+        return None
+
+
+def _node_to_card(view: Any) -> dict[str, Any]:
+    node_id = getattr(view, "id", None)
+    slug = getattr(view, "slug", None)
+    publish_at = getattr(view, "publish_at", None)
+    updated_at = getattr(view, "updated_at", None) or publish_at
     return {
-        "id": str(getattr(dto, "id", None)),
-        "slug": getattr(dto, "slug", None),
-        "title": getattr(dto, "title", None),
-        "authorId": getattr(dto, "author_id", None),
-        "tags": list(getattr(dto, "tags", []) or []),
-        "isPublic": bool(getattr(dto, "is_public", False)),
-        "status": getattr(dto, "status", None),
-        "publishAt": getattr(dto, "publish_at", None),
-        "updatedAt": getattr(dto, "publish_at", None),
-        "coverUrl": getattr(dto, "cover_url", None),
-        "views": getattr(dto, "views_count", None),
-        "reactions": getattr(dto, "reactions_like_count", None),
+        "id": str(node_id) if node_id is not None else None,
+        "slug": slug,
+        "title": getattr(view, "title", None),
+        "authorId": getattr(view, "author_id", None),
+        "tags": list(getattr(view, "tags", []) or []),
+        "isPublic": bool(getattr(view, "is_public", False)),
+        "status": getattr(view, "status", None),
+        "publishAt": publish_at,
+        "updatedAt": updated_at,
+        "coverUrl": getattr(view, "cover_url", None),
+        "views": getattr(view, "views_count", None),
+        "reactions": getattr(view, "reactions_like_count", None),
     }
 
 

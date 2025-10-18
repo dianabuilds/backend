@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from domains.platform.audit.infrastructure import AuditLogPayload, safe_audit_log
+from domains.platform.audit.application.facade import AuditLogPayload, safe_audit_log
 
 logger = logging.getLogger("domains.product.nodes.admin_activity")
 

@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import (  # type: ignore[import-not-found]
+from domains.platform.iam.application.facade import (
     csrf_protect,
     get_current_user,
     require_admin,

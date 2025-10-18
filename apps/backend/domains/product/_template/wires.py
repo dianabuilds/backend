@@ -1,19 +1,17 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
-from domains.platform.events.adapters.outbox_redis import (
-    RedisOutbox as ProductOutboxRedis,
-)
+from domains.platform.events.application.publisher import OutboxPublisher
 
 from .adapters.iam_client import IamClientImpl as ProductIamClient
 from .adapters.sql.repository import SQLRepo as ProductSQLRepo
 from .application.ports import Flags
 
 # Note: In real domains import these from your shared packages, e.g.:
-# from apps.apps/backend.packages.core.config import load_settings, Settings
-# from apps.apps/backend.packages.core.flags import Flags
+# from apps.backend.packages.core.config import load_settings, Settings
+# from apps.backend.packages.core.flags import Flags
 from .application.services import Service as ProductService
 
 
@@ -35,7 +33,7 @@ def load_settings() -> Any:  # placeholder to keep template self-contained
 def build_container(env: str = "dev") -> Container:
     settings = load_settings()
     repo = ProductSQLRepo(str(settings.database_url))
-    outbox = ProductOutboxRedis(str(settings.redis_url))
+    outbox: OutboxPublisher | None = None  # resolve via container_registry in real code
     iam = ProductIamClient(str(settings.iam_url))
     svc = ProductService(repo=repo, outbox=outbox, iam=iam, flags=Flags())
     return Container(settings=settings, product_service=svc)

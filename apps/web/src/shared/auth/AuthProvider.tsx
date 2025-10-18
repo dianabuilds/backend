@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       try {
         const session = await loginRequest({ login: identifier, password, remember }, { endpoint: authEndpoint });
-        setCsrfToken(session?.csrf_token ?? null);
+        setCsrfToken(session?.csrf_token ?? null, { ttlSeconds: session?.csrf_expires_in ?? undefined });
         setTokens(() => deriveTokens(session));
 
         const accessToken = session?.access_token ?? undefined;
@@ -272,7 +272,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
 
 
 

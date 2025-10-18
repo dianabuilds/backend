@@ -4,13 +4,15 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from domains.platform.iam.security import csrf_protect, get_current_user
+from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 
 from .deps import get_comments_service
 
 
 def register_comment_routes(router: APIRouter) -> None:
     service_dep = Depends(get_comments_service)
+    NODES_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["nodes"].as_dependencies()
 
     @router.get("/{node_id}/comments")
     async def list_comments(
@@ -32,7 +34,10 @@ def register_comment_routes(router: APIRouter) -> None:
             claims=claims,
         )
 
-    @router.post("/{node_id}/comments")
+    @router.post(
+        "/{node_id}/comments",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def create_comment(
         node_id: str,
         body: dict[str, Any],
@@ -43,7 +48,10 @@ def register_comment_routes(router: APIRouter) -> None:
     ):
         return await service.create_comment(node_id, body, claims)
 
-    @router.delete("/comments/{comment_id}")
+    @router.delete(
+        "/comments/{comment_id}",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def delete_comment(
         comment_id: int,
         _req: Request,
@@ -60,7 +68,10 @@ def register_comment_routes(router: APIRouter) -> None:
             claims=claims,
         )
 
-    @router.patch("/comments/{comment_id}/status")
+    @router.patch(
+        "/comments/{comment_id}/status",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def update_comment_status(
         comment_id: int,
         body: dict[str, Any],
@@ -71,7 +82,10 @@ def register_comment_routes(router: APIRouter) -> None:
     ):
         return await service.update_comment_status(comment_id, body, claims)
 
-    @router.post("/{node_id}/comments/lock")
+    @router.post(
+        "/{node_id}/comments/lock",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def toggle_comments_lock(
         node_id: str,
         body: dict[str, Any],
@@ -82,7 +96,10 @@ def register_comment_routes(router: APIRouter) -> None:
     ):
         return await service.toggle_comments_lock(node_id, body, claims)
 
-    @router.post("/{node_id}/comments/disable")
+    @router.post(
+        "/{node_id}/comments/disable",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def toggle_comments_disabled(
         node_id: str,
         body: dict[str, Any],
@@ -93,7 +110,10 @@ def register_comment_routes(router: APIRouter) -> None:
     ):
         return await service.toggle_comments_disabled(node_id, body, claims)
 
-    @router.post("/{node_id}/comments/ban")
+    @router.post(
+        "/{node_id}/comments/ban",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def ban_comment_user(
         node_id: str,
         body: dict[str, Any],
@@ -104,7 +124,10 @@ def register_comment_routes(router: APIRouter) -> None:
     ):
         return await service.ban_comment_user(node_id, body, claims)
 
-    @router.delete("/{node_id}/comments/ban/{target_user_id}")
+    @router.delete(
+        "/{node_id}/comments/ban/{target_user_id}",
+        dependencies=NODES_PUBLIC_RATE_LIMIT,
+    )
     async def unban_comment_user(
         node_id: str,
         target_user_id: str,

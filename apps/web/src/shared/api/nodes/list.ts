@@ -1,6 +1,7 @@
 import { apiGet } from '../client';
 import type {
   NodeLifecycleStatus,
+  NodeModerationStatus,
   NodeSortKey,
   NodeSortOrder,
   NodesListResult,
@@ -11,16 +12,20 @@ import {
   isObjectRecord,
   normalizeNodeItem,
   pickBoolean,
+  pickNullableString,
 } from './utils';
 
 export type FetchNodesListOptions = {
   q?: string;
   slug?: string;
   status?: NodeLifecycleStatus | 'all' | null;
+  moderationStatus?: NodeModerationStatus | 'all' | null;
   tag?: string;
   authorId?: string;
   sort?: NodeSortKey;
   order?: NodeSortOrder;
+  updatedFrom?: string;
+  updatedTo?: string;
   limit?: number;
   offset?: number;
   signal?: AbortSignal;
@@ -32,10 +37,13 @@ function buildSearchParams({
   q,
   slug,
   status,
+  moderationStatus,
   tag,
   authorId,
   sort,
   order,
+  updatedFrom,
+  updatedTo,
   limit,
   offset,
 }: FetchNodesListOptions): URLSearchParams {
@@ -63,6 +71,10 @@ function buildSearchParams({
   if (status && status !== 'all') {
     params.set('status', status);
   }
+  const normalizedModeration = moderationStatus?.toLowerCase?.();
+  if (normalizedModeration && normalizedModeration !== 'all') {
+    params.set('moderation_status', normalizedModeration);
+  }
   const normalizedTag = tag?.trim();
   if (normalizedTag) {
     params.set('tag', normalizedTag);
@@ -70,6 +82,14 @@ function buildSearchParams({
   const normalizedAuthor = authorId?.trim();
   if (normalizedAuthor) {
     params.set('author_id', normalizedAuthor);
+  }
+  const updatedFromValue = pickNullableString(updatedFrom);
+  if (updatedFromValue) {
+    params.set('updated_from', updatedFromValue);
+  }
+  const updatedToValue = pickNullableString(updatedTo);
+  if (updatedToValue) {
+    params.set('updated_to', updatedToValue);
   }
   return params;
 }
@@ -200,7 +220,7 @@ function normalizeListPayload(payload: unknown, pageSize: number): NodesListResu
       drafts: drafts ?? null,
       pendingEmbeddings: pendingEmbeddings ?? null,
     },
-    hasNext: hasNextExplicit ?? (items.length >= effectivePageSize),
+    hasNext: hasNextExplicit ?? items.length >= effectivePageSize,
   };
 }
 

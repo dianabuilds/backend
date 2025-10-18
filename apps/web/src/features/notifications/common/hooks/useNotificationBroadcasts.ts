@@ -80,24 +80,25 @@ export function useNotificationBroadcasts({
     dependencies: [normalizedStatus, normalizedSearch],
     fetcher: async ({ page: currentPage, pageSize: currentSize, signal }) => {
       const offset = Math.max(0, (currentPage - 1) * currentSize);
+      const statuses = normalizedStatus === 'all' ? undefined : [normalizedStatus];
       const response = await fetchNotificationBroadcasts({
         limit: currentSize,
         offset,
-        status: normalizedStatus === 'all' ? undefined : normalizedStatus,
+        statuses,
         search: normalizedSearch || undefined,
         signal,
       });
-      const items = Array.isArray(response?.items) ? response?.items ?? [] : [];
+      const items = Array.isArray(response?.items) ? response.items : [];
       return { response: response ?? null, items };
     },
     mapResponse: (result, { page: currentPage, pageSize: currentSize }) => {
-      const response = result.response ?? {};
+      const response = result.response;
       const items = Array.isArray(result.items) ? result.items : [];
-      const offset = typeof response.offset === 'number' ? response.offset : (currentPage - 1) * currentSize;
-      const totalItems = typeof response.total === 'number' ? response.total : offset + items.length;
+      const offset = typeof response?.offset === 'number' ? response.offset : (currentPage - 1) * currentSize;
+      const totalItems = typeof response?.total === 'number' ? response.total : offset + items.length;
       setTotal(totalItems);
 
-      const counts = response.status_counts ?? {};
+      const counts = response?.status_counts ?? {};
       setStatusCounts({
         draft: counts.draft ?? 0,
         scheduled: counts.scheduled ?? 0,
@@ -108,13 +109,13 @@ export function useNotificationBroadcasts({
       });
 
       const aggregatedRecipients =
-        typeof response.recipients === 'number'
+        typeof response?.recipients === 'number'
           ? response.recipients
           : items.reduce((sum, item) => sum + (Number.isFinite(item.total) ? Number(item.total) : 0), 0);
       setRecipients(aggregatedRecipients);
 
       const hasNextFlag =
-        typeof response.has_next === 'boolean'
+        typeof response?.has_next === 'boolean'
           ? response.has_next
           : offset + items.length < totalItems;
 

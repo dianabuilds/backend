@@ -254,6 +254,17 @@ class Outbox(Protocol):
 
 
 @runtime_checkable
+class NodeCache(Protocol):
+    async def get(self, node_id: int) -> NodeDTO | None: ...
+
+    async def get_by_slug(self, slug: str) -> NodeDTO | None: ...
+
+    async def set(self, dto: NodeDTO) -> None: ...
+
+    async def invalidate(self, node_id: int, slug: str | None = None) -> None: ...
+
+
+@runtime_checkable
 class UsageProjection(Protocol):
     def apply_diff(
         self, author_id: str, added: Sequence[str], removed: Sequence[str]

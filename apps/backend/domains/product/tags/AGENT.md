@@ -1,4 +1,4 @@
-# Tags (Product) вЂ” AGENT Guide
+# Tags (Product) — AGENT Guide
 
 Purpose
 - Manage tag catalog (slugs, aliases, blacklist) and expose usage counters for UI.
@@ -14,7 +14,7 @@ Storage
 - Projection: `tag_usage_counters(author_id, content_type, slug, count, updated_at)`.
 
 Feature Flags
-- `FF_TAGS_V1_ENABLED` (bool, default True) вЂ” router and wiring.
+- `FF_TAGS_V1_ENABLED` (bool, default True) — router and wiring.
 
 Cutover Model
 - Read usage from projection only (no JOINs with nodes).
@@ -34,7 +34,7 @@ Contracts
 Tests
 - Add integration that updates node/quest tags and asserts projection + `/v1/tags`.
 
-Do/DonвЂ™t
+Do/Don’t
 - Do keep tag catalog neutral; split by `content_type` only in projection.
-- DonвЂ™t add FKs from tags to content tables.
+- Don’t add FKs from tags to content tables.
 

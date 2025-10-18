@@ -10,7 +10,8 @@ from packages.core.db import get_async_engine
 
 from tests.conftest import add_auth, make_jwt
 
-ADMIN_KEY = str(load_settings().admin_api_key or "")
+_ADMIN_SECRET = load_settings().admin_api_key
+ADMIN_KEY = _ADMIN_SECRET.get_secret_value() if _ADMIN_SECRET else ""
 if not ADMIN_KEY:
     pytest.skip(
         "APP_ADMIN_API_KEY is required for admin endpoints", allow_module_level=True

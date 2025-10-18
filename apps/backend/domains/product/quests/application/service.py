@@ -6,7 +6,7 @@ import time
 from collections.abc import Sequence
 from typing import Any
 
-from domains.platform.events.errors import OutboxError
+from domains.platform.events.application.publisher import OutboxError
 from domains.product.quests.application.ports import (
     CreateQuestInput,
     Outbox,

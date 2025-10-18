@@ -533,7 +533,9 @@ def _build_embedding_client() -> tuple[object | None, int]:
             base_url=base_url,
             model=str(settings.embedding_model) if settings.embedding_model else None,
             api_key=(
-                str(settings.embedding_api_key) if settings.embedding_api_key else None
+                settings.embedding_api_key.get_secret_value()
+                if settings.embedding_api_key
+                else None
             ),
             provider=(
                 str(settings.embedding_provider)

@@ -7,6 +7,7 @@ import {
   fetchNotificationsHistory,
   markNotificationAsRead,
 } from '@shared/api/notifications';
+import type { NotificationPayload } from '@shared/types/notifications';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -16,6 +17,24 @@ vi.mock('@shared/api/notifications', () => ({
 }));
 
 type HookValue = ReturnType<typeof useNotificationsHistory>;
+
+function createHistoryItem(overrides: Partial<NotificationPayload> = {}): NotificationPayload {
+  return {
+    id: 'notification-1',
+    user_id: 'user-1',
+    channel: null,
+    title: null,
+    message: 'hello',
+    type: null,
+    priority: 'normal',
+    meta: {},
+    created_at: '2025-10-01T00:00:00Z',
+    updated_at: '2025-10-01T00:00:00Z',
+    read_at: null,
+    is_read: false,
+    ...overrides,
+  };
+}
 
 describe('useNotificationsHistory', () => {
   let container: HTMLDivElement;
@@ -33,12 +52,13 @@ describe('useNotificationsHistory', () => {
     root = createRoot(container);
 
     vi.mocked(fetchNotificationsHistory).mockResolvedValueOnce({
-      items: [{ id: 'h-1', message: 'hello' }],
+      items: [createHistoryItem({ id: 'h-1', message: 'hello' })],
       nextOffset: 1,
       hasMore: true,
+      unread: 0,
     });
 
-    vi.mocked(markNotificationAsRead).mockResolvedValue(undefined as any);
+    vi.mocked(markNotificationAsRead).mockResolvedValue(null);
 
     await act(async () => {
       root.render(<TestComponent />);
@@ -69,9 +89,10 @@ describe('useNotificationsHistory', () => {
 
   it('appends items when loadMore succeeds', async () => {
     vi.mocked(fetchNotificationsHistory).mockResolvedValueOnce({
-      items: [{ id: 'h-2', message: 'world' }],
+      items: [createHistoryItem({ id: 'h-2', message: 'world' })],
       nextOffset: 2,
       hasMore: false,
+      unread: 0,
     });
 
     await act(async () => {
@@ -100,10 +121,9 @@ describe('useNotificationsHistory', () => {
   });
 
   it('marks notification as read and updates state', async () => {
-    vi.mocked(markNotificationAsRead).mockResolvedValueOnce({
-      id: 'h-1',
-      read_at: '2025-10-08T00:00:00Z',
-    } as any);
+    vi.mocked(markNotificationAsRead).mockResolvedValueOnce(
+      createHistoryItem({ id: 'h-1', read_at: '2025-10-08T00:00:00Z', is_read: true }),
+    );
 
     await act(async () => {
       await current.markAsRead('h-1');

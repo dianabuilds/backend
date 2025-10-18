@@ -25,8 +25,9 @@ import { useAuth } from '@shared/auth';
 import type {
   NotificationBroadcast,
   NotificationBroadcastAudience,
-  NotificationBroadcastPayload,
+  NotificationBroadcastCreatePayload,
   NotificationBroadcastStatus,
+  NotificationBroadcastUpdatePayload,
   NotificationTemplate,
 } from '@shared/types/notifications';
 
@@ -276,18 +277,33 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
       return;
     }
 
-    const payload: NotificationBroadcastPayload = {
+    if (!audience) {
+      setFormError('Failed to build audience.');
+      return;
+    }
+
+    const audiencePayload: NotificationBroadcastUpdatePayload['audience'] = {
+      type: audience.type,
+      filters: audience.filters,
+      user_ids: audience.user_ids,
+    };
+
+    const basePayload: NotificationBroadcastUpdatePayload = {
       title,
       body: formState.body.trim() ? formState.body.trim() : null,
       template_id: formState.templateId || null,
-      audience,
+      audience: audiencePayload,
       scheduled_at: scheduledAtIso,
-      created_by: user?.id ?? user?.username ?? undefined,
     };
 
     try {
       if (drawerMode === 'create') {
-        await createBroadcast(payload, {
+        const createdBy = user?.id ?? user?.username ?? 'system';
+        const createPayload: NotificationBroadcastCreatePayload = {
+          ...basePayload,
+          created_by: createdBy,
+        };
+        await createBroadcast(createPayload, {
           onSuccess: () => {
             pushToast({ intent: 'success', description: 'Broadcast created.' });
             void refresh();
@@ -295,7 +311,7 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
           },
         });
       } else if (editingBroadcast) {
-        await updateBroadcast(editingBroadcast.id, payload, {
+        await updateBroadcast(editingBroadcast.id, basePayload, {
           onSuccess: () => {
             pushToast({ intent: 'success', description: 'Broadcast updated.' });
             void refresh();

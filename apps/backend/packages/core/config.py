@@ -5,7 +5,14 @@ import re
 from typing import Any, Literal, cast
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from pydantic import AliasChoices, AnyUrl, Field, ValidationError, field_validator
+from pydantic import (
+    AliasChoices,
+    AnyUrl,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+)
 
 TRUTHY_SSL_VALUES = {
     "require",
@@ -211,27 +218,28 @@ class Settings(BaseSettings):
     smtp_host: str | None = None
     smtp_port: int | None = 587
     smtp_username: str | None = None
-    smtp_password: str | None = None
+    smtp_password: SecretStr | None = None
     smtp_tls: bool = True
     smtp_mail_from: str | None = None
     smtp_mail_from_name: str | None = None
 
     # auth/iam (stub defaults)
-    auth_jwt_secret: str = Field(default="dev-secret-change-me")
+    auth_jwt_secret: SecretStr = Field(default=SecretStr("dev-secret-change-me"))
     auth_jwt_algorithm: str = Field(default="HS256")
     auth_jwt_expires_min: int = 15
     auth_jwt_refresh_expires_days: int = 7
     auth_csrf_cookie_name: str = Field(default="XSRF-TOKEN")
     auth_csrf_header_name: str = Field(default="X-CSRF-Token")
+    auth_csrf_ttl_seconds: int | None = Field(default=None, ge=60, le=7200)
     auth_bootstrap_login: str | None = None
-    auth_bootstrap_password: str | None = None
+    auth_bootstrap_password: SecretStr | None = None
     auth_bootstrap_role: str = "admin"
     auth_bootstrap_user_id: str = "bootstrap-root"
     auth_bootstrap_enabled: bool = False
     cors_origins: str | None = None
 
     # admin guard
-    admin_api_key: str | None = None
+    admin_api_key: SecretStr | None = None
 
     # search (in-memory only)
     search_persist_path: str | None = "apps/backend/var/search_index.json"
@@ -241,9 +249,19 @@ class Settings(BaseSettings):
     premium_enabled: bool = True
     achievements_enabled: bool = True
     worlds_enabled: bool = True
+    nodes_cache_ttl_seconds: int = Field(
+        default=300,
+        validation_alias=AliasChoices("NODES_CACHE_TTL", "APP_NODES_CACHE_TTL"),
+    )
+    nodes_cache_max_entries: int = Field(
+        default=5000,
+        validation_alias=AliasChoices(
+            "NODES_CACHE_MAX_ENTRIES", "APP_NODES_CACHE_MAX_ENTRIES"
+        ),
+    )
 
     # billing/webhook integration
-    billing_webhook_secret: str | None = None
+    billing_webhook_secret: SecretStr | None = None
 
     embedding_provider: str | None = Field(
         default=None,
@@ -257,7 +275,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("EMBEDDING_MODEL", "APP_EMBEDDING_MODEL"),
     )
-    embedding_api_key: str | None = Field(
+    embedding_api_key: SecretStr | None = Field(
         default=None,
         validation_alias=AliasChoices("EMBEDDING_API_KEY", "APP_EMBEDDING_API_KEY"),
     )

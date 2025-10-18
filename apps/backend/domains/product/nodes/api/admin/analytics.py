@@ -5,7 +5,7 @@ from functools import wraps
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import require_admin  # type: ignore[import-not-found]
+from domains.platform.iam.application.facade import require_admin
 from domains.product.nodes.adapters.memory.utils import resolve_memory_node
 from domains.product.nodes.application.admin_queries import (
     AdminQueryError,

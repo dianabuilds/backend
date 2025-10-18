@@ -8,7 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user
+from domains.platform.iam.application.facade import get_current_user
 from domains.product.navigation.api.support import DEV_BLOG_TAG
 from domains.product.navigation.infrastructure import ensure_engine
 

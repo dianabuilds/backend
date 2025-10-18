@@ -1,6 +1,7 @@
 from .enricher import (
     build_list_response,
     copy_model,
+    field,
     merge_history_prepend,
     merge_metadata,
     merge_model,
@@ -9,6 +10,7 @@ from .enricher import (
 __all__ = [
     "build_list_response",
     "copy_model",
+    "field",
     "merge_history_prepend",
     "merge_metadata",
     "merge_model",

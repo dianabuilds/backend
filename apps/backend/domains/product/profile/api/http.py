@@ -16,8 +16,12 @@ from pydantic import BaseModel, Field
 
 from apps.backend.app.api_gateway.idempotency import require_idempotency_key
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
-from domains.platform.media.application.storage_service import StorageService
+from domains.platform.iam.application.facade import (
+    csrf_protect,
+    get_current_user,
+    require_admin,
+)
+from domains.platform.media.application.facade import StorageService
 from domains.product.profile.application.commands import (
     bind_wallet,
     confirm_email_change,
@@ -117,6 +121,7 @@ def make_router() -> APIRouter:
         response: Response,
         claims=Depends(get_current_user),
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
         if_match: str | None = Header(default=None, alias="If-Match"),
     ) -> dict[str, Any]:
         user_id = str(claims.get("sub")) if claims and claims.get("sub") else None
@@ -285,6 +290,7 @@ def make_router() -> APIRouter:
         request: Request,
         response: Response,
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
         if_match: str | None = Header(default=None, alias="If-Match"),
     ) -> dict[str, Any]:
         subject = {"user_id": user_id}

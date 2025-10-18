@@ -41,60 +41,46 @@ export type NotificationsChannelsOverviewResponse = {
   overview?: NotificationsChannelsOverview;
 };
 
-export type NotificationHistoryItem = {
+export type NotificationPayload = {
   id: string;
-  title?: string | null;
-  message?: string | null;
-  type?: string | null;
-  priority?: string | null;
-  created_at?: string | null;
-  read_at?: string | null;
-  meta?: Record<string, unknown> | null;
+  user_id: string;
+  channel: string | null;
+  title: string | null;
+  message: string | null;
+  type: string | null;
+  priority: string;
+  meta: Record<string, unknown>;
+  created_at: string | null;
+  updated_at: string | null;
+  read_at: string | null;
+  is_read: boolean;
 };
 
-export type NotificationHistoryResponse = {
-  items?: NotificationHistoryItem[];
+export type NotificationsListResponse = {
+  items: NotificationPayload[];
+  unread: number;
 };
 
-export type NotificationTemplate = {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-  subject?: string | null;
-  body: string;
-  locale?: string | null;
-  variables?: Record<string, unknown> | null;
-  meta?: Record<string, unknown> | null;
-  created_by?: string | null;
-  created_at: string;
-  updated_at: string;
+export type NotificationHistoryItem = NotificationPayload;
+
+export type NotificationResponse = {
+  notification: NotificationPayload;
 };
 
-export type NotificationTemplatePayload = {
-  id?: string;
-  name: string;
-  description?: string | null;
-  subject?: string | null;
-  body: string;
-  locale?: string | null;
-  variables?: Record<string, unknown> | null;
-  meta?: Record<string, unknown> | null;
-  created_by?: string | null;
-};
+export type NotificationBroadcastAudienceType = 'all_users' | 'segment' | 'explicit_users';
 
-export type NotificationTemplatesResponse = {
-  items?: NotificationTemplate[];
-};
-
-export type NotificationAudienceType = 'all_users' | 'segment' | 'explicit_users';
-
-export type NotificationBroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'cancelled';
+export type NotificationBroadcastStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'sending'
+  | 'sent'
+  | 'failed'
+  | 'cancelled';
 
 export type NotificationBroadcastAudience = {
-  type: NotificationAudienceType;
-  filters?: Record<string, unknown> | null;
-  user_ids?: string[] | null;
+  type: NotificationBroadcastAudienceType;
+  filters: Record<string, unknown> | null;
+  user_ids: string[] | null;
 };
 
 export type NotificationBroadcast = {
@@ -116,29 +102,77 @@ export type NotificationBroadcast = {
 };
 
 export type NotificationBroadcastListResponse = {
-  items?: NotificationBroadcast[];
-  total?: number;
-  offset?: number;
-  limit?: number;
-  has_next?: boolean;
-  status_counts?: Record<string, number>;
-  recipients?: number;
+  items: NotificationBroadcast[];
+  total: number;
+  offset: number;
+  limit: number;
+  has_next: boolean;
+  status_counts: Record<string, number>;
+  recipients: number;
 };
 
 export type NotificationBroadcastListParams = {
   limit?: number;
   offset?: number;
-  status?: NotificationBroadcastStatus | 'all';
-  search?: string;
+  statuses?: NotificationBroadcastStatus[] | null;
+  search?: string | null;
 };
 
-export type NotificationBroadcastPayload = {
+export type NotificationBroadcastAudienceInput = {
+  type: NotificationBroadcastAudienceType;
+  filters?: Record<string, unknown> | null;
+  user_ids?: string[] | null;
+};
+
+export type NotificationBroadcastCreatePayload = {
   title: string;
-  body: string | null;
-  template_id: string | null;
-  audience: NotificationBroadcastAudience;
-  scheduled_at: string | null;
+  body?: string | null;
+  template_id?: string | null;
+  audience: NotificationBroadcastAudienceInput;
+  created_by: string;
+  scheduled_at?: string | null;
+};
+
+export type NotificationBroadcastUpdatePayload = {
+  title: string;
+  body?: string | null;
+  template_id?: string | null;
+  audience: NotificationBroadcastAudienceInput;
+  scheduled_at?: string | null;
+};
+
+export type NotificationHistoryResponse = NotificationsListResponse;
+
+export type NotificationTemplate = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  subject?: string | null;
+  body: string;
+  locale?: string | null;
+  variables: Record<string, unknown>;
+  meta: Record<string, unknown>;
   created_by?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type NotificationTemplatePayload = {
+  id?: string;
+  slug?: string | null;
+  name: string;
+  description?: string | null;
+  subject?: string | null;
+  body: string;
+  locale?: string | null;
+  variables?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | null;
+  created_by?: string | null;
+};
+
+export type NotificationTemplatesResponse = {
+  items: NotificationTemplate[];
 };
 
 export type NotificationPreferenceValue = {

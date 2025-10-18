@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from importlib import import_module
 from typing import Any
@@ -41,9 +41,10 @@ _REGISTRY_ENTRIES = {
     "platform.billing.build_container": "domains.platform.billing.wires:build_container",
     "platform.events.RedisEventBus": "domains.platform.events.adapters.event_bus_redis:RedisEventBus",
     "platform.events.RedisOutbox": "domains.platform.events.adapters.outbox_redis:RedisOutbox",
-    "platform.events.Events": "domains.platform.events.service:Events",
+    "platform.events.Events": "domains.platform.events.application.publisher:Events",
     "platform.flags.build_container": "domains.platform.flags.wires:build_container",
     "platform.iam.build_container": "domains.platform.iam.wires:build_container",
+    "platform.iam.facade": "domains.platform.iam.application.facade:iam_facade",
     "platform.media.build_container": "domains.platform.media.wires:build_container",
     "platform.moderation.build_container": "domains.platform.moderation.wires:build_container",
     "platform.notifications.register_email_channel": "domains.platform.notifications.adapters.email_smtp:register_email_channel",

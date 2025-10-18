@@ -6,10 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import (
+from domains.platform.iam.application.facade import (
     csrf_protect,
     get_current_user,
     require_admin,
+)
+from domains.product.moderation.application.interactors.cases import (
+    ModerationCaseCreateCommand,
+    ModerationCaseFilters,
+    ModerationCaseNoteCommand,
+    ModerationCaseUpdateCommand,
 )
 
 
@@ -70,15 +76,20 @@ def make_router() -> APIRouter:
         container=Depends(get_container),
     ):
         svc = container.moderation_service
-        return await svc.list(
-            page=page,
-            size=size,
-            statuses=_split_csv(statuses),
-            types=_split_csv(types),
-            queues=_split_csv(queues),
-            assignees=_split_csv(assignee),
+        status_values = _split_csv(statuses)
+        type_values = _split_csv(types)
+        queue_values = _split_csv(queues)
+        assignee_values = _split_csv(assignee)
+        filters = ModerationCaseFilters(
+            page=int(page),
+            size=int(size),
+            statuses=tuple(status_values) if status_values else None,
+            types=tuple(type_values) if type_values else None,
+            queues=tuple(queue_values) if queue_values else None,
+            assignees=tuple(assignee_values) if assignee_values else None,
             query=q,
         )
+        return await svc.list(filters)
 
     @router.get("/cases/{case_id}")
     async def get_case(
@@ -101,9 +112,24 @@ def make_router() -> APIRouter:
         container=Depends(get_container),
     ):
         svc = container.moderation_service
-        payload = body.model_dump()
         author_id = str(claims.get("sub")) if claims and claims.get("sub") else None
-        return await svc.create(payload, author_id=author_id)
+        command = ModerationCaseCreateCommand(
+            title=body.title,
+            description=body.description,
+            type=body.type or "general",
+            status=body.status or "open",
+            queue=body.queue,
+            priority=body.priority,
+            severity=body.severity,
+            subject_id=body.subject_id,
+            subject_type=body.subject_type,
+            subject_label=body.subject_label,
+            assignee_id=body.assignee_id,
+            tags=tuple(body.tags) if body.tags else tuple(),
+            metadata=body.metadata or {},
+            author_id=author_id,
+        )
+        return await svc.create(command)
 
     @router.patch("/cases/{case_id}")
     async def update_case(
@@ -117,7 +143,24 @@ def make_router() -> APIRouter:
         svc = container.moderation_service
         payload = body.model_dump(exclude_unset=True)
         actor_id = str(claims.get("sub")) if claims and claims.get("sub") else None
-        updated = await svc.update(case_id, payload, actor_id=actor_id)
+        command = ModerationCaseUpdateCommand(
+            case_id=case_id,
+            actor_id=actor_id,
+            title=payload.get("title"),
+            description=payload.get("description"),
+            status=payload.get("status"),
+            queue=payload.get("queue"),
+            priority=payload.get("priority"),
+            severity=payload.get("severity"),
+            assignee_id=payload.get("assignee_id"),
+            tags=(
+                tuple(payload["tags"])
+                if "tags" in payload and payload["tags"] is not None
+                else None
+            ),
+            metadata=payload.get("metadata"),
+        )
+        updated = await svc.update(command)
         if not updated:
             raise HTTPException(status_code=404, detail="not_found")
         return updated
@@ -132,9 +175,15 @@ def make_router() -> APIRouter:
         container=Depends(get_container),
     ):
         svc = container.moderation_service
-        note = body.model_dump()
         author_id = str(claims.get("sub")) if claims and claims.get("sub") else None
-        res = await svc.add_note(case_id, note, author_id=author_id)
+        command = ModerationCaseNoteCommand(
+            case_id=case_id,
+            text=body.text,
+            author_id=author_id,
+            pinned=body.pinned,
+            visibility=body.visibility,
+        )
+        res = await svc.add_note(command)
         if not res:
             raise HTTPException(status_code=404, detail="not_found")
         return res

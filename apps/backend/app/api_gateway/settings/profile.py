@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel, Field
 
+from apps.backend.infra.security.rate_limits import public_rate_limits_payload
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.product.profile.application.commands import (
     bind_wallet,
@@ -178,7 +179,9 @@ def _profile_response(
     response: Response, payload: dict[str, Any], meta: ResponseMeta
 ) -> dict[str, Any]:
     _apply_response_meta(response, meta)
-    return profile_payload(response, payload)
+    enriched = profile_payload(response, payload)
+    enriched["rate_limits"] = public_rate_limits_payload()
+    return enriched
 
 
 def register(admin_router: APIRouter, personal_router: APIRouter) -> None:

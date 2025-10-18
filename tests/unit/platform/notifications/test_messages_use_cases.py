@@ -75,8 +75,8 @@ class StubNotify:
             "created_at": datetime(2025, 1, 1, tzinfo=UTC),
         }
 
-    async def create_notification(self, **kwargs: Any) -> dict[str, Any]:
-        self.calls.append(kwargs)
+    async def create_notification(self, command: Any) -> dict[str, Any]:
+        self.calls.append(command)
         return dict(self.result)
 
 

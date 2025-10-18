@@ -1,9 +1,11 @@
 ﻿import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile } from 'node:fs/promises';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import express, { type Express } from 'express';
 import compression from 'compression';
 import sirv from 'sirv';
+import { getCsrfHeaderName } from '@shared/api/client/csrf';
 import type { RenderFunction } from './types.js';
 import { renderDocument } from './html.js';
 
@@ -21,6 +23,36 @@ export type CreateServerOptions = {
 };
 
 const DEFAULT_TEMPLATE_PATH = 'index.html';
+
+type SsrCapture = {
+  cookies: string[];
+  headers: Record<string, string>;
+};
+
+const ssrStorage = new AsyncLocalStorage<SsrCapture>();
+
+const globalAny = globalThis as any;
+const originalFetch: typeof fetch =
+  typeof globalAny.__SSR_ORIGINAL_FETCH__ === 'function'
+    ? (globalAny.__SSR_ORIGINAL_FETCH__ as typeof fetch)
+    : globalThis.fetch.bind(globalThis);
+
+if (typeof globalAny.__SSR_ORIGINAL_FETCH__ !== 'function') {
+  globalAny.__SSR_ORIGINAL_FETCH__ = originalFetch;
+  globalThis.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+    const response = await originalFetch(...args);
+    try {
+      const store = ssrStorage.getStore();
+      if (store) {
+        captureSetCookie(response, store.cookies);
+        captureCsrfHeaders(response, store.headers);
+      }
+    } catch {
+      // ignore context capture failures
+    }
+    return response;
+  };
+}
 
 function toAbsolute(root: string, ...segments: string[]): string {
   return path.resolve(root, ...segments);
@@ -109,31 +141,35 @@ export async function createSsrServer(options: CreateServerOptions = {}): Promis
   }
 
   app.use(async (req, res) => {
-    try {
-      const url = req.originalUrl;
-      const template = await resolveTemplate(url);
-      const render = await resolveRenderer(url);
-      const result = await render(new URL(url, 'http://localhost').toString());
+    await ssrStorage.run({ cookies: [], headers: {} }, async () => {
+      try {
+        const url = req.originalUrl;
+        const template = await resolveTemplate(url);
+        const render = await resolveRenderer(url);
+        const result = await render(new URL(url, 'http://localhost').toString());
 
-      if (!result) {
-        res.status(200).set('Content-Type', 'text/html; charset=utf-8').send(template);
-        return;
+        if (!result) {
+          applyCapturedSecurityHeaders(res);
+          res.status(200).set('Content-Type', 'text/html; charset=utf-8').send(template);
+          return;
+        }
+
+        const document = await renderDocument(template, result, {
+          resolveClientEntry: resolveClientEntryAssets,
+        });
+
+        res.status(document.status);
+        res.set(document.headers);
+        applyCapturedSecurityHeaders(res);
+        res.send(document.html);
+      } catch (error) {
+        if (vite) {
+          vite.ssrFixStacktrace(error as Error);
+        }
+        console.error('[ssr] render error', error);
+        res.status(500).set('Content-Type', 'text/plain').end('Internal Server Error');
       }
-
-      const document = await renderDocument(template, result, {
-        resolveClientEntry: resolveClientEntryAssets,
-      });
-
-      res.status(document.status);
-      res.set(document.headers);
-      res.send(document.html);
-    } catch (error) {
-      if (vite) {
-        vite.ssrFixStacktrace(error as Error);
-      }
-      console.error('[ssr] render error', error);
-      res.status(500).set('Content-Type', 'text/plain').end('Internal Server Error');
-    }
+    });
   });
 
   return {
@@ -144,6 +180,63 @@ export async function createSsrServer(options: CreateServerOptions = {}): Promis
       }
     },
   };
+}
+
+function captureSetCookie(response: Response, bucket: string[]): void {
+  const headersAny = response.headers as unknown as {
+    getSetCookie?: () => string[];
+    raw?: () => Record<string, string[]>;
+  };
+  let values: string[] | undefined;
+  if (typeof headersAny.getSetCookie === 'function') {
+    values = headersAny.getSetCookie();
+  } else if (typeof headersAny.raw === 'function') {
+    const raw = headersAny.raw();
+    if (raw && Array.isArray(raw['set-cookie'])) {
+      values = raw['set-cookie'];
+    }
+  }
+  if (!values || !values.length) {
+    const single = response.headers.get('set-cookie');
+    if (single) {
+      values = [single];
+    }
+  }
+  if (!values) return;
+  for (const value of values) {
+    if (value && !bucket.includes(value)) {
+      bucket.push(value);
+    }
+  }
+}
+
+function captureCsrfHeaders(response: Response, headers: Record<string, string>): void {
+  const directHeaderName = getCsrfHeaderName();
+  const directValue = response.headers.get(directHeaderName) ?? response.headers.get(directHeaderName.toLowerCase());
+  if (directValue) {
+    headers[directHeaderName] = directValue;
+    return;
+  }
+  response.headers.forEach((value, key) => {
+    if (!value) return;
+    if (key.toLowerCase().includes('csrf')) {
+      headers[key] = value;
+    }
+  });
+}
+
+function applyCapturedSecurityHeaders(res: express.Response): void {
+  const store = ssrStorage.getStore();
+  if (!store) {
+    return;
+  }
+  for (const cookie of store.cookies) {
+    res.append('Set-Cookie', cookie);
+  }
+  for (const [key, value] of Object.entries(store.headers)) {
+    if (!value) continue;
+    res.setHeader(key, value);
+  }
 }
 
 

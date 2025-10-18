@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from httpx import HTTPError
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import get_current_user
+from domains.platform.iam.application.facade import csrf_protect, get_current_user
 from domains.product.ai.application.errors import ProviderError
 from packages.fastapi_rate_limit import optional_rate_limiter
 
@@ -36,6 +36,7 @@ def make_router() -> APIRouter:
         body: dict,
         req: Request,
         container=Depends(get_container),
+        _csrf: None = Depends(csrf_protect),
     ):
         prompt = str(body.get("prompt") or "").strip()
         if not prompt:

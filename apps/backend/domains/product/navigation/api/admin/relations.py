@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from apps.backend.app.api_gateway.routers import get_container
-from domains.platform.iam.security import csrf_protect
+from domains.platform.iam.application.facade import csrf_protect
 from domains.product.navigation.application.use_cases.relations_admin import (
     RelationsAdminError,
     RelationsAdminService,
