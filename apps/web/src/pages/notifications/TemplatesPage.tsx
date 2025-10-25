@@ -7,7 +7,7 @@ export default function TemplatesPage(): React.ReactElement {
     <ContentLayout
       context="notifications"
       title="Notification templates"
-      description="Coordinate announcements, automate broadcasts, and keep every player cohort informed."
+      description="Draft, version, and localise notification templates that power every broadcast."
     >
       <NotificationTemplates />
     </ContentLayout>

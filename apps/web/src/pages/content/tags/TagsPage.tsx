@@ -2,6 +2,7 @@ import React from 'react';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Input, Button, Checkbox, Select, Badge, Drawer, TablePagination, useToast } from '@ui';
 import { Table as UITable } from '@ui/table';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { MagnifyingGlassIcon, PlusIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
 import { apiGet, apiPost, apiDelete } from '@shared/api/client';
@@ -385,13 +386,25 @@ export default function TagsPage({
     }
   }, [newName, newSlug, pushToast, refresh]);
 
-  const stats = React.useMemo(() => {
+  const metrics = React.useMemo<PageHeroMetric[] | undefined>(() => {
     if (group === 'all') return undefined;
     const summary = groups.find((item) => item.key === group) ?? DEFAULT_GROUP;
     return [
-      { label: translate(COPY.stats.tags), value: summary.tag_count.toLocaleString() },
-      { label: translate(COPY.stats.usage), value: summary.usage_count.toLocaleString() },
-      { label: translate(COPY.stats.authors), value: summary.author_count.toLocaleString() },
+      {
+        id: 'tags-total',
+        label: translate(COPY.stats.tags),
+        value: summary.tag_count.toLocaleString('ru-RU'),
+      },
+      {
+        id: 'tags-usage',
+        label: translate(COPY.stats.usage),
+        value: summary.usage_count.toLocaleString('ru-RU'),
+      },
+      {
+        id: 'tags-authors',
+        label: translate(COPY.stats.authors),
+        value: summary.author_count.toLocaleString('ru-RU'),
+      },
     ];
   }, [group, groups]);
 
@@ -409,7 +422,7 @@ export default function TagsPage({
             </Button>
           </div>
         }
-        stats={stats}
+        metrics={metrics}
       >
         <Card className="p-4">
           <div className="flex flex-wrap items-center gap-3">

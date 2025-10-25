@@ -1,5 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import {
+  ArrowPathIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   InboxIcon,
@@ -19,22 +20,23 @@ import { ObservabilityLayout } from './ObservabilityLayout';
 import { fetchEventsSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { EventsSummary } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return numberFormatter.format(value);
 }
 
 function formatPercent(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return `${(value * 100).toFixed(2)}%`;
 }
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return 'вЂ”';
   return timeFormatter.format(date);
 }
 
@@ -93,38 +95,62 @@ export function ObservabilityEvents(): React.ReactElement {
   const topFailure = handlers.reduce((best, row) => ((row.failure || 0) > (best?.failure || 0) ? row : best), handlers[0] ?? null);
   const topLatency = handlers.reduce((best, row) => ((row.avg_ms || 0) > (best?.avg_ms || 0) ? row : best), handlers[0] ?? null);
 
-  const headerStats = hasData
-    ? [
-        {
-          label: 'Handlers tracked',
-          value: formatNumber(totals.totalHandlers),
-          hint: `${formatNumber(totals.totalEvents)} executions`,
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+          }}
+          disabled={loading}
+          data-testid="observability-events-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
+      ? [
+          {
+            id: 'events-handlers',
+            label: 'Handlers tracked',
+            value: formatNumber(totals.totalHandlers),
+          helper: `${formatNumber(totals.totalEvents)} executions`,
           icon: <InboxIcon className="size-4" aria-hidden="true" />,
         },
         {
+          id: 'events-latency',
           label: 'Average latency',
           value: `${Math.round(totals.averageLatency || 0)} ms`,
-          hint: topLatency ? `${topLatency.handler} peak` : 'Awaiting data',
+          helper: topLatency ? `${topLatency.handler} peak` : 'Awaiting data',
           icon: <ClockIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
         {
+          id: 'events-failure',
           label: 'Failure ratio',
-          value: formatPercent(totals.failureRatio),
-          hint: `${formatNumber(totals.totalFailure)} failures`,
-          icon: <ExclamationTriangleIcon className="size-4" aria-hidden="true" />,
-        },
-        {
-          label: 'Last update',
-          value: formatUpdated(lastUpdated),
-          hint: `Auto refresh · ${EVENTS_POLL_INTERVAL_MS / 1000}s`,
-          icon: <ClockIcon className="size-4" aria-hidden="true" />,
-        },
-      ]
-    : undefined;
+            value: formatPercent(totals.failureRatio),
+            helper: `${formatNumber(totals.totalFailure)} failures`,
+            icon: <ExclamationTriangleIcon className="size-4" aria-hidden="true" />,
+            accent: 'danger',
+          },
+        ]
+      : undefined;
 
   if (error) {
     return (
-      <ObservabilityLayout title="Domain events">
+      <ObservabilityLayout title="Domain events" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -153,21 +179,21 @@ export function ObservabilityEvents(): React.ReactElement {
         {
           id: 'top-failure',
           label: 'Top failing handler',
-          value: topFailure ? formatNumber(topFailure.failure) : '--',
+          value: topFailure ? formatNumber(topFailure.failure) : '—',
           description: topFailure ? `${topFailure.handler}` : 'Awaiting data',
           tone: 'warning' as const,
         },
         {
           id: 'top-latency',
           label: 'Slowest handler',
-          value: topLatency ? `${Math.round(topLatency.avg_ms || 0)} ms` : '--',
+          value: topLatency ? `${Math.round(topLatency.avg_ms || 0)} ms` : '—',
           description: topLatency ? `${topLatency.handler}` : 'Awaiting data',
           tone: 'warning' as const,
         },
         {
           id: 'success-rate',
           label: 'Success rate',
-          value: totals.totalEvents ? formatPercent(totals.totalSuccess / totals.totalEvents) : '--',
+          value: totals.totalEvents ? formatPercent(totals.totalSuccess / totals.totalEvents) : '—',
           description: `${formatNumber(totals.totalSuccess)} successes`,
           tone: 'success' as const,
         },
@@ -185,7 +211,8 @@ export function ObservabilityEvents(): React.ReactElement {
     <ObservabilityLayout
       title="Domain events"
       description="Handler success rates, latencies, and volumes to catch regressions early."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-events-filters" data-analytics="observability:events:filters">
@@ -357,6 +384,7 @@ export function ObservabilityEvents(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
 
 
 

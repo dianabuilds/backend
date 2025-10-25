@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import {
   ArrowPathIcon,
   ChartBarIcon,
-  ClockIcon,
   Cog6ToothIcon,
   CpuChipIcon,
   ExclamationTriangleIcon,
@@ -16,28 +15,29 @@ import { ObservabilityLayout } from './ObservabilityLayout';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { fetchTelemetryOverview } from "@shared/api";
 import type { EventHandlerRow, TelemetryOverview } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const percentFormatter = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatNumber(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return numberFormatter.format(value);
 }
 
 function formatPercent(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return percentFormatter.format(value);
 }
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return '—';
   return timeFormatter.format(date);
 }
 
 function formatMs(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return `${Math.round(value)} ms`;
 }
 
@@ -129,35 +129,50 @@ export function ObservabilityOverview(): React.ReactElement {
       .slice(0, 5);
   }, [data?.transitions]);
 
-  const headerStats = React.useMemo(() => {
+  const heroMetrics = React.useMemo<PageHeroMetric[] | undefined>(() => {
     if (!data) return undefined;
     const llmCalls = data.llm?.calls.reduce((acc, metric) => acc + (metric.count || 0), 0) ?? 0;
+    const promptTokens =
+      data.llm?.tokens_total.reduce((acc, metric) => (metric.type === 'prompt' ? acc + (metric.total || 0) : acc), 0) ??
+      0;
     const workerJobs = Object.values(data.workers?.jobs ?? {}).reduce((acc, value) => acc + (value || 0), 0);
-    const rumTotal = Object.values(data.rum?.counts ?? {}).reduce((acc, value) => acc + (value || 0), 0);
+    const workerAvgMs = data.workers?.job_avg_ms ?? null;
+    const eventFailures =
+      data.events?.handlers.reduce((acc, handler) => acc + (handler.failure || 0), 0) ?? 0;
+    const topFailure = data.events?.handlers.reduce<EventHandlerRow | null>((best, handler) => {
+      if (!best || (handler.failure || 0) > (best.failure || 0)) {
+        return handler;
+      }
+      return best;
+    }, null) ?? null;
+
     return [
       {
+        id: 'overview-llm',
         label: 'LLM calls',
         value: formatNumber(llmCalls),
+        helper: promptTokens > 0 ? `${formatNumber(promptTokens)} prompt tokens` : 'Awaiting data',
         icon: <SparklesIcon className="size-5" aria-hidden="true" />,
+        accent: 'positive',
       },
       {
+        id: 'overview-workers',
         label: 'Worker jobs',
         value: formatNumber(workerJobs),
+        helper: workerAvgMs ? `${formatMs(workerAvgMs)} avg duration` : 'Awaiting data',
         icon: <Cog6ToothIcon className="size-5" aria-hidden="true" />,
+        accent: 'warning',
       },
       {
-        label: 'RUM events',
-        value: formatNumber(rumTotal),
-        icon: <GlobeAltIcon className="size-5" aria-hidden="true" />,
-      },
-      {
-        label: 'Last update',
-        value: formatUpdated(lastUpdated),
-        hint: `Auto refresh · ${OVERVIEW_POLL_INTERVAL_MS / 1000}s`,
-        icon: <ClockIcon className="size-5" aria-hidden="true" />,
+        id: 'overview-api',
+        label: 'Event failures',
+        value: formatNumber(eventFailures),
+        helper: topFailure ? topFailure.handler : 'Awaiting data',
+        icon: <ExclamationTriangleIcon className="size-5" aria-hidden="true" />,
+        accent: 'danger',
       },
     ];
-  }, [data, lastUpdated]);
+  }, [data]);
   const errorSurface = error ? (
     <Surface
       variant="frosted"
@@ -192,9 +207,13 @@ export function ObservabilityOverview(): React.ReactElement {
   const actions = React.useMemo(
     () => (
       <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
         <Button
           type="button"
-          variant="outlined"
+          variant="ghost"
+          color="neutral"
           size="sm"
           onClick={() => {
             void refresh();
@@ -209,7 +228,8 @@ export function ObservabilityOverview(): React.ReactElement {
           as={Link}
           to="/observability/rum"
           variant="filled"
-          className="shadow-[0_18px_45px_-25px_rgba(79,70,229,0.6)]"
+          size="sm"
+          className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
           data-testid="observability-header-cta"
           data-analytics="observability:cta:rum"
         >
@@ -218,7 +238,7 @@ export function ObservabilityOverview(): React.ReactElement {
         </Button>
       </div>
     ),
-    [loading, refresh],
+    [lastUpdated, loading, refresh],
   );
 
   if (!data && error) {
@@ -241,7 +261,7 @@ export function ObservabilityOverview(): React.ReactElement {
       title="Telemetry command centre"
       description="Monitor AI output, worker queues, domain events, transitions, and client-side health from a single pane of glass."
       actions={actions}
-      stats={headerStats}
+      metrics={heroMetrics}
     >
       {errorSurface}
       <div className="grid gap-6 xl:grid-cols-12">

@@ -1,19 +1,65 @@
 version: "3.9"
 
+x-backend-defaults: &backend-defaults
+  build: .
+  volumes:
+    - .:/app
+  env_file:
+    - .env
+    - apps/backend/.env
+  environment: &backend-env
+    PYTHONPATH: /app
+  depends_on:
+    - postgres
+    - redis
+    - minio
+
 services:
-  backend:
-    build: .
+  backend-public:
+    <<: *backend-defaults
+    command: >
+      sh -c 'uvicorn apps.backend.app.api_gateway.main:app --host $$UVICORN_HOST --port $$APP_PORT --reload'
+    environment:
+      <<: *backend-env
+      APP_API_CONTOUR: public
+      APP_PORT: "8010"
+      UVICORN_HOST: 0.0.0.0
+    ports:
+      - "8010:8010"
+    profiles: ["local", "dev"]
+
+  backend-admin:
+    <<: *backend-defaults
+    command: >
+      sh -c 'uvicorn apps.backend.app.api_gateway.main:app --host $$UVICORN_HOST --port $$APP_PORT --reload'
+    environment:
+      <<: *backend-env
+      APP_API_CONTOUR: admin
+      APP_PORT: "8011"
+      UVICORN_HOST: 0.0.0.0
+    ports:
+      - "8011:8011"
+    profiles: ["local", "dev"]
+
+  backend-ops:
+    <<: *backend-defaults
+    command: >
+      sh -c 'uvicorn apps.backend.app.api_gateway.main:app --host $$UVICORN_HOST --port $$APP_PORT --reload'
+    environment:
+      <<: *backend-env
+      APP_API_CONTOUR: ops
+      APP_PORT: "8012"
+      UVICORN_HOST: 0.0.0.0
+    ports:
+      - "8012:8012"
+    profiles: ["local", "dev"]
+
+  backend-ci:
+    <<: *backend-defaults
+    environment:
+      <<: *backend-env
     command: make lint typecheck test
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-      - apps/backend/.env
-    depends_on:
-      - postgres
-      - redis
-      - minio
-    profiles: ["local", "dev", "test"]
+    profiles: ["test"]
 
   ddd:
     build: .

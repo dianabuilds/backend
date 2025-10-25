@@ -1,5 +1,5 @@
 export { ObservabilityLayout } from './components/ObservabilityLayout';
-export { ObservabilityOverview } from './components/OverviewView';
+export { ObservabilityOverview } from './components/ObservabilityOverview';
 export { ObservabilityAPI } from './components/APIView';
 export { ObservabilityLLM } from './components/LLMView';
 export { ObservabilityWorkers } from './components/WorkersView';

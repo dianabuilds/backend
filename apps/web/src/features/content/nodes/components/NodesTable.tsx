@@ -200,7 +200,10 @@ export function NodesTable({
             {columns.slug && <Table.TH>Slug</Table.TH>}
             {columns.author && <Table.TH>Author</Table.TH>}
             {columns.status && <Table.TH>Status</Table.TH>}
-            {columns.embedding && <Table.TH>Embedding</Table.TH>}\n            {showHomepageColumn && <Table.TH>Homepage</Table.TH>}\n            {columns.updated && <Table.TH>Updated</Table.TH>}\n            <Table.TH className="w-28 text-right">Actions</Table.TH>
+            {columns.embedding && <Table.TH>Embedding</Table.TH>}
+            {showHomepageColumn && <Table.TH>Homepage</Table.TH>}
+            {columns.updated && <Table.TH>Updated</Table.TH>}
+            <Table.TH className="w-28 text-right">Actions</Table.TH>
           </Table.TR>
         </Table.THead>
         <Table.TBody>

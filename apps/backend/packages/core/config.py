@@ -113,6 +113,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    api_contour: Literal["public", "admin", "ops", "all"] = Field(
+        default="all",
+        validation_alias=AliasChoices("API_CONTOUR", "APP_API_CONTOUR"),
+    )
+
     @field_validator("database_url", mode="before")
     @classmethod
     def _normalize_database_url(cls, value: Any) -> Any:
@@ -130,6 +135,14 @@ class Settings(BaseSettings):
     env: Literal["dev", "test", "prod"] = "dev"
     database_url: AnyUrl = Field(
         default=cast(AnyUrl, "postgresql://app:app@localhost:5432/app")
+    )
+    database_url_admin: AnyUrl | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DATABASE_URL_ADMIN", "APP_DATABASE_URL_ADMIN"),
+    )
+    database_url_ops: AnyUrl | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DATABASE_URL_OPS", "APP_DATABASE_URL_OPS"),
     )
     redis_url: AnyUrl = Field(default=cast(AnyUrl, "redis://localhost:6379/0"))
     home_cache_enabled: bool = Field(
@@ -238,8 +251,15 @@ class Settings(BaseSettings):
     auth_bootstrap_enabled: bool = False
     cors_origins: str | None = None
 
-    # admin guard
-    admin_api_key: SecretStr | None = None
+    # admin/ops guard keys
+    admin_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ADMIN_API_KEY", "APP_ADMIN_API_KEY"),
+    )
+    ops_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPS_API_KEY", "APP_OPS_API_KEY"),
+    )
 
     # search (in-memory only)
     search_persist_path: str | None = "apps/backend/var/search_index.json"
@@ -311,6 +331,16 @@ class Settings(BaseSettings):
     content_enabled: bool = True
     ai_enabled: bool = True
     moderation_enabled: bool = True
+
+    def database_url_for_contour(self, contour: str | None = None) -> str:
+        effective = (contour or getattr(self, "api_contour", "all") or "all").lower()
+        if effective == "admin" and self.database_url_admin:
+            return str(self.database_url_admin)
+        if effective == "ops" and self.database_url_ops:
+            return str(self.database_url_ops)
+        if self.database_url:
+            return str(self.database_url)
+        return ""
 
 
 def to_async_dsn(url: AnyUrl | str) -> str:

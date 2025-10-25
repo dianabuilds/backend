@@ -6,7 +6,8 @@ on:
   pull_request:
 
 jobs:
-  lint-test:
+  backend-quality:
+    name: Backend Quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,6 +46,62 @@ jobs:
       - name: Moderation coverage
         working-directory: apps/backend
         run: python -m pytest ../../tests/unit/platform/moderation --cov=apps.backend.domains.platform.moderation.application.reports.repository --cov=apps.backend.domains.platform.moderation.application.tickets.repository --cov=apps.backend.domains.platform.moderation.application.appeals.repository --cov-report=xml --cov-report=term --cov-fail-under=80
+
+  backend-contour-smoke:
+    name: Backend Contour Smoke (APP_API_CONTOUR=${{ matrix.contour }})
+    needs: backend-quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        contour: [public, admin, ops]
+    env:
+      APP_API_CONTOUR: ${{ matrix.contour }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
+
+      - name: Show contour context
+        run: |
+          echo "Running smoke tests for contour: $APP_API_CONTOUR"
+
+      - name: Pytest contour smoke
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest tests/app/api_gateway/test_contours.py --junitxml=pytest-${APP_API_CONTOUR}.xml | tee pytest-${APP_API_CONTOUR}.log
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-smoke-${{ matrix.contour }}
+          path: |
+            apps/backend/pytest-${{ matrix.contour }}.xml
+            apps/backend/pytest-${{ matrix.contour }}.log
+
+  frontend-quality:
+    name: Frontend Quality
+    needs: backend-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

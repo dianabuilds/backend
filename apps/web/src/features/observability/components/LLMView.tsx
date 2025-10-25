@@ -1,5 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import {
+  ArrowPathIcon,
   BanknotesIcon,
   BoltIcon,
   ChartBarIcon,
@@ -30,6 +31,7 @@ import {
   LLMSummary,
   LLMTokensMetric,
 } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 type StageMetrics = {
   key: string;
@@ -53,24 +55,24 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return numberFormatter.format(value);
 }
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return "--";
+  if (!date) return 'вЂ”';
   return timeFormatter.format(date);
 }
 
 function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return `${Math.round(value)} ms`;
 }
 
 const LLM_POLL_INTERVAL_MS = 30_000;
 
 function formatCurrency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '$0.00';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return currencyFormatter.format(value);
 }
 
@@ -238,40 +240,64 @@ export function ObservabilityLLM(): React.ReactElement {
   const hasData = Boolean(data) && !loading && !error;
   const isLoading = loading || (!data && !error);
 
-  const headerStats = hasData
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+          }}
+          disabled={loading}
+          data-testid="observability-llm-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
     ? [
         {
+          id: 'llm-calls',
           label: 'Total LLM calls',
           value: formatNumber(totals.totalCalls),
-          hint: `${formatNumber(totals.totalErrors)} errors`,
+          helper: `${formatNumber(totals.totalErrors)} errors`,
           icon: <BoltIcon className="size-4" aria-hidden="true" />,
         },
         {
+          id: 'llm-latency',
           label: 'Average latency',
           value: formatLatency(totals.averageLatency),
-          hint: extremes.topLatency
+          helper: extremes.topLatency
             ? `${extremes.topLatency.provider}:${extremes.topLatency.model}@${extremes.topLatency.stage}`
             : 'Awaiting data',
           icon: <ClockIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
         {
+          id: 'llm-spend',
           label: 'Total spend',
           value: formatCurrency(totals.totalCostUsd),
-          hint: `${formatNumber(totals.totalPromptTokens + totals.totalCompletionTokens)} tokens`,
+          helper: `${formatNumber(totals.totalPromptTokens + totals.totalCompletionTokens)} tokens`,
           icon: <BanknotesIcon className="size-4" aria-hidden="true" />,
-        },
-        {
-          label: 'Last update',
-          value: formatUpdated(lastUpdated),
-          hint: `Auto refresh · ${LLM_POLL_INTERVAL_MS / 1000}s`,
-          icon: <SparklesIcon className="size-4" aria-hidden="true" />,
+          accent: 'danger',
         },
       ]
     : undefined;
 
   if (error) {
     return (
-      <ObservabilityLayout title="LLM telemetry">
+      <ObservabilityLayout title="LLM telemetry" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -300,7 +326,7 @@ export function ObservabilityLLM(): React.ReactElement {
         {
           id: 'top-volume',
           label: 'Top stage by volume',
-          value: extremes.topVolume ? formatNumber(extremes.topVolume.calls) : '--',
+          value: extremes.topVolume ? formatNumber(extremes.topVolume.calls) : '—',
           description: extremes.topVolume
             ? `${extremes.topVolume.provider}:${extremes.topVolume.model}@${extremes.topVolume.stage}`
             : 'Awaiting data',
@@ -310,7 +336,7 @@ export function ObservabilityLLM(): React.ReactElement {
         {
           id: 'top-latency',
           label: 'Slowest stage',
-          value: extremes.topLatency ? formatLatency(extremes.topLatency.avgLatencyMs) : '--',
+          value: extremes.topLatency ? formatLatency(extremes.topLatency.avgLatencyMs) : '—',
           description: extremes.topLatency
             ? `${extremes.topLatency.provider}:${extremes.topLatency.model}@${extremes.topLatency.stage}`
             : 'Awaiting data',
@@ -320,7 +346,7 @@ export function ObservabilityLLM(): React.ReactElement {
         {
           id: 'top-cost',
           label: 'Most expensive stage',
-          value: extremes.topCost ? formatCurrency(extremes.topCost.costUsd) : '--',
+          value: extremes.topCost ? formatCurrency(extremes.topCost.costUsd) : '—',
           description: extremes.topCost
             ? `${extremes.topCost.provider}:${extremes.topCost.model}@${extremes.topCost.stage}`
             : 'Awaiting data',
@@ -342,7 +368,8 @@ export function ObservabilityLLM(): React.ReactElement {
     <ObservabilityLayout
       title="LLM telemetry"
       description="Provider, model, and stage level performance, spend, and reliability."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-llm-filters" data-analytics="observability:llm:filters">
@@ -649,6 +676,7 @@ export function ObservabilityLLM(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
 
 
 

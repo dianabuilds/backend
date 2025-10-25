@@ -2,6 +2,7 @@ import React from 'react';
 import { ContentLayout } from '@shared/layouts/content';
 import { Card, Button, Input, Switch, Badge, Spinner, Skeleton, useToast } from '@ui';
 import { Table as UITable } from '@ui/table';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { apiGet, apiPatch } from '@shared/api/client';
 import { extractErrorMessage } from '@shared/utils/errors';
 import { translate } from '@shared/i18n/locale';
@@ -292,29 +293,35 @@ export default function RelationsPage() {
   const showStrategySkeleton = loadingOverview && strategies.length === 0;
   const isRefreshingSnapshot = refreshing || loadingOverview;
 
-  const headerStats = [
-    {
-      label: 'Coverage',
-      value:
-        diversity.coverage != null && !Number.isNaN(diversity.coverage)
-          ? `${Math.round(diversity.coverage * 100)}%`
-          : 'n/a',
-    },
-    {
-      label: 'Entropy',
-      value:
-        diversity.entropy != null && !Number.isNaN(diversity.entropy)
-          ? diversity.entropy.toFixed(2)
-          : 'n/a',
-    },
-    {
-      label: 'Gini (diversity)',
-      value:
-        diversity.gini != null && !Number.isNaN(diversity.gini)
-          ? diversity.gini.toFixed(2)
-          : 'n/a',
-    },
-  ];
+  const headerMetrics = React.useMemo<PageHeroMetric[]>(
+    () => [
+      {
+        id: 'relations-coverage',
+        label: 'Coverage',
+        value:
+          diversity.coverage != null && !Number.isNaN(diversity.coverage)
+            ? `${Math.round(diversity.coverage * 100)}%`
+            : 'n/a',
+      },
+      {
+        id: 'relations-entropy',
+        label: 'Entropy',
+        value:
+          diversity.entropy != null && !Number.isNaN(diversity.entropy)
+            ? diversity.entropy.toFixed(2)
+            : 'n/a',
+      },
+      {
+        id: 'relations-gini',
+        label: 'Gini (diversity)',
+        value:
+          diversity.gini != null && !Number.isNaN(diversity.gini)
+            ? diversity.gini.toFixed(2)
+            : 'n/a',
+      },
+    ],
+    [diversity.coverage, diversity.entropy, diversity.gini],
+  );
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -356,7 +363,7 @@ export default function RelationsPage() {
       context="nodes"
       title="Transition strategies"
       description="Balance exploration and relevance for how players travel across the narrative graph."
-      stats={headerStats}
+      metrics={headerMetrics}
     >
       {error && (
         <Card className="border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-900/20">

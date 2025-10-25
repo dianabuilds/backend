@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, PageHeader, Skeleton } from '@ui';
+import { Button, Card, PageHero, Skeleton } from '@ui';
 
 import { fetchAdminNodeEngagement } from './api';
 
@@ -15,6 +15,7 @@ import { ModeratorPanel } from './components/ModeratorPanel';
 import { SummaryOverview } from './components/SummaryOverview';
 
 import type { AdminNodeEngagementSummary } from './types';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 function formatNumber(value: number | null | undefined): string {
   if (typeof value !== 'number') return 'N/A';
@@ -125,15 +126,14 @@ export default function NodeModerationPage(): JSX.Element {
   const handleRefreshSummary = React.useCallback(() => loadSummary({ silent: true }), [loadSummary]);
 
   const commentSummary = summary?.comments ?? null;
-  const stats = React.useMemo(() => {
-    if (!commentSummary) return undefined;
-    const pending = commentSummary.by_status?.pending ?? 0;
-    const hidden = commentSummary.by_status?.hidden ?? 0;
-    const bans = commentSummary.bans_count ?? 0;
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(() => {
+    const pending = commentSummary?.by_status?.pending ?? null;
+    const hidden = commentSummary?.by_status?.hidden ?? null;
+    const bans = commentSummary?.bans_count ?? null;
     return [
-      { label: 'Pending', value: formatNumber(pending) },
-      { label: 'Hidden', value: formatNumber(hidden) },
-      { label: 'Bans', value: formatNumber(bans) },
+      { id: 'pending', label: 'Pending', value: formatNumber(pending) },
+      { id: 'hidden', label: 'Hidden', value: formatNumber(hidden) },
+      { id: 'bans', label: 'Bans', value: formatNumber(bans) },
     ];
   }, [commentSummary]);
 
@@ -147,7 +147,7 @@ export default function NodeModerationPage(): JSX.Element {
 
   const headerDescription = summary
     ? `Moderate comments, manage bans, and control discussion health for this node. ${moderationStateHint}`
-    : 'Loading node moderation data...';
+    : 'Loading node moderation data…';
 
   const showSkeleton = loading && !summary;
 
@@ -156,18 +156,30 @@ export default function NodeModerationPage(): JSX.Element {
     navigate(`/admin/nodes/${encodeURIComponent(nodeId)}`);
   }, [navigate, nodeId]);
 
+  const heroActions = React.useMemo(() => {
+    if (!nodeId) return null;
+    return (
+      <Button onClick={handleOpenAnalytics} variant="outlined" data-testid="moderation-open-analytics">
+        Open analytics overview
+      </Button>
+    );
+  }, [handleOpenAnalytics, nodeId]);
+
   return (
-    <div className="space-y-10">
-      <PageHeader
+    <div className="space-y-8">
+      <PageHero
         title={headerTitle}
         description={headerDescription}
+        eyebrow="Node moderation"
         breadcrumbs={[
           { label: 'Nodes', to: '/nodes/library' },
           nodeId ? { label: 'Engagement', to: `/admin/nodes/${encodeURIComponent(nodeId)}` } : undefined,
           { label: 'Moderation' },
         ].filter(Boolean) as Array<{ label: string; to?: string }>}
-        stats={stats}
-        pattern="subtle"
+        metrics={heroMetrics}
+        actions={heroActions}
+        variant="compact"
+        tone="light"
       />
 
       {error ? (
@@ -206,7 +218,12 @@ export default function NodeModerationPage(): JSX.Element {
                   <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Need engagement context?</h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">Jump to the analytics dashboard to inspect traffic and reaction trends.</p>
                 </div>
-                <Button onClick={handleOpenAnalytics} variant="outlined" data-testid="moderation-open-analytics" className="px-5">
+                <Button
+                  onClick={handleOpenAnalytics}
+                  variant="ghost"
+                  color="neutral"
+                  className="px-5"
+                >
                   Open analytics overview
                 </Button>
               </div>

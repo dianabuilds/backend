@@ -1,15 +1,15 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 """
 Backfill script template: migrate data from legacy DB to new DDD schema.
 
 Usage examples:
-  APP_DATABASE_URL=postgresql://app:app@localhost:5432/app \
+  DATABASE_URL_ADMIN=postgresql://app:app@localhost:5432/app \
   python apps/apps/backend/infra/dev/backfill_legacy_to_new.py --from-csv ./export
 
 Or provide a legacy DSN (implement readers accordingly):
   LEGACY_DSN=postgresql://legacy:pass@host:5432/legacy \
-  APP_DATABASE_URL=postgresql://app:app@localhost:5432/app \
+  DATABASE_URL_ADMIN=postgresql://app:app@localhost:5432/app \
   python apps/apps/backend/infra/dev/backfill_legacy_to_new.py --from-db
 
 Notes:
@@ -85,9 +85,14 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    dsn = os.getenv("APP_DATABASE_URL") or os.getenv("DATABASE_URL")
+    dsn = (
+        os.getenv("DATABASE_URL_ADMIN")
+        or os.getenv("APP_DATABASE_URL_ADMIN")
+        or os.getenv("APP_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+    )
     if not dsn:
-        raise SystemExit("Set APP_DATABASE_URL")
+        raise SystemExit("Set DATABASE_URL_ADMIN/APP_DATABASE_URL")
     engine = create_async_engine(dsn)
 
     if args.from_csv:

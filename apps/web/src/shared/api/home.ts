@@ -269,6 +269,14 @@ function resolveHomeErrorMessage(error: ApiError): string {
 
 function handleHomeApiError(error: unknown): never {
   const err = error as ApiError;
+  const name = (err as any)?.name;
+  const isDomAbort =
+    typeof DOMException !== 'undefined' &&
+    error instanceof DOMException &&
+    error.name === 'AbortError';
+  if (name === 'AbortError' || isDomAbort) {
+    throw err;
+  }
   const status = err?.status;
   if (status === 401) {
     pushGlobalToast({ intent: 'error', description: SESSION_LOST_MESSAGE });

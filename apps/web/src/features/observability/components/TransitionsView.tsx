@@ -1,8 +1,8 @@
 import React from 'react';
 import {
+  ArrowPathIcon,
   ArrowTrendingUpIcon,
   ArrowsRightLeftIcon,
-  ClockIcon,
   ExclamationTriangleIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
@@ -21,31 +21,32 @@ import { ObservabilityLayout } from './ObservabilityLayout';
 import { fetchTransitionsSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { TransitionModeSummary } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return '—';
   return timeFormatter.format(date);
 }
 
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
-  return numberFormatter.format(value);
-}
+  function formatNumber(value: number | null | undefined) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    return numberFormatter.format(value);
+  }
 
-function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
-  return `${Math.round(value)} ms`;
-}
+  function formatLatency(value: number | null | undefined) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    return `${Math.round(value)} ms`;
+  }
 
 const TRANSITIONS_POLL_INTERVAL_MS = 30_000;
 
-function formatPercent(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
-  return `${(value * 100).toFixed(2)}%`;
-}
+  function formatPercent(value: number | null | undefined) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+    return `${(value * 100).toFixed(2)}%`;
+  }
 
 export function ObservabilityTransitions(): React.ReactElement {
   const [page, setPage] = React.useState(1);
@@ -109,38 +110,63 @@ export function ObservabilityTransitions(): React.ReactElement {
   const hasData = Boolean(data) && !loading && !error;
   const isLoading = loading || (!data && !error);
 
-  const headerStats = hasData
-    ? [
-        {
-          label: 'Transitions processed',
-          value: formatNumber(totals.totalTransitions),
-          hint: `${formatPercent(totals.averageFallback)} fallback avg`,
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+          }}
+          disabled={loading}
+          data-testid="observability-transitions-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
+      ? [
+          {
+            id: 'transitions-total',
+            label: 'Transitions processed',
+            value: formatNumber(totals.totalTransitions),
+          helper: `${formatPercent(totals.averageFallback)} fallback avg`,
           icon: <ArrowsRightLeftIcon className="size-4" aria-hidden="true" />,
+          accent: 'positive',
         },
         {
+          id: 'transitions-latency',
           label: 'Average latency',
           value: formatLatency(totals.averageLatency),
-          hint: extremes.slowest ? `${extremes.slowest.mode} peak` : 'Awaiting data',
+          helper: extremes.slowest ? `${extremes.slowest.mode} peak` : 'Awaiting data',
           icon: <ArrowTrendingUpIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
-        {
-          label: 'No-route avg',
-          value: formatPercent(totals.averageNoRoute),
-          hint: extremes.highestNoRoute ? `${extremes.highestNoRoute.mode} max` : 'Awaiting data',
-          icon: <ShieldCheckIcon className="size-4" aria-hidden="true" />,
-        },
-        {
-          label: 'Last update',
-          value: formatUpdated(lastUpdated),
-          hint: `Auto refresh В· ${TRANSITIONS_POLL_INTERVAL_MS / 1000}s`,
-          icon: <ClockIcon className="size-4" aria-hidden="true" />,
-        },
-      ]
-    : undefined;
+          {
+            id: 'transitions-no-route',
+            label: 'No-route avg',
+            value: formatPercent(totals.averageNoRoute),
+            helper: extremes.highestNoRoute ? `${extremes.highestNoRoute.mode} max` : 'Awaiting data',
+            icon: <ShieldCheckIcon className="size-4" aria-hidden="true" />,
+            accent: 'danger',
+          },
+        ]
+      : undefined;
 
   if (error) {
     return (
-      <ObservabilityLayout title="Routing telemetry">
+      <ObservabilityLayout title="Routing telemetry" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -182,21 +208,21 @@ export function ObservabilityTransitions(): React.ReactElement {
         {
           id: 'slowest',
           label: 'Slowest mode',
-          value: extremes.slowest ? formatLatency(extremes.slowest.avg_latency_ms) : '--',
+          value: extremes.slowest ? formatLatency(extremes.slowest.avg_latency_ms) : '—',
           description: extremes.slowest ? extremes.slowest.mode : 'Awaiting data',
           tone: 'warning' as const,
         },
         {
           id: 'fallback',
           label: 'Highest fallback',
-          value: extremes.highestFallback ? formatPercent(extremes.highestFallback.fallback_ratio) : '--',
+          value: extremes.highestFallback ? formatPercent(extremes.highestFallback.fallback_ratio) : '—',
           description: extremes.highestFallback ? extremes.highestFallback.mode : 'Awaiting data',
           tone: 'secondary' as const,
         },
         {
           id: 'no-route',
           label: 'Highest no-route',
-          value: extremes.highestNoRoute ? formatPercent(extremes.highestNoRoute.no_route_ratio) : '--',
+          value: extremes.highestNoRoute ? formatPercent(extremes.highestNoRoute.no_route_ratio) : '—',
           description: extremes.highestNoRoute ? extremes.highestNoRoute.mode : 'Awaiting data',
           tone: 'warning' as const,
         },
@@ -214,7 +240,8 @@ export function ObservabilityTransitions(): React.ReactElement {
     <ObservabilityLayout
       title="Routing telemetry"
       description="Latency, fallback usage, and volume per transition mode."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-transitions-filters" data-analytics="observability:transitions:filters">

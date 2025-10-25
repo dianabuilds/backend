@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { PageHeader } from '@ui';
+import { PageHero } from '@ui';
+import type { PageHeroBreadcrumb, PageHeroMetric, PageHeroTone } from '@ui/patterns/PageHero';
 
 type ContentTab = { to: string; label: React.ReactNode };
 
@@ -9,7 +10,12 @@ export type ContentContext = 'legacy' | 'nodes' | 'quests' | 'notifications' | '
 type LayoutPreset = {
   tabs: ContentTab[];
   description: React.ReactNode;
-  actions: React.ReactNode;
+  actions?: React.ReactNode;
+  metrics?: PageHeroMetric[] | React.ReactNode;
+  filters?: React.ReactNode;
+  kicker?: React.ReactNode;
+  breadcrumbs?: PageHeroBreadcrumb[];
+  tone?: PageHeroTone;
 };
 
 const legacyTabs: ContentTab[] = [
@@ -46,11 +52,11 @@ const notificationsTabs: ContentTab[] = [
 ];
 
 const presetDescriptions: Record<ContentContext, React.ReactNode> = {
-  legacy: 'Unified workspace for narrative objects, tagging, relations, and experimentation across the Flavour Trip worlds.',
-  nodes: 'Dedicated cockpit for the narrative graph: monitor, grow, and curate nodes powering every player journey.',
-  quests: 'Plan, validate, and launch quests with confidence - from authoring pipelines to AI-assisted ideation.',
-  notifications: 'Coordinate announcements, automate broadcasts, and keep every player cohort informed.',
-  ops: 'Operational cockpit for content ops teams balancing drafts, imports, and relations upkeep.',
+  legacy: 'One cockpit to orchestrate content, tags, and relations across Flavour Trip.',
+  nodes: 'Track graph health, unlock growth signals, and keep relations resilient.',
+  quests: 'Balance manual and AI quest pipelines while keeping worlds launch-ready.',
+  notifications: 'Coordinate campaigns, templates, and delivery channels in one place.',
+  ops: 'Operations console for imports, drafts, and relation upkeep.',
 };
 
 const buttonBase = 'btn-base btn h-9 rounded-full px-4 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2';
@@ -112,22 +118,76 @@ const notificationsActions = (
 );
 
 const contextPresets: Record<ContentContext, LayoutPreset> = {
-  legacy: { tabs: legacyTabs, description: presetDescriptions.legacy, actions: legacyActions },
-  nodes: { tabs: nodesTabs, description: presetDescriptions.nodes, actions: nodesActions },
-  quests: { tabs: questsTabs, description: presetDescriptions.quests, actions: questsActions },
-  notifications: { tabs: notificationsTabs, description: presetDescriptions.notifications, actions: notificationsActions },
-  ops: { tabs: legacyTabs, description: presetDescriptions.ops, actions: legacyActions },
+  legacy: {
+    tabs: legacyTabs,
+    description: presetDescriptions.legacy,
+    actions: legacyActions,
+    tone: 'light',
+    metrics: [
+      { id: 'legacy-drafts', label: 'Drafts', value: '—' },
+      { id: 'legacy-published', label: 'Published', value: '—' },
+      { id: 'legacy-queued', label: 'Queued', value: '—' },
+    ],
+  },
+  nodes: {
+    tabs: nodesTabs,
+    description: presetDescriptions.nodes,
+    actions: nodesActions,
+    tone: 'light',
+    metrics: [
+      { id: 'nodes-drafts', label: 'Drafts', value: '—' },
+      { id: 'nodes-published', label: 'Published', value: '—' },
+      { id: 'nodes-queued', label: 'Queued updates', value: '—' },
+    ],
+  },
+  quests: {
+    tabs: questsTabs,
+    description: presetDescriptions.quests,
+    actions: questsActions,
+    tone: 'light',
+    metrics: [
+      { id: 'quests-drafts', label: 'Drafts', value: '—' },
+      { id: 'quests-published', label: 'Published', value: '—' },
+      { id: 'quests-queued', label: 'Queued reviews', value: '—' },
+    ],
+  },
+  notifications: {
+    tabs: notificationsTabs,
+    description: presetDescriptions.notifications,
+    actions: notificationsActions,
+    tone: 'light',
+    metrics: [
+      { id: 'notifications-drafts', label: 'Drafts', value: '—' },
+      { id: 'notifications-published', label: 'Sent', value: '—' },
+      { id: 'notifications-queued', label: 'Queued', value: '—' },
+    ],
+  },
+  ops: {
+    tabs: legacyTabs,
+    description: presetDescriptions.ops,
+    actions: legacyActions,
+    tone: 'light',
+    metrics: [
+      { id: 'ops-drafts', label: 'Drafts', value: '—' },
+      { id: 'ops-published', label: 'Published', value: '—' },
+      { id: 'ops-queued', label: 'Queued', value: '—' },
+    ],
+  },
 };
 
 export type ContentLayoutProps = {
   children: React.ReactNode;
-  title?: string;
+  title?: React.ReactNode;
   description?: React.ReactNode;
   actions?: React.ReactNode;
   tabs?: Array<{ to: string; label: React.ReactNode }>;
-  stats?: Parameters<typeof PageHeader>[0]['stats'];
-  breadcrumbs?: Parameters<typeof PageHeader>[0]['breadcrumbs'];
-  kicker?: Parameters<typeof PageHeader>[0]['kicker'];
+  stats?: PageHeroMetric[] | React.ReactNode;
+  metrics?: PageHeroMetric[] | React.ReactNode;
+  filters?: React.ReactNode;
+  breadcrumbs?: PageHeroBreadcrumb[];
+  eyebrow?: React.ReactNode;
+  kicker?: React.ReactNode;
+  heroTone?: PageHeroTone;
   context?: ContentContext;
 };
 
@@ -135,11 +195,15 @@ export function ContentLayout({
   children,
   title = 'Content Hub',
   description,
-  actions,
+  actions: actionsProp,
   tabs,
   stats,
+  metrics,
+  filters,
   breadcrumbs,
+  eyebrow,
   kicker,
+  heroTone,
   context = 'legacy',
 }: ContentLayoutProps) {
   const location = useLocation();
@@ -147,7 +211,18 @@ export function ContentLayout({
   const preset = contextPresets[context];
   const resolvedTabs = tabs ?? preset.tabs;
   const resolvedDescription = description ?? preset.description;
-  const resolvedActions = actions ?? preset.actions;
+  const resolvedActions = actionsProp ?? preset.actions;
+  const resolvedMetricsSource = metrics ?? stats ?? preset.metrics;
+  const resolvedMetrics = React.useMemo(() => {
+    if (Array.isArray(resolvedMetricsSource)) {
+      return resolvedMetricsSource.slice(0, 3);
+    }
+    return resolvedMetricsSource;
+  }, [resolvedMetricsSource]);
+  const resolvedFilters = filters ?? preset.filters;
+  const resolvedBreadcrumbs = breadcrumbs ?? preset.breadcrumbs;
+  const resolvedEyebrow = eyebrow ?? kicker ?? preset.kicker;
+  const resolvedTone = heroTone ?? preset.tone;
   const tabEntries = React.useMemo(
     () => resolvedTabs.map((tab) => ({ tab, target: tab.to.replace(/\/$/, '') })),
     [resolvedTabs],
@@ -168,14 +243,18 @@ export function ContentLayout({
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageHero
         title={title}
         description={resolvedDescription}
         actions={resolvedActions}
-        stats={stats}
-        breadcrumbs={breadcrumbs}
-        kicker={kicker}
-        pattern="subtle"
+        metrics={resolvedMetrics}
+        filters={resolvedFilters}
+        breadcrumbs={resolvedBreadcrumbs}
+        eyebrow={resolvedEyebrow}
+        variant="compact"
+        tone={resolvedTone}
+        align="start"
+        className="bg-white/92 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
       />
 
       {resolvedTabs.length > 0 ? (

@@ -92,6 +92,40 @@ _SSL_TRUE = {"1", "true", "yes", "on", "require", "verify-ca", "verify-full"}
 _SSL_FALSE = {"0", "false", "no", "off", "disable", "allow", "prefer"}
 
 
+def _resolve_cert_path(candidate: Path) -> Path:
+    """Resolve certificate path across common working directories."""
+
+    if candidate.is_absolute():
+        return candidate
+
+    module_path = Path(__file__).resolve()
+    bases: list[Path] = [Path.cwd()]
+
+    try:
+        bases.append(module_path.parents[2])
+    except IndexError:
+        pass
+    try:
+        bases.append(module_path.parents[4])
+    except IndexError:
+        pass
+
+    seen: set[Path] = set()
+    fallback: Path | None = None
+
+    for base in bases:
+        resolved = (base / candidate).resolve()
+        if fallback is None:
+            fallback = resolved
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if resolved.exists():
+            return resolved
+
+    return fallback if fallback is not None else (Path.cwd() / candidate).resolve()
+
+
 def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str]]:
     """Strip SSL toggles from a DSN query string and return connect arguments."""
 
@@ -172,10 +206,14 @@ def _peel_ssl_connect_args(url: str) -> tuple[str, dict[str, Any], dict[str, str
     ssl_context: ssl.SSLContext | None = None
 
     if cert_path is not None:
-        resolved = cert_path.expanduser()
-        if not resolved.is_absolute():
-            resolved = (Path.cwd() / resolved).resolve()
-        ssl_context = ssl.create_default_context(cafile=str(resolved))
+        resolved = _resolve_cert_path(cert_path.expanduser())
+        try:
+            ssl_context = ssl.create_default_context(cafile=str(resolved))
+        except FileNotFoundError as exc:
+            logger.error(
+                "database ssl root certificate not found at %s", resolved, exc_info=exc
+            )
+            raise
         fingerprint_final["ssl"] = f"context:{resolved}"
 
     if ssl_context is not None:
@@ -242,7 +280,13 @@ def get_async_engine(
         create_kwargs: Extra keyword arguments forwarded to `create_async_engine`.
     """
 
-    raw_url = url if url is not None else load_settings().database_url
+    if url is not None:
+        raw_url = url
+    else:
+        settings = load_settings()
+        raw_url = settings.database_url_for_contour()
+    if not raw_url:
+        raise RuntimeError("Database URL is not configured for async engine")
     sanitized = sanitize_async_dsn(raw_url)
     sanitized, ssl_connect_args, ssl_fingerprint = _peel_ssl_connect_args(sanitized)
 

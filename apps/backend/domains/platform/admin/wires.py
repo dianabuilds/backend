@@ -16,7 +16,9 @@ class AdminContainer:
 
 
 def build_container(settings: Settings) -> AdminContainer:
-    db_probe = DatabaseProbe(database_url=str(settings.database_url))
+    db_probe = DatabaseProbe(
+        database_url=str(settings.database_url_for_contour("admin"))
+    )
     redis_probe = RedisProbe(
         redis_url=str(settings.redis_url) if settings.redis_url else None
     )

@@ -33,9 +33,16 @@ def _normalize_db_url(url: str) -> str:
 
 
 def get_engine() -> Engine:
-    url = os.getenv("APP_DATABASE_URL") or os.getenv("DATABASE_URL")
+    url = (
+        os.getenv("DATABASE_URL_ADMIN")
+        or os.getenv("APP_DATABASE_URL_ADMIN")
+        or os.getenv("APP_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+    )
     if not url:
-        raise RuntimeError("Database URL not set in APP_DATABASE_URL/DATABASE_URL")
+        raise RuntimeError(
+            "Database URL not set in DATABASE_URL_ADMIN/APP_DATABASE_URL(_ADMIN)"
+        )
     url = _normalize_db_url(url)
     return create_engine(url, future=True, pool_pre_ping=True)
 

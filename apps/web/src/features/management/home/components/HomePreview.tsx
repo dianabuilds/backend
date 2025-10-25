@@ -338,10 +338,11 @@ export function HomePreview(): React.ReactElement {
     if (!loading && state.status === 'idle') {
       void performPreview();
     }
-    return () => {
-      abortController.current?.abort();
-    };
   }, [loading, performPreview, state.status]);
+
+  React.useEffect(() => () => {
+    abortController.current?.abort();
+  }, []);
 
   const blocksSummary = state.renderData?.blocks ?? [];
   const previewInfo = state.renderData;

@@ -37,11 +37,22 @@ else:
     load_settings = _load_settings
 
 
-def _make_jwt(sub: str, role: str) -> str:
+def _make_jwt(sub: str, role: str, audience: str | None = None) -> str:
     if load_settings is None:
         return ""
     settings = load_settings()
+    role_value = role.lower()
+    aud = audience
+    if aud is None:
+        if role_value in {"admin", "moderator", "editor"}:
+            aud = "admin"
+        elif role_value == "finance_ops":
+            aud = "ops"
+        else:
+            aud = "public"
     payload = {"sub": sub, "role": role, "exp": int(time.time()) + 600}
+    if aud:
+        payload["audience"] = aud
     return jwt.encode(
         payload,
         key=settings.auth_jwt_secret.get_secret_value(),

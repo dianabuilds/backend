@@ -363,7 +363,10 @@ export default function ManagementSystem(): React.ReactElement {
               ))}
             </dl>
           )}
-          <Collapse open={showRawConfig} className="rounded-xl bg-gray-950/90 p-4 text-xs text-emerald-50 shadow-inner dark:bg-dark-900">
+          <Collapse
+            open={showRawConfig}
+            className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-xs text-emerald-700 shadow-inner dark:border-emerald-500/40 dark:bg-emerald-900/40 dark:text-emerald-200"
+          >
             <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-all">{configJson}</pre>
           </Collapse>
         </Surface>

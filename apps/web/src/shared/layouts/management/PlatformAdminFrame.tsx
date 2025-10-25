@@ -1,12 +1,13 @@
 ﻿import React from 'react';
 import { AlertTriangle, ExternalLink, FileCode2, Link2, Users } from '@icons';
-import { Badge, Button, Card, PageHeader } from '@ui';
+import { Badge, Button, Card, PageHero } from '@ui';
 import type {
   PlatformAdminChangelogEntry as SharedPlatformAdminChangelogEntry,
   PlatformAdminIntegrationSummary as SharedPlatformAdminIntegrationSummary,
   PlatformAdminQuickLink as SharedPlatformAdminQuickLink,
 } from '@shared/types/management';
 import type { PageHeaderStat } from '@ui/patterns/PageHeader';
+import type { PageHeroMetric, PageHeroBreadcrumb } from '@ui/patterns/PageHero';
 
 export type PlatformAdminQuickLink = SharedPlatformAdminQuickLink;
 export type PlatformAdminChangelogEntry = SharedPlatformAdminChangelogEntry;
@@ -51,17 +52,34 @@ export function PlatformAdminFrame({
   );
 
   const mainColumnClass = hasAsideContent ? 'space-y-6 lg:col-span-8' : 'space-y-6 lg:col-span-12';
+  const heroMetrics = React.useMemo<PageHeroMetric[] | undefined>(() => {
+    if (!stats || !stats.length) return undefined;
+    return stats.slice(0, 3).map((stat, index) => ({
+      id: `platform-admin-metric-${index}`,
+      label: stat.label,
+      value: stat.value,
+      helper: stat.hint,
+      icon: stat.icon,
+    }));
+  }, [stats]);
+  const heroBreadcrumbs = React.useMemo<PageHeroBreadcrumb[] | undefined>(
+    () => (breadcrumbs?.length ? breadcrumbs.map((crumb) => ({ label: crumb.label, to: crumb.to })) : undefined),
+    [breadcrumbs],
+  );
 
   return (
     <div className="space-y-8">
-      <PageHeader
+      <PageHero
         title={title}
         description={description}
-        breadcrumbs={breadcrumbs}
+        breadcrumbs={heroBreadcrumbs}
         actions={actions}
-        stats={stats}
-        kicker="Platform Admin"
-        pattern="subtle"
+        metrics={heroMetrics}
+        eyebrow="Platform Admin"
+        variant="compact"
+        tone="light"
+        align="start"
+        className="bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
       />
 
       <div className="grid gap-6 lg:grid-cols-12">

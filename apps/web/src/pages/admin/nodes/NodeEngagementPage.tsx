@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Card, PageHeader, Skeleton } from '@ui';
+import { Button, Card, PageHero, Skeleton } from '@ui';
 import { Link } from 'react-router-dom';
 
 import { fetchAdminNodeEngagement } from './api';
@@ -12,6 +12,7 @@ import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SummaryOverview } from './components/SummaryOverview';
 
 import type { AdminNodeEngagementSummary } from './types';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 function formatNumber(value: number | null | undefined): string {
   if (typeof value !== 'number') return 'N/A';
@@ -121,19 +122,25 @@ export default function NodeEngagementPage(): JSX.Element {
 
   const handleRefreshSummary = React.useCallback(() => loadSummary({ silent: true }), [loadSummary]);
 
-  const stats = React.useMemo(() => {
-    if (!summary) return undefined;
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(() => {
+    if (!summary) {
+      return [
+        { id: 'views', label: 'Views', value: '—' },
+        { id: 'likes', label: 'Likes', value: '—' },
+        { id: 'comments', label: 'Comments', value: '—' },
+      ];
+    }
     return [
-      { label: 'Views', value: formatNumber(summary.views_count ?? 0) },
-      { label: 'Likes', value: formatNumber(extractLikeCount(summary)) },
-      { label: 'Comments', value: formatNumber(summary.comments?.total ?? 0) },
+      { id: 'views', label: 'Views', value: formatNumber(summary.views_count ?? 0) },
+      { id: 'likes', label: 'Likes', value: formatNumber(extractLikeCount(summary)) },
+      { id: 'comments', label: 'Comments', value: formatNumber(summary.comments?.total ?? 0) },
     ];
   }, [summary]);
 
   const headerTitle = summary?.title || (summary ? `Node #${summary.id}` : 'Node engagement');
   const headerDescription = summary
     ? 'Review engagement signals, growth trends, and key KPI for this node.'
-    : 'Loading node engagement summary...';
+    : 'Loading node engagement summary…';
 
   const showSkeleton = loading && !summary;
 
@@ -170,17 +177,29 @@ export default function NodeEngagementPage(): JSX.Element {
   }, [navigate, nodeId]);
 
 
+  const heroActions = React.useMemo(() => {
+    if (!nodeId) return null;
+    return (
+      <Button onClick={handleOpenModeration} variant="outlined" data-testid="engagement-open-moderation">
+        Open moderation workspace
+      </Button>
+    );
+  }, [handleOpenModeration, nodeId]);
+
   return (
-    <div className="space-y-10">
-      <PageHeader
+    <div className="space-y-8">
+      <PageHero
         title={headerTitle}
         description={headerDescription}
+        eyebrow="Node analytics"
         breadcrumbs={[
           { label: 'Nodes', to: '/nodes/library' },
           { label: headerTitle },
         ]}
-        stats={stats}
-        pattern="subtle"
+        metrics={heroMetrics}
+        actions={heroActions}
+        variant="compact"
+        tone="light"
       />
 
       {error ? (
@@ -212,7 +231,12 @@ export default function NodeEngagementPage(): JSX.Element {
                   <p className="text-sm text-neutral-600 dark:text-neutral-300">Switch to the moderation workspace to review comments and bans.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button onClick={handleOpenModeration} variant="outlined" data-testid="engagement-open-moderation" className="px-5">
+                  <Button
+                    onClick={handleOpenModeration}
+                    variant="ghost"
+                    color="neutral"
+                    className="px-5"
+                  >
                     Open moderation workspace
                   </Button>
                 </div>

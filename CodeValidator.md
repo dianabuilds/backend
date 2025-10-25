@@ -20,7 +20,7 @@ python scripts/validate_repo.py
 - `cyclonedx`: генерация SBOM `python -m cyclonedx_py requirements apps/backend/requirements.txt --of JSON -o var/sbom.json`.
 - `health bench`: локальная команда `python -m health bench`, проверяющая наличие health-эндпоинтов и smoke-тестов.
 
-Если какой-либо инструмент завершается с ненулевым кодом, `validate_repo.py` возвращает код 1.
+Если какой-либо инструмент завершился ненулевым кодом, `validate_repo.py` возвращает код 1.
 
 ## Отчёт
 
@@ -35,6 +35,12 @@ python scripts/validate_repo.py
 
 ## Примечания по безопасности
 
-- Bandit ожидает явные логи вместо `except: pass`; соответствующие обработчики добавлены в пакет `packages/core` и `workers` для traceability.
+- Bandit ожидает явные логи вместо `except: pass`; соответствующие обработчики добавлены в пакетах `packages/core` и `workers` для traceability.
 - Джиттер периодических воркеров вычисляется через `secrets.SystemRandom`, что исключает предупреждение B311 о псевдослучайных генераторах.
-- Для валидации If-Match используем константу `WILDCARD_ETAG` с пометкой `# nosec B105`, а импорт `subprocess` в валидаторе снабжён пояснениями по B404/B603.
+- Для валидации If-Match используется константа `WILDCARD_ETAG` с пометкой `# nosec B105`, а импорт `subprocess` снабжён пояснениями по предупреждениям B404/B603.
+
+## GitHub Actions
+
+- Workflow `.github/workflows/ci.yml` состоит из джобов `backend-quality`, `backend-contour-smoke`, `frontend-quality`. Матрица `contour: [public, admin, ops]` запускает smoke-тесты `tests/app/api_gateway/test_contours.py` с переменной окружения `APP_API_CONTOUR`.
+- Для каждого контура сохраняются артефакты `pytest-<contour>.xml` и `pytest-<contour>.log`, которые прикладываются к результатам Actions для разбора падений.
+- Джоб `backend-contour-smoke` работает с параметром `fail-fast: false`, поэтому сбой одного контура не прерывает проверки остальных.

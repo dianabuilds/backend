@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 r"""
 Seed demo data into the database: creates N users and M nodes.
@@ -8,7 +8,7 @@ Usage (PowerShell/Windows):
   .venv\Scripts\python.exe apps\backend\infra\dev\seed_demo.py --users 10 --nodes 50
 
 Environment:
-  - APP_DATABASE_URL or DATABASE_URL must be set. Async or sync Postgres URLs are accepted.
+  - DATABASE_URL_ADMIN/APP_DATABASE_URL must be set. Async or sync Postgres URLs are accepted.
 
 Notes:
   - The script is idempotent for generated usernames/emails (ON CONFLICT/UPSERT where possible).
@@ -942,9 +942,15 @@ async def main() -> None:
     args = ap.parse_args()
 
     _load_env_files_nearby()
-    dsn = args.dburl or os.getenv("APP_DATABASE_URL") or os.getenv("DATABASE_URL")
+    dsn = (
+        args.dburl
+        or os.getenv("DATABASE_URL_ADMIN")
+        or os.getenv("APP_DATABASE_URL_ADMIN")
+        or os.getenv("DATABASE_URL")
+        or os.getenv("APP_DATABASE_URL")
+    )
     if not dsn:
-        raise SystemExit("Set APP_DATABASE_URL or DATABASE_URL")
+        raise SystemExit("Set DATABASE_URL_ADMIN/APP_DATABASE_URL (or provide --dburl)")
     # Normalize DSN robustly; print for debug
     dsn_norm = _to_async_dsn(dsn)
     try:

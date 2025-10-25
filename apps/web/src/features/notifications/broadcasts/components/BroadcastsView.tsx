@@ -6,12 +6,14 @@ import {
   Input,
   Select,
   Spinner,
+  Skeleton,
   Table,
   TablePagination,
   Textarea,
   useToast,
 } from '@ui';
-import { PageHeader } from '@ui/patterns/PageHeader';
+import { PageHero } from '@ui';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { NotificationSurface, notificationTableHeadCellClass, notificationTableRowClass } from '../../common/NotificationSurface';
 import {
   useNotificationBroadcastActions,
@@ -150,7 +152,65 @@ function formatProgress(total: number, sent: number, failed: number): string {
   return `${delivered}/${total} delivered`;
 }
 
-export default function NotificationsBroadcastsView(): React.ReactElement {
+type BroadcastHeroPayload = {
+  actions?: React.ReactNode;
+  metrics?: PageHeroMetric[];
+};
+
+type BroadcastFiltersProps = {
+  statusFilter: 'all' | NotificationBroadcastStatus;
+  statusOptions: Array<{ value: 'all' | NotificationBroadcastStatus; label: string; count: number }>;
+  onStatusChange: (value: 'all' | NotificationBroadcastStatus) => void;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  loadingCounts: boolean;
+};
+
+function BroadcastFilters({
+  statusFilter,
+  statusOptions,
+  onStatusChange,
+  searchQuery,
+  onSearchChange,
+  loadingCounts,
+}: BroadcastFiltersProps): JSX.Element {
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="custom-scrollbar -mx-1 flex w-full items-center gap-2 overflow-x-auto px-1 pb-1 lg:pb-0">
+        {statusOptions.map(({ value, label, count }) => (
+          <Button
+            key={value}
+            size="sm"
+            variant={statusFilter === value ? 'filled' : 'ghost'}
+            color={statusFilter === value ? 'primary' : 'neutral'}
+            onClick={() => onStatusChange(value)}
+            className="flex-shrink-0"
+          >
+            {label}
+            <Badge color="neutral" variant="soft" className="ml-2">
+              {loadingCounts ? '—' : count.toLocaleString('ru-RU')}
+            </Badge>
+          </Button>
+        ))}
+      </div>
+      <Input
+        value={searchQuery}
+        onChange={(event) => onSearchChange(event.target.value)}
+        placeholder="Search broadcasts"
+        className="w-full max-w-full sm:max-w-xs lg:max-w-sm"
+        data-testid="broadcasts-search"
+      />
+    </div>
+  );
+}
+
+type NotificationsBroadcastsViewProps = {
+  onHeroData?: (payload: BroadcastHeroPayload | null) => void;
+};
+
+export default function NotificationsBroadcastsView({
+  onHeroData,
+}: NotificationsBroadcastsViewProps): React.ReactElement {
   const { pushToast } = useToast();
   const { user } = useAuth();
   const { confirm, confirmationElement } = useConfirmDialog();
@@ -196,6 +256,11 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
   const [editingBroadcast, setEditingBroadcast] = React.useState<NotificationBroadcast | null>(null);
 
   const mergedError = actionError || error;
+  const showSkeletonMetrics = loading && broadcasts.length === 0 && total === 0;
+
+  const skeletonDraftValue = React.useMemo(() => <Skeleton className="h-5 w-16 rounded-md" />, []);
+  const skeletonScheduledValue = React.useMemo(() => <Skeleton className="h-5 w-20 rounded-md" />, []);
+  const skeletonRecipientsValue = React.useMemo(() => <Skeleton className="h-5 w-24 rounded-md" />, []);
 
   const handleDismissError = React.useCallback(() => {
     clearActionError();
@@ -365,7 +430,7 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
 
   const actionBusy = React.useMemo(() => busy, [busy]);
 
-  const activeStatusCounts = React.useMemo(
+  const statusOptions = React.useMemo(
     () =>
       STATUS_FILTERS.map(({ value, label }) => ({
         value,
@@ -375,57 +440,108 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
     [statusCounts, total],
   );
 
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(() => {
+    if (showSkeletonMetrics) {
+      return [
+        { id: 'broadcasts-drafts', label: 'Drafts', value: skeletonDraftValue },
+        { id: 'broadcasts-scheduled', label: 'Scheduled', value: skeletonScheduledValue },
+        { id: 'broadcasts-recipients', label: 'Recipients queued', value: skeletonRecipientsValue },
+      ];
+    }
+    const drafts = statusCounts.draft ?? 0;
+    const scheduled = statusCounts.scheduled ?? 0;
+    return [
+      { id: 'broadcasts-drafts', label: 'Drafts', value: drafts.toLocaleString('ru-RU') },
+      { id: 'broadcasts-scheduled', label: 'Scheduled', value: scheduled.toLocaleString('ru-RU') },
+      { id: 'broadcasts-recipients', label: 'Recipients queued', value: recipients.toLocaleString('ru-RU') || '—' },
+    ];
+  }, [
+    recipients,
+    showSkeletonMetrics,
+    skeletonDraftValue,
+    skeletonRecipientsValue,
+    skeletonScheduledValue,
+    statusCounts.draft,
+    statusCounts.scheduled,
+  ]);
+
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outlined" size="sm" onClick={() => void refresh()} disabled={loading || saving}>
+          Refresh
+        </Button>
+        <Button size="sm" color="primary" onClick={openCreateDrawer} disabled={saving}>
+          New broadcast
+        </Button>
+      </div>
+    ),
+    [loading, openCreateDrawer, refresh, saving],
+  );
+
+  const handleStatusChange = React.useCallback(
+    (value: 'all' | NotificationBroadcastStatus) => {
+      setStatusFilter(value);
+      setPage(1);
+    },
+    [setPage],
+  );
+
+  const handleSearchChange = React.useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      setPage(1);
+    },
+    [setPage],
+  );
+
+  const heroPayload = React.useMemo<BroadcastHeroPayload>(
+    () => ({
+      actions: heroActions,
+      metrics: heroMetrics,
+    }),
+    [heroActions, heroMetrics],
+  );
+
+  React.useEffect(() => {
+    if (!onHeroData) return;
+    onHeroData(heroPayload);
+  }, [heroPayload, onHeroData]);
+
+  React.useEffect(
+    () => () => {
+      if (onHeroData) {
+        onHeroData(null);
+      }
+    },
+    [onHeroData],
+  );
+
+  const renderLocalHero = !onHeroData;
+
   return (
     <div className="space-y-6" data-testid="notifications-broadcasts-view">
-      <PageHeader
-        title="Broadcasts"
-        description="Plan announcements, hand off targeting to the platform, and keep delivery in sync with operators."
-        actions={(
-          <div className="flex items-center gap-3">
-            <Button variant="outlined" size="sm" onClick={() => void refresh()} disabled={loading || saving}>
-              Refresh
-            </Button>
-            <Button size="sm" color="primary" onClick={openCreateDrawer}>
-              New broadcast
-            </Button>
-          </div>
-        )}
-        stats={[
-          { label: 'Total broadcasts', value: total.toLocaleString('ru-RU') },
-          { label: 'Recipients', value: recipients.toLocaleString('ru-RU') },
-        ]}
-      />
+      {renderLocalHero ? (
+        <PageHero
+          title="Broadcasts"
+          description="Plan announcements, hand off targeting to the platform, and keep delivery in sync with operators."
+          eyebrow="Notifications"
+          metrics={heroMetrics}
+          actions={heroActions}
+          variant="compact"
+          tone="light"
+        />
+      ) : null}
 
-      <NotificationSurface className="space-y-5 p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            {activeStatusCounts.map(({ value, label, count }) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={statusFilter === value ? 'filled' : 'ghost'}
-                color={statusFilter === value ? 'primary' : 'neutral'}
-                onClick={() => {
-                  setStatusFilter(value);
-                  setPage(1);
-                }}
-              >
-                {label}
-                <Badge color="neutral" variant="soft" className="ml-2">
-                  {count.toLocaleString('ru-RU')}
-                </Badge>
-              </Button>
-            ))}
-          </div>
-          <Input
-            value={searchQuery}
-            onChange={(event) => {
-              setSearchQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Search broadcasts"
-            className="max-w-xs"
-            data-testid="broadcasts-search"
+      <NotificationSurface className="space-y-5 p-4 sm:p-6">
+        <div className="rounded-3xl border border-white/60 bg-white/95 p-4 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70">
+          <BroadcastFilters
+            statusFilter={statusFilter}
+            statusOptions={statusOptions}
+            onStatusChange={handleStatusChange}
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            loadingCounts={showSkeletonMetrics}
           />
         </div>
 
@@ -440,7 +556,7 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-3xl border border-white/50 bg-white/80 dark:border-dark-600/60 dark:bg-dark-700/60">
+        <div className="hidden overflow-hidden rounded-3xl border border-white/50 bg-white/80 dark:border-dark-600/60 dark:bg-dark-700/60 sm:block">
           <Table.Table className="min-w-[760px] text-left text-sm">
             <Table.THead>
               <Table.TR>
@@ -530,7 +646,80 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
           </Table.Table>
         </div>
 
-        <div className="px-3 pb-1 pt-3">
+        <div className="space-y-3 sm:hidden">
+          {loading && !broadcasts.length ? (
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          ) : broadcasts.length ? (
+            broadcasts.map((broadcast) => {
+              const progress = formatProgress(broadcast.total, broadcast.sent, broadcast.failed);
+              const canSendNow = broadcast.status === 'draft' || broadcast.status === 'scheduled';
+              const canCancel = broadcast.status === 'scheduled' || broadcast.status === 'sending';
+              const busyState = actionBusy[broadcast.id];
+              return (
+                <div
+                  key={`${broadcast.id}-mobile`}
+                  className="rounded-2xl border border-white/60 bg-white/95 p-4 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">{broadcast.title}</div>
+                      {broadcast.body ? (
+                        <div className="text-xs text-gray-500 dark:text-dark-200 line-clamp-3">{broadcast.body}</div>
+                      ) : null}
+                      <div className="space-y-1 text-[11px] uppercase tracking-wide text-gray-400 dark:text-dark-300">
+                        <div>Created: {formatDateTime(broadcast.created_at, { withSeconds: true, fallback: '—' })}</div>
+                        <div>Updated: {formatDateTime(broadcast.updated_at, { withSeconds: true, fallback: '—' })}</div>
+                        <div>Scheduled: {formatDateTime(broadcast.scheduled_at ?? undefined, { withSeconds: true, fallback: '—' })}</div>
+                      </div>
+                    </div>
+                    <div className="shrink-0">{formatStatus(broadcast.status)}</div>
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs text-gray-600 dark:text-dark-200">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-medium text-gray-700 dark:text-dark-100">Audience</span>
+                      <span className="text-right text-gray-600 dark:text-dark-100">{formatAudience(broadcast.audience)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm font-medium text-gray-700 dark:text-dark-100">
+                      <span>Progress</span>
+                      <span>{progress}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => openEditDrawer(broadcast)}>
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color="primary"
+                      onClick={() => void handleSendNow(broadcast)}
+                      disabled={!canSendNow || Boolean(busyState) || saving}
+                    >
+                      {busyState === 'send' ? <Spinner size="sm" /> : 'Send now'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color="error"
+                      onClick={() => void handleCancel(broadcast)}
+                      disabled={!canCancel || Boolean(busyState) || saving}
+                    >
+                      {busyState === 'cancel' ? <Spinner size="sm" /> : 'Cancel'}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 px-4 py-6 text-center text-sm text-gray-500 dark:border-dark-500 dark:bg-dark-700/40 dark:text-dark-200">
+              No broadcasts yet.
+            </div>
+          )}
+        </div>
+
+        <div className="px-1 pb-1 pt-1 sm:px-3 sm:pt-3">
           <TablePagination
             page={page}
             pageSize={pageSize}
@@ -663,5 +852,3 @@ export default function NotificationsBroadcastsView(): React.ReactElement {
     </div>
   );
 }
-
-

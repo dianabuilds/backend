@@ -121,7 +121,7 @@ export function PlaygroundSection({
         ) : null}
 
         {result ? (
-          <pre className="max-h-96 overflow-auto rounded-2xl border border-white/60 bg-slate-900/90 p-4 text-xs text-slate-100 shadow-inner">
+          <pre className="max-h-96 overflow-auto rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs text-gray-800 shadow-inner dark:border-gray-700 dark:bg-dark-800/70 dark:text-gray-100">
             {result}
           </pre>
         ) : null}

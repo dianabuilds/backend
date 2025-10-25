@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560">
+  <style>
+    .zone { stroke-width: 2; rx: 16; ry: 16; }
+    .edge { fill: #fef3c7; stroke: #d97706; }
+    .dmz { fill: #dbeafe; stroke: #1d4ed8; }
+    .dmz-admin { fill: #e0e7ff; stroke: #312e81; }
+    .dmz-ops { fill: #f3e8ff; stroke: #7c3aed; }
+    .core { fill: #ecfdf5; stroke: #047857; }
+    .data { fill: #fee2e2; stroke: #b91c1c; }
+    .text { font-family: Arial, sans-serif; font-size: 16px; fill: #1f2937; }
+    .note { font-family: Arial, sans-serif; font-size: 13px; fill: #374151; }
+    .arrow { stroke: #4b5563; stroke-width: 2; marker-end: url(#arrowhead); fill: none; }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4b5563"/>
+    </marker>
+  </defs>
+
+  <!-- Zones -->
+  <rect class="zone edge" x="40" y="40" width="240" height="120"/>
+  <text class="text" x="160" y="80" text-anchor="middle">Edge / WAF</text>
+  <text class="note" x="160" y="108" text-anchor="middle">Global LB, CDN, WAF</text>
+  <text class="note" x="160" y="132" text-anchor="middle">CIDR 10.0.0.0/26</text>
+
+  <rect class="zone dmz" x="320" y="40" width="240" height="120"/>
+  <text class="text" x="440" y="80" text-anchor="middle">DMZ Public</text>
+  <text class="note" x="440" y="108" text-anchor="middle">Ingress public.api</text>
+  <text class="note" x="440" y="132" text-anchor="middle">CIDR 10.0.0.64/26</text>
+
+  <rect class="zone dmz-admin" x="320" y="200" width="240" height="120"/>
+  <text class="text" x="440" y="240" text-anchor="middle">DMZ Admin</text>
+  <text class="note" x="440" y="268" text-anchor="middle">Ingress admin.api</text>
+  <text class="note" x="440" y="292" text-anchor="middle">VPN + mTLS</text>
+
+  <rect class="zone dmz-ops" x="320" y="360" width="240" height="120"/>
+  <text class="text" x="440" y="400" text-anchor="middle">DMZ Ops</text>
+  <text class="note" x="440" y="428" text-anchor="middle">Ingress ops.api</text>
+  <text class="note" x="440" y="452" text-anchor="middle">Finance allowlist</text>
+
+  <rect class="zone core" x="600" y="140" width="260" height="180"/>
+  <text class="text" x="730" y="180" text-anchor="middle">Service Core</text>
+  <text class="note" x="730" y="208" text-anchor="middle">Namespaces: app-public / app-admin / app-ops</text>
+  <text class="note" x="730" y="232" text-anchor="middle">core-services, shared-infra</text>
+
+  <rect class="zone data" x="600" y="360" width="260" height="140"/>
+  <text class="text" x="730" y="400" text-anchor="middle">Data Zone</text>
+  <text class="note" x="730" y="430" text-anchor="middle">Postgres, Redis, Object Storage</text>
+  <text class="note" x="730" y="454" text-anchor="middle">Access only via Service Core</text>
+
+  <!-- Arrows -->
+  <line class="arrow" x1="280" y1="100" x2="320" y2="100"/>
+  <line class="arrow" x1="560" y1="100" x2="600" y2="180"/>
+  <line class="arrow" x1="560" y1="260" x2="600" y2="220"/>
+  <line class="arrow" x1="560" y1="420" x2="600" y2="220"/>
+  <line class="arrow" x1="730" y1="320" x2="730" y2="360"/>
+
+  <!-- Legend -->
+  <rect class="dmz" x="40" y="500" width="20" height="15"/>
+  <text class="note" x="70" y="512">DMZ Public</text>
+  <rect class="dmz-admin" x="160" y="500" width="20" height="15"/>
+  <text class="note" x="190" y="512">DMZ Admin</text>
+  <rect class="dmz-ops" x="300" y="500" width="20" height="15"/>
+  <text class="note" x="330" y="512">DMZ Ops</text>
+  <rect class="core" x="420" y="500" width="20" height="15"/>
+  <text class="note" x="450" y="512">Service Core</text>
+  <rect class="data" x="540" y="500" width="20" height="15"/>
+  <text class="note" x="570" y="512">Data</text>
+</svg>

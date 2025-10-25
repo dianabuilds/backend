@@ -1,6 +1,6 @@
 import React from 'react';
-import dayjs from 'dayjs';
 import { Badge, Button, Card } from '@ui';
+import { formatDateTime } from '@shared/utils/format';
 import type { HomeHistoryEntry } from '@shared/types/home';
 
 type HistoryPanelProps = {
@@ -9,10 +9,17 @@ type HistoryPanelProps = {
   onRestore: (entry: HomeHistoryEntry) => void;
 };
 
+const DISPLAY_LOCALE = 'ru-RU';
+const DISPLAY_TIME_ZONE = 'UTC';
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
-  const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format('DD.MM.YYYY HH:mm') : '—';
+  return formatDateTime(value, {
+    fallback: '—',
+    locale: DISPLAY_LOCALE,
+    timeZone: DISPLAY_TIME_ZONE,
+    hour12: false,
+  });
 }
 
 export default function HistoryPanel({ entries, restoringVersion, onRestore }: HistoryPanelProps): React.ReactElement {

@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ContentLayout } from "../ContentLayout";
 import { Card, MetricCard, Button, Badge } from "@ui";
+import type { PageHeroMetric } from "@ui/patterns/PageHero";
 import { apiGet } from "@shared/api/client";
 import type { KPIs } from "../PageViews/Statistics";
 
@@ -50,18 +51,31 @@ export default function QuestsOverviewPage() {
     })();
   }, []);
 
-  const headerStats = [
-    { label: "Quests", value: stats.quests.toLocaleString() },
-    { label: "World templates", value: stats.worlds.toLocaleString() },
-    { label: "Published", value: stats.published.toLocaleString() },
+  const heroMetrics: PageHeroMetric[] = [
+    {
+      id: "quests-drafts",
+      label: "Drafts",
+      value: stats.drafts.toLocaleString("ru-RU"),
+      helper: stats.approvalQueue ? `${stats.approvalQueue.toLocaleString("ru-RU")} waiting review` : undefined,
+    },
+    {
+      id: "quests-published",
+      label: "Published",
+      value: stats.published.toLocaleString("ru-RU"),
+    },
+    {
+      id: "quests-links",
+      label: "Links per quest",
+      value: stats.linksPerObject.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    },
   ];
 
   return (
     <ContentLayout
       context="quests"
       title="Quest operations"
-      description="Follow the health of the quest pipeline, balance manual and AI-assisted creation, and see where to focus next."
-      stats={headerStats}
+      description="Keep the quest pipeline healthy, balance manual and AI-assisted creation, and spot the next focus areas."
+      metrics={heroMetrics}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <Link to="/quests/new">

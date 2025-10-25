@@ -36,11 +36,14 @@ def build_container(settings: Settings | None = None) -> AuditContainer:
         repo: AuditLogRepository = InMemoryAuditRepo()
         return AuditContainer(repo=repo, service=AuditService(repo))
 
-    if not getattr(cfg, "database_url", None):
-        raise RuntimeError("APP_DATABASE_URL is required for audit repository")
-    if not _db_reachable(str(cfg.database_url)):
+    raw_db_url = cfg.database_url_for_contour("ops")
+    if not raw_db_url:
+        raise RuntimeError(
+            "DATABASE_URL_OPS (fallback APP_DATABASE_URL) is required for audit repository"
+        )
+    if not _db_reachable(raw_db_url):
         raise RuntimeError("database is unreachable for audit repository")
-    dsn = to_async_dsn(cfg.database_url)
+    dsn = to_async_dsn(raw_db_url)
     if isinstance(dsn, str) and "?" in dsn:
         dsn = dsn.split("?", 1)[0]
     repo = SQLAuditRepo(dsn)

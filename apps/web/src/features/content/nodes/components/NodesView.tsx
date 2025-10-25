@@ -1,8 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ContentLayout } from '@shared/layouts/content';
 import { Badge, Card, TablePagination, useToast } from '@ui';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
 import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';
 import { usePromptDialog } from '@shared/hooks/usePromptDialog';
@@ -54,24 +55,24 @@ const EMBEDDING_STATUS_THEME: Record<EmbeddingStatus | 'missing', { color: 'succ
 };
 
 const TOAST_COPY = {
-  linkCopied: { en: 'Node link copied to clipboard', ru: 'Ссылка на ноду скопирована в буфер обмена' },
-  restoreSuccess: { en: 'Node restored', ru: 'Нода восстановлена' },
-  restoreError: { en: 'Failed to restore node', ru: 'Не удалось восстановить ноду' },
-  deleteSuccess: { en: 'Node deleted', ru: 'Нода удалена' },
-  deleteError: { en: 'Failed to delete node', ru: 'Не удалось удалить ноду' },
-  bulkPublish: { en: 'Selected nodes marked as published', ru: 'Выбранные ноды опубликованы' },
-  bulkDraft: { en: 'Selected nodes moved to drafts', ru: 'Выбранные ноды перенесены в черновики' },
-  bulkSchedulePublish: { en: 'Publish schedule updated', ru: 'Запланирована публикация' },
-  bulkScheduleUnpublish: { en: 'Unpublish schedule updated', ru: 'Запланировано снятие с публикации' },
-  bulkArchive: { en: 'Selected nodes archived', ru: 'Выбранные ноды архивированы' },
-  bulkDeleteSuccess: { en: 'Selected nodes deleted', ru: 'Выбранные ноды удалены' },
-  bulkError: { en: 'Bulk action failed', ru: 'Не удалось выполнить массовое действие' },
+  linkCopied: { en: 'Node link copied to clipboard', ru: 'РЎСЃС‹Р»РєР° РЅР° РЅРѕРґСѓ СЃРєРѕРїРёСЂРѕРІР°РЅР° РІ Р±СѓС„РµСЂ РѕР±РјРµРЅР°' },
+  restoreSuccess: { en: 'Node restored', ru: 'РќРѕРґР° РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅР°' },
+  restoreError: { en: 'Failed to restore node', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ РЅРѕРґСѓ' },
+  deleteSuccess: { en: 'Node deleted', ru: 'РќРѕРґР° СѓРґР°Р»РµРЅР°' },
+  deleteError: { en: 'Failed to delete node', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РЅРѕРґСѓ' },
+  bulkPublish: { en: 'Selected nodes marked as published', ru: 'Р’С‹Р±СЂР°РЅРЅС‹Рµ РЅРѕРґС‹ РѕРїСѓР±Р»РёРєРѕРІР°РЅС‹' },
+  bulkDraft: { en: 'Selected nodes moved to drafts', ru: 'Р’С‹Р±СЂР°РЅРЅС‹Рµ РЅРѕРґС‹ РїРµСЂРµРЅРµСЃРµРЅС‹ РІ С‡РµСЂРЅРѕРІРёРєРё' },
+  bulkSchedulePublish: { en: 'Publish schedule updated', ru: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅР° РїСѓР±Р»РёРєР°С†РёСЏ' },
+  bulkScheduleUnpublish: { en: 'Unpublish schedule updated', ru: 'Р—Р°РїР»Р°РЅРёСЂРѕРІР°РЅРѕ СЃРЅСЏС‚РёРµ СЃ РїСѓР±Р»РёРєР°С†РёРё' },
+  bulkArchive: { en: 'Selected nodes archived', ru: 'Р’С‹Р±СЂР°РЅРЅС‹Рµ РЅРѕРґС‹ Р°СЂС…РёРІРёСЂРѕРІР°РЅС‹' },
+  bulkDeleteSuccess: { en: 'Selected nodes deleted', ru: 'Р’С‹Р±СЂР°РЅРЅС‹Рµ РЅРѕРґС‹ СѓРґР°Р»РµРЅС‹' },
+  bulkError: { en: 'Bulk action failed', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ РјР°СЃСЃРѕРІРѕРµ РґРµР№СЃС‚РІРёРµ' },
 };
 
 const HOMEPAGE_MESSAGES = {
-  addSuccess: { en: 'Post will appear on the homepage', ru: 'Пост появится на главной' },
-  removeSuccess: { en: 'Post removed from the homepage', ru: 'Пост снят с главной' },
-  error: { en: 'Failed to update homepage flag', ru: 'Не удалось обновить флаг главной' },
+  addSuccess: { en: 'Post will appear on the homepage', ru: 'РџРѕСЃС‚ РїРѕСЏРІРёС‚СЃСЏ РЅР° РіР»Р°РІРЅРѕР№' },
+  removeSuccess: { en: 'Post removed from the homepage', ru: 'РџРѕСЃС‚ СЃРЅСЏС‚ СЃ РіР»Р°РІРЅРѕР№' },
+  error: { en: 'Failed to update homepage flag', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ С„Р»Р°Рі РіР»Р°РІРЅРѕР№' },
 };
 
 
@@ -212,7 +213,7 @@ export function ContentNodesList(): React.ReactElement {
         total: result.meta.total ?? undefined,
       };
     },
-    onError: (err) => extractErrorMessage(err, translate({ en: 'Failed to load nodes', ru: 'Не удалось загрузить ноды' })),
+    onError: (err) => extractErrorMessage(err, translate({ en: 'Failed to load nodes', ru: 'РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ РЅРѕРґС‹' })),
   });
 
   React.useEffect(() => {
@@ -611,11 +612,23 @@ export function ContentNodesList(): React.ReactElement {
     [columnVisibility],
   );
 
-  const headerStats = React.useMemo(
+  const headerMetrics = React.useMemo<PageHeroMetric[]>(
     () => [
-      { label: 'Nodes', value: listMeta.total != null ? listMeta.total.toLocaleString() : '—' },
-      { label: 'Published', value: listMeta.published != null ? listMeta.published.toLocaleString() : '—' },
-      { label: 'Drafts', value: listMeta.drafts != null ? listMeta.drafts.toLocaleString() : '—' },
+      {
+        id: 'nodes-total',
+        label: 'Nodes',
+        value: listMeta.total != null ? listMeta.total.toLocaleString('ru-RU') : 'N/A',
+      },
+      {
+        id: 'nodes-published',
+        label: 'Published',
+        value: listMeta.published != null ? listMeta.published.toLocaleString('ru-RU') : 'N/A',
+      },
+      {
+        id: 'nodes-drafts',
+        label: 'Drafts',
+        value: listMeta.drafts != null ? listMeta.drafts.toLocaleString('ru-RU') : 'N/A',
+      },
     ],
     [listMeta.drafts, listMeta.published, listMeta.total],
   );
@@ -633,13 +646,18 @@ export function ContentNodesList(): React.ReactElement {
     return `${errorCount} node(s) failed to build embeddings. Retry to restore semantic search coverage.`;
   }, [items, listMeta.pendingEmbeddings]);
 
+  const layoutTitle = devBlogOnly ? 'Dev blog library' : 'Node library';
+  const layoutDescription = devBlogOnly
+    ? 'Plan, publish, and spotlight dev blog updates for players and partners.'
+    : 'Search, refine, and orchestrate narrative nodes across every connected world.';
+
   return (
     <>
       <ContentLayout
         context="nodes"
-        title="Node library"
-        description="Search, refine, and orchestrate narrative nodes across every connected world."
-        stats={headerStats}
+        title={layoutTitle}
+        description={layoutDescription}
+        metrics={headerMetrics}
       >
         <Card skin="shadow" padding="lg" className="relative space-y-6 overflow-visible">
           <NodesFilters
@@ -730,3 +748,4 @@ export function ContentNodesList(): React.ReactElement {
 }
 
 export default ContentNodesList;
+

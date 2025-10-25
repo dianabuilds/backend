@@ -1,7 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle, FileCode2, Gauge, Link2 } from '@icons';
-import { Button, Card, PageHeader, Spinner, Tabs } from '@ui';
+import { Button, Card, PageHero, Spinner, Tabs } from '@ui';
 import type { UsageRow, MetricPoint } from '../types';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import {
   saveManagementAiModel,
   deleteManagementAiModel,
@@ -23,14 +24,22 @@ import { buildUsageRows, groupFallbacksByPrimary, groupFallbacksBySecondary } fr
 import type { Model, ModelFormState, Provider, ProviderFormState } from '../types';
 
 const TAB_ITEMS = [
-  { key: 'overview', label: 'Обзор' },
-  { key: 'models', label: 'Модели' },
-  { key: 'providers', label: 'Провайдеры' },
+  { key: 'overview', label: 'РћР±Р·РѕСЂ' },
+  { key: 'models', label: 'РњРѕРґРµР»Рё' },
+  { key: 'providers', label: 'РџСЂРѕРІР°Р№РґРµСЂС‹' },
   { key: 'fallbacks', label: 'Fallback' },
   { key: 'playground', label: 'Playground' },
 ] as const;
 
 type TabKey = (typeof TAB_ITEMS)[number]['key'];
+
+type SummaryCard = {
+  title: string;
+  value: string;
+  hint: string;
+  tone: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+};
 
 export default function ManagementAI() {
   const { user } = useAuth();
@@ -75,12 +84,114 @@ export default function ManagementAI() {
     const sum = latencies.reduce<number>((acc, row: MetricPoint) => acc + (row.avg_ms || 0), 0);
     return Math.round(sum / latencies.length);
   }, [metrics]);
+  const totalModels = models.length;
+  const totalProviders = providers.length;
 
   const [modelDrawerOpen, setModelDrawerOpen] = React.useState(false);
   const [modelForm, setModelForm] = React.useState<ModelFormState | null>(null);
   const [modelSaving, setModelSaving] = React.useState(false);
   const [busyModelId, setBusyModelId] = React.useState<string | null>(null);
 
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(
+    () => [
+      {
+        id: "ai-active-models",
+        label: "Активные LLM",
+        value: totalActiveModels.toLocaleString("ru-RU"),
+        helper: totalModels ? `из ${totalModels.toLocaleString("ru-RU")}` : "нет моделей",
+        icon: <FileCode2 className="size-4" aria-hidden="true" />,
+        accent: "positive",
+      },
+      {
+        id: "ai-fallbacks",
+        label: "Fallback-политики",
+        value: fallbackCount.toLocaleString("ru-RU"),
+        helper: fallbackCount ? "активные правила" : "не настроены",
+        icon: <Link2 className="size-4" aria-hidden="true" />,
+        accent: "neutral",
+      },
+      {
+        id: "ai-errors",
+        label: "Ошибки LLM",
+        value: totalErrors.toLocaleString("ru-RU"),
+        helper: totalCalls ? `из ${totalCalls.toLocaleString("ru-RU")}` : "нет данных",
+        icon: <AlertTriangle className="size-4" aria-hidden="true" />,
+        accent: "danger",
+      },
+    ],
+    [fallbackCount, totalActiveModels, totalErrors, totalCalls, totalModels],
+  );
+
+  const startCreateModel = React.useCallback(() => {
+    setModelForm(createEmptyModelForm(providers));
+    setModelDrawerOpen(true);
+  }, [providers]);
+
+  const startEditModel = React.useCallback((model: Model) => {
+    setModelForm(createFormFromModel(model));
+    setModelDrawerOpen(true);
+  }, []);
+
+  const refreshLabel = refreshing ? "Обновляем данные…" : "Данные актуальны";
+
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">{refreshLabel}</span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => void loadAll({ silent: true })}
+          disabled={refreshing}
+          data-analytics="management:ai:refresh"
+        >
+          {refreshing ? <Spinner size="sm" className="mr-2" /> : null}
+          {refreshing ? "Обновляем…" : "Обновить"}
+        </Button>
+        <Button className="rounded-full" size="sm" onClick={startCreateModel} data-analytics="management:ai:create-model">
+          Добавить модель
+        </Button>
+      </div>
+    ),
+    [loadAll, refreshLabel, refreshing, startCreateModel],
+  );
+  const summaryCards = React.useMemo<SummaryCard[]>(
+    () => [
+      {
+        title: 'Активные модели',
+        value: totalActiveModels.toLocaleString('ru-RU'),
+        hint: totalModels ? `из ${totalModels.toLocaleString('ru-RU')}` : 'нет моделей',
+        tone: 'bg-emerald-50/80 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200',
+        icon: FileCode2,
+      },
+      {
+        title: 'Провайдеры онлайн',
+        value: totalProviders
+          ? `${enabledProviders.toLocaleString('ru-RU')}/${totalProviders.toLocaleString('ru-RU')}`
+          : '0/0',
+        hint: avgLatency != null ? `средняя задержка ${avgLatency} мс` : 'нет замеров задержки',
+        tone: 'bg-sky-50/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-200',
+        icon: Gauge,
+      },
+      {
+        title: 'Fallback-политики',
+        value: fallbackCount.toLocaleString('ru-RU'),
+        hint: fallbackCount ? 'действующие цепочки' : 'не настроены',
+        tone: 'bg-indigo-50/80 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200',
+        icon: Link2,
+      },
+      {
+        title: 'Ошибки LLM',
+        value: totalErrors.toLocaleString('ru-RU'),
+        hint: totalCalls ? `из ${totalCalls.toLocaleString('ru-RU')}` : 'нет данных',
+        tone: 'bg-rose-50/80 text-rose-700 dark:bg-rose-500/10 dark:text-rose-200',
+        icon: AlertTriangle,
+      },
+    ],
+    [avgLatency, enabledProviders, fallbackCount, totalActiveModels, totalCalls, totalErrors, totalModels, totalProviders],
+  );
   const [providerDrawerOpen, setProviderDrawerOpen] = React.useState(false);
   const [providerForm, setProviderForm] = React.useState<ProviderFormState | null>(null);
   const [providerSaving, setProviderSaving] = React.useState(false);
@@ -113,50 +224,6 @@ export default function ManagementAI() {
       };
     });
   }, [models]);
-
-  const summaryCards = React.useMemo(
-    () => [
-      {
-        title: 'Активные LLM',
-        value: totalActiveModels,
-        hint: models.length ? `из ${models.length}` : 'нет моделей',
-        icon: FileCode2,
-        tone: 'bg-violet-50 text-violet-700',
-      },
-      {
-        title: 'Fallback-правила',
-        value: fallbackCount,
-        hint: fallbackCount ? 'активные правила' : 'не настроены',
-        icon: Link2,
-        tone: 'bg-sky-50 text-sky-700',
-      },
-      {
-        title: 'Ошибки LLM',
-        value: totalErrors,
-        hint: totalCalls ? `из ${totalCalls}` : 'нет данных',
-        icon: AlertTriangle,
-        tone: 'bg-rose-50 text-rose-700',
-      },
-      {
-        title: 'Средняя латентность',
-        value: avgLatency != null ? `${avgLatency} мс` : '—',
-        hint: `провайдеров: ${enabledProviders}`,
-        icon: Gauge,
-        tone: 'bg-emerald-50 text-emerald-700',
-      },
-    ],
-    [totalActiveModels, models.length, fallbackCount, totalErrors, totalCalls, avgLatency, enabledProviders],
-  );
-
-  const startCreateModel = React.useCallback(() => {
-    setModelForm(createEmptyModelForm(providers));
-    setModelDrawerOpen(true);
-  }, [providers]);
-
-  const startEditModel = React.useCallback((model: Model) => {
-    setModelForm(createFormFromModel(model));
-    setModelDrawerOpen(true);
-  }, []);
 
   const openProviderDrawer = React.useCallback((provider?: Provider) => {
     if (!hasProviderAccess) return;
@@ -349,7 +416,7 @@ export default function ManagementAI() {
       });
       setPlaygroundResult(String(response?.result ?? ''));
     } catch (err: any) {
-      setPlaygroundError(String(err?.message || err || 'Не удалось выполнить запрос'));
+      setPlaygroundError(String(err?.message || err || 'РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РїРѕР»РЅРёС‚СЊ Р·Р°РїСЂРѕСЃ'));
     } finally {
       setPlaygroundLatency(Math.round(performance.now() - started));
       setPlaygroundBusy(false);
@@ -357,37 +424,26 @@ export default function ManagementAI() {
   }, [models, playgroundModel, playgroundPrompt]);
 
   const handleUseTemplate = React.useCallback(() => {
-    setPlaygroundPrompt((prev) => prev || 'Ты — ассистент Caves. Ответь, что админ-панель готова к обновлению.');
+    setPlaygroundPrompt((prev) => prev || 'РўС‹ вЂ” Р°СЃСЃРёСЃС‚РµРЅС‚ Caves. РћС‚РІРµС‚СЊ, С‡С‚Рѕ Р°РґРјРёРЅ-РїР°РЅРµР»СЊ РіРѕС‚РѕРІР° Рє РѕР±РЅРѕРІР»РµРЅРёСЋ.');
   }, []);
 
   return (
     <div className='p-6 space-y-6'>
-      <PageHeader
+      <PageHero
         title='AI & LLM — управление моделями'
         description='Выберите активные модели, настройте fallback-политику и провайдеров. Изменения применяются мгновенно — проверяйте значения перед сохранением.'
-        stats={summaryCards.map((item) => ({ label: item.title, value: item.value, hint: item.hint }))}
-        actions={
-          <div className='flex flex-wrap items-center gap-3'>
-            <Button variant='outlined' color='neutral' onClick={() => void loadAll({ silent: true })} disabled={refreshing}>
-              {refreshing ? (
-                <span className='flex items-center gap-2'>
-                  <Spinner size='sm' />
-                  Обновляем...
-                </span>
-              ) : (
-                'Обновить'
-              )}
-            </Button>
-            <Button onClick={startCreateModel}>Добавить модель</Button>
-          </div>
-        }
+        metrics={heroMetrics}
+        actions={heroActions}
+        variant='compact'
+        tone='light'
+        align='start'
+        className='bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60'
       />
-
       {loading ? (
         <Card>
           <div className='flex items-center gap-3 p-6 text-sm text-gray-500'>
             <Spinner />
-            <span>Загружаем конфигурацию AI...</span>
+            <span>Р—Р°РіСЂСѓР¶Р°РµРј РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ AI...</span>
           </div>
         </Card>
       ) : (
@@ -555,6 +611,14 @@ function createFormFromModel(model: Model): ModelFormState {
     },
   };
 }
+
+
+
+
+
+
+
+
 
 
 

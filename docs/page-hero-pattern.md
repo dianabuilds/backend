@@ -1,58 +1,84 @@
-# Page Hero Pattern
+# PageHero: обновлённые правила
 
-This document captures how we design and implement hero blocks across Tailux admin pages. The component lives in `apps/web/src/shared/ui/patterns/PageHero.tsx`; we treat the Storybook stories as interactive examples, while this note holds the contract and UX rules.
+Компонент `PageHero` отвечает за «первый экран» на внутренних страницах Tailux. Он расположен в `apps/web/src/shared/ui/patterns/PageHero.tsx`, истории и гайды — `PageHero.stories.tsx` и `PageHero.docs.mdx`. Этот документ фиксирует текущий облик (осень 2025) и служит чек-листом при проектировании новых экранов или редизайне существующих.
 
-## Purpose
-- Give instant context: page name, short summary, and navigation breadcrumbs.
-- Highlight the 3–4 most critical signals before the user scans the rest of the page.
-- Surface one primary action (and, optionally, one secondary) so the user can react immediately.
-- Optionally expose first-layer filters that change the data shown directly under the hero.
+## Когда использовать `PageHero`
 
-If a screen does not need these outcomes (for example a pure list or form page) we do not ship a hero; a compact header or standard title is enough.
+Hero-блок нужен, когда странице требуется:
 
-## Variants
-- `default`: cinematic feel for high-level dashboards or onboarding experiences. Uses gradient background and generous spacing.
-- `metrics`: data-first variant for operational and observability pages. Background is darker, grid emphasizes metrics, and text stays concise.
-- `compact`: tight header for nested settings, library pages, or modal-like flows. Minimal spacing and neutral background.
+- сразу обозначить контекст (заголовок, краткое описание, навигационные крошки);
+- подсветить ключевые метрики/статусы, за которыми следят владельцы продукта;
+- показать основное действие (и максимум одно дополнительное) до прокрутки;
+- вложить фильтры, влияющие на данные ниже, если без них цифры теряют смысл.
 
-Choose the variant per screen; do not mix more than one hero per page.
+Если экран — просто таблица, форма или вспомогательное окно, используйте компактный `SectionHeading`/`PageHeader` и откажитесь от hero.
 
-## Layout Anatomy
+## Варианты и высота
+
+| Вариант | Назначение | `variant` проп | Высота (max) | Когда применять |
+|---------|------------|----------------|--------------|-----------------|
+| **Cinematic** | промо/онбординг, продуктовые обзоры | `default` | 420 px | редко; только когда нужна визуальная драматургия |
+| **Metrics** | дашборды с KPI, контент-хабы | `metrics` | 460 px | по умолчанию для разделов Content/Observability, если нужно ≥3 метрики |
+| **Compact** | настройки, каталоги, редакторы | `compact` | 320 px | основной режим для админки; цель — занимать ≤50 % высоты текущего hero |
+
+> **Важно:** закрепляем правило «один hero на странице». Вторичные заголовки/CTA не дублируем в контенте ниже.
+
+## Структура блока
+
 ```
-┌────────────────────────────────────────────────────────────┐
-│ Eyebrow / Breadcrumbs                                      │
-│ Title + Description            Primary & Secondary actions │
-│ Filters (optional)                                         │
-│ Metrics grid (optional)                                    │
-│ Children slot (optional alerts, tabs, callouts)            │
-└────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│ Eyebrow / Breadcrumbs (опционально)                      │
+│ Заголовок + статус-бейджи         CTA / вторичное действие│
+│ Описание (до 2 строк)                                     │
+│ Фильтры / переключатели (если критично для понимания метрик)
+│ Сетка метрик (1–4 карточки)                               │
+│ Слот children (alerts, вкладка, callout)                  │
+└───────────────────────────────────────────────────────────┘
 ```
-- Title stays within two lines; longer copy moves into the description or below the hero.
-- Primary actions align to the right (or under the title on mobile). Secondary and tertiary actions collapse into an overflow menu.
-- Filters live inside the hero only when they are required before reading the main view; otherwise show them under the hero.
 
-## Metrics Guidelines
-- Cap the visible metrics at four items on desktop. If stakeholders insist on more, provide an expandable “Show more” set inside the hero or move the excess into the main body.
-- Each metric includes a label, value, and optional delta (`trend`) or helper text. Deltas use the `accent` token to reinforce meaning.
-- Metric values prefer compact numerals: thousands separators with thin spaces, `–` dash for missing data, and no more than two decimals.
-- Loading and error states rely on the shared skeleton/error primitives to avoid layout shifts.
+- Заголовок — максимум две строки. В описании допускается до 200 символов.
+- Статусы (`saving`, `publishing`, `disabled` и т.п.) показываем бейджами рядом с заголовком, чтобы не раздувать высоту.
+- Блок метрик ограничиваем тремя карточками. Если нужно показать больше чисел, выносим детали в контент ниже (карточки, таблицы, вкладки).
+- Основное действие располагаем справа, вторичное — через spacing `gap-3`. Остальные действия прячем в overflow/меню.
 
-## Actions and Filters
-- One primary CTA is required when the page expects immediate interaction (e.g., “Add model”). Secondary CTA is optional; all other actions go into an overflow dropdown.
-- Filters follow the order: high-frequency chips → dropdowns → search input (rightmost control). Include a visible reset action.
-- Persist filter state in the URL query string so deep links remain accurate.
+## Метрики и карточки
 
-## Adaptivity
-- Desktop (`≥1280px`): metrics render in a single row of up to four tiles.
-- Tablet (`768–1279px`): grid falls back to two columns; secondary actions collapse into overflow.
-- Mobile (`<768px`): hero becomes a single column, with CTA rendered as a sticky action bar right below the hero when necessary.
+- Для списка используем `PageHeroMetric[]`. Карточка = `label → value → hint`. При отсутствии значения выводим `—`.
+- Количество метрик: до 4 на десктопе (`metrics`), до 3 в компактном режиме. Если нужно больше, уводим детализацию в таблицу ниже.
+- Значения форматируем через `toLocaleString('ru-RU')`, единицы измерения выносим в hint или helper.
+- Поддерживаются акценты (`positive`, `warning`, `danger`, `neutral`) — используйте их только при наличии бизнес-логики (рост/падение, SLA, деплойные риски).
 
-## Data Ownership
-- Every metric and action must have a clear owner. Document refresh cadence and telemetry IDs alongside the API contract.
-- When data is stale for more than five minutes, expose a timestamp pill and enable a `Refresh` action.
+## Фильтры и состояния
 
-## Implementation Checklist
-- Update Storybook stories whenever you add a new preset or change props. Keep Chromatic snapshots in sync.
-- Instrument hero interactions with `data-analytics="hero:<slug>"` wrappers so analytics stays consistent.
-- When adding a new hero to a screen, cross-check the rest of the layout to prevent duplicate metrics or actions lower on the page.
-- If you disable the hero on a given screen, remove leftover metric cards or CTA slots so the top of the page stays clean.
+- Фильтры в hero — только если без них метрики вводят в заблуждение (например, нужны временные диапазоны или выбор сегмента). В остальных случаях переносим управление под блок.
+- `PageHero` поддерживает слот `filters`: компонент чипов/селектов занимает всю ширину блока, но для компактного варианта рекомендовано не более трёх элементов.
+- Для острых предупреждений (валидация, аварии) используйте `children` и вставляйте `Alert`/`Callout`; не помещайте туда большие таблицы.
+
+## Навигация и хлебные крошки
+
+- Проп `breadcrumbs` принимает массив `{ label, to? }`. Ссылки автоматически получают стиль hover и `aria-label`.
+- В компактном режиме допускается только один уровень крошек; всё, что старше, стоит переносить в заголовок левой колонки/меню.
+- Eyebrow (краткая метка раздела) показывает стадию или тип контента: `LIVE`, `ALPHA`, `BETA`. Не используйте его как замену заголовку.
+
+## Адаптивность
+
+- ≥1280 px: `metrics` выводит до четырёх карточек в ряд; `compact` — до трёх.
+- 768–1279 px: сетка падает в две колонки, CTA автоматически переезжают под заголовок.
+- <768 px: одна колонка; если CTA критично, продублируйте его в нижней fixed-панели страницы.
+
+## Реализация и аналитика
+
+- Оборачивайте блок в `data-analytics="hero:<slug>"` для консистентных событий.
+- Всегда проверяйте светлую/тёмную темы и два состояния: «нет данных» (метрики пустые) и «загрузка» (скелетоны).
+- Обновляйте сторибук и Chromatic-снимки при добавлении вариантов или новых пропсов.
+- Следите за кодировкой и вынесением копирайта в `i18n`-ресурсы при необходимости.
+
+## Альтернативы
+
+Используйте компактный `PageHeader` или кастомный топ-блок, если:
+
+- нужен редактор/форма с минимальными отступами (пример — `/management/home`);
+- страница состоит из одного графика без дополнительных действий;
+- вы показываете результат быстрого поиска/фильтра, где важнее скорость, чем контекст.
+
+Во всех остальных случаях `PageHero` — основной паттерн, обеспечивающий единый язык навигации и метрик внутри админки.

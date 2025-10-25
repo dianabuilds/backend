@@ -38,7 +38,7 @@ class BillingContainer:
 
 def build_container(settings: Settings | None = None) -> BillingContainer:
     s = settings or load_settings()
-    dsn = to_async_dsn(s.database_url)
+    dsn = to_async_dsn(s.database_url_for_contour("ops"))
     engine: AsyncEngine = get_async_engine("billing", url=dsn)
     plans = SQLPlanRepo(engine)
     subs = SQLSubscriptionRepo(engine)

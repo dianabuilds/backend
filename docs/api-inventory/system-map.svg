@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520">
+  <style>
+    .box { fill: #f9fbff; stroke: #2b5f9e; stroke-width: 1.6; }
+    .box-ops { fill: #fff8f2; stroke: #d07a28; stroke-width: 1.6; }
+    .box-shared { fill: #f4f5f7; stroke: #68717a; stroke-width: 1.6; }
+    .label { font-family: Arial, sans-serif; font-size: 16px; fill: #1f2933; }
+    .arrow { stroke: #4b5563; stroke-width: 1.4; marker-end: url(#arrowhead); fill: none; }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <polygon points="0 0, 6 3, 0 6" fill="#4b5563"/>
+    </marker>
+  </defs>
+
+  <!-- Public side -->
+  <rect class="box" x="60" y="60" width="200" height="80" rx="10"/>
+  <text class="label" x="160" y="110" text-anchor="middle">Public Web / Mobile</text>
+
+  <rect class="box" x="320" y="40" width="220" height="120" rx="10"/>
+  <text class="label" x="430" y="90" text-anchor="middle">Public API</text>
+  <text class="label" x="430" y="117" text-anchor="middle">/v1/*</text>
+
+  <!-- Admin side -->
+  <rect class="box" x="60" y="220" width="200" height="80" rx="10"/>
+  <text class="label" x="160" y="270" text-anchor="middle">Admin UI</text>
+
+  <rect class="box" x="320" y="200" width="220" height="120" rx="10"/>
+  <text class="label" x="430" y="250" text-anchor="middle">Admin API</text>
+  <text class="label" x="430" y="277" text-anchor="middle">/v1/admin/*</text>
+
+  <!-- Ops side -->
+  <rect class="box-ops" x="60" y="380" width="200" height="80" rx="10"/>
+  <text class="label" x="160" y="430" text-anchor="middle">Operations Console</text>
+
+  <rect class="box-ops" x="320" y="360" width="220" height="120" rx="10"/>
+  <text class="label" x="430" y="410" text-anchor="middle">Operations API</text>
+  <text class="label" x="430" y="437" text-anchor="middle">/v1/billing, notifications-admin</text>
+
+  <!-- Shared services -->
+  <rect class="box-shared" x="600" y="40" width="240" height="180" rx="12"/>
+  <text class="label" x="720" y="90" text-anchor="middle">Shared Services</text>
+  <text class="label" x="720" y="120" text-anchor="middle">Postgres (segmented schemas)</text>
+  <text class="label" x="720" y="150" text-anchor="middle">Redis / Rate limiter</text>
+  <text class="label" x="720" y="180" text-anchor="middle">Search cluster</text>
+
+  <rect class="box-shared" x="600" y="260" width="240" height="180" rx="12"/>
+  <text class="label" x="720" y="310" text-anchor="middle">Event Bus & Integrations</text>
+  <text class="label" x="720" y="340" text-anchor="middle">Notifications workers</text>
+  <text class="label" x="720" y="370" text-anchor="middle">Billing providers</text>
+
+  <!-- Arrows -->
+  <line class="arrow" x1="260" y1="100" x2="320" y2="100"/>
+  <line class="arrow" x1="260" y1="260" x2="320" y2="260"/>
+  <line class="arrow" x1="260" y1="420" x2="320" y2="420"/>
+
+  <line class="arrow" x1="540" y1="100" x2="600" y2="130"/>
+  <line class="arrow" x1="540" y1="260" x2="600" y2="310"/>
+  <line class="arrow" x1="540" y1="420" x2="600" y2="360"/>
+
+  <!-- Cross-contour supervision -->
+  <line class="arrow" x1="430" y1="320" x2="430" y2="360"/>
+  <text class="label" x="440" y="340" transform="rotate(90 440,340)">Scoped IAM roles</text>
+</svg>

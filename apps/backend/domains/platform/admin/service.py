@@ -43,9 +43,7 @@ class AdminService:
         settings = self.settings
         return {
             "env": settings.env,
-            "database_url": (
-                str(settings.database_url) if settings.database_url else None
-            ),
+            "database_url": settings.database_url_for_contour("admin"),
             "redis_url": str(settings.redis_url) if settings.redis_url else None,
             "event_topics": settings.event_topics,
             "event_group": settings.event_group,

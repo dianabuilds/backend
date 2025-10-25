@@ -31,6 +31,10 @@ class ContainerRegistry:
             self._cache[key] = value
         return self._cache[key]
 
+    def resolve_many(self, keys: list[str] | tuple[str, ...]) -> list[Any]:
+        """Bulk resolver helper to simplify contour-specific wiring."""
+        return [self.resolve(key) for key in keys]
+
 
 container_registry = ContainerRegistry()
 

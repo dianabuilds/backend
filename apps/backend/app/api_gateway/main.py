@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from importlib import import_module
 from types import ModuleType
-from typing import Any, cast
+from typing import Any, Literal, cast
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -24,6 +25,7 @@ from packages.core.testing import is_test_mode
 
 from .events_relay import ShutdownHook, start_events_relay
 from .metrics_middleware import setup_http_metrics
+from .middlewares.audience import AudienceMiddleware
 from .settings import me_router as settings_me_router
 from .settings import router as settings_router
 from .wires import Container, build_container
@@ -172,6 +174,9 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
 
     try:
         await redis_client.ping()
+    except asyncio.CancelledError:
+        await _close_redis_client(redis_client)
+        raise
     except RedisError:
         logger.warning("Redis not reachable (%s): limiter disabled", url)
         await _close_redis_client(redis_client)
@@ -179,6 +184,9 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
 
     try:
         await limiter_cls.init(redis_client)
+    except asyncio.CancelledError:
+        await _close_redis_client(redis_client)
+        raise
     except Exception as exc:
         logger.exception(
             "Failed to initialize FastAPILimiter for %s", url, exc_info=exc
@@ -225,7 +233,8 @@ async def _close_redis_client(client: Any) -> None:
 def create_lifespan(
     settings: Settings,
     *,
-    container_factory: Callable[[], Container] = build_container,
+    contour: str,
+    container_factory: Callable[..., Container] = build_container,
 ) -> Callable[[FastAPI], Any]:
     @asynccontextmanager
     async def _lifespan(app: FastAPI):
@@ -234,9 +243,20 @@ def create_lifespan(
         container: Container | None = None
         shutdown_callbacks: list[ShutdownHook] = []
         try:
-            container = container_factory()
+            try:
+                container = container_factory(
+                    env=getattr(settings, "env", "dev"),
+                    settings=settings,
+                    contour=contour,
+                )
+            except TypeError:
+                try:
+                    container = container_factory(settings=settings, contour=contour)
+                except TypeError:
+                    container = container_factory()
             sapp.state.container = container
             sapp.state.test_mode = is_test_mode(getattr(container, "settings", None))
+            sapp.state.contour = contour
         except Exception as exc:
             logger.exception("Failed to build dependency container", exc_info=exc)
             raise
@@ -259,6 +279,7 @@ def create_lifespan(
                 except Exception as exc:
                     logger.exception("Error during shutdown callback", exc_info=exc)
             sapp.state.container = None
+            sapp.state.contour = contour
 
     return _lifespan
 
@@ -328,7 +349,7 @@ def _register_health_routes(app: FastAPI, settings: Settings) -> None:
         return {"ok": ok, "components": details}
 
 
-def _register_core_routers(app: FastAPI, settings: Settings) -> None:
+def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> None:
     from domains.platform.admin.api.http import make_router as admin_router
     from domains.platform.audit.api.http import make_router as audit_router
     from domains.platform.billing.api.http import make_router as billing_router
@@ -384,10 +405,6 @@ def _register_core_routers(app: FastAPI, settings: Settings) -> None:
 
     from .debug import make_router as debug_router
 
-    app.include_router(profile_router())
-    app.include_router(settings_router)
-    app.include_router(settings_me_router)
-
     tags_admin_router_factory: Callable[[], Any] | None = None
     try:
         tags_admin_module = import_module("domains.product.tags.api.admin_http")
@@ -395,74 +412,223 @@ def _register_core_routers(app: FastAPI, settings: Settings) -> None:
     except ModuleNotFoundError:
         logger.warning("Tags admin router unavailable; skipping admin endpoints")
 
-    if settings.nodes_enabled:
-        app.include_router(nodes_router())
-        app.include_router(nodes_admin_router())
-    if settings.tags_enabled:
-        app.include_router(tags_router())
-        if callable(tags_admin_router_factory):
-            app.include_router(tags_admin_router_factory())
-        else:
-            logger.debug("Tags admin router skipped: dependency missing")
-    if settings.quests_enabled:
-        app.include_router(quests_router())
-    if settings.navigation_enabled:
-        app.include_router(navigation_router())
-    if settings.content_enabled:
-        app.include_router(content_router())
-        app.include_router(home_public_router())
-        app.include_router(home_admin_router())
-    if settings.ai_enabled:
-        app.include_router(ai_router())
-        app.include_router(ai_admin_router())
-    if settings.moderation_enabled:
-        app.include_router(moderation_router())
-    if settings.achievements_enabled:
-        app.include_router(achievements_router())
-    if settings.worlds_enabled:
-        app.include_router(worlds_router())
-    if settings.referrals_enabled:
-        app.include_router(referrals_router())
-    if settings.premium_enabled:
-        app.include_router(premium_router())
+    contour = contour.lower()
 
-    app.include_router(events_router())
-    app.include_router(telemetry_router())
-    app.include_router(telemetry_admin_router())
-    app.include_router(quota_router())
-    app.include_router(notifications_router())
-    app.include_router(notifications_admin_router())
-    app.include_router(notifications_templates_router())
-    app.include_router(notifications_messages_router())
-    app.include_router(notifications_ws_router())
-    app.include_router(iam_router())
-    app.include_router(search_router())
-    app.include_router(media_router())
-    app.include_router(audit_router())
-    app.include_router(billing_router())
-    app.include_router(flags_router())
-    app.include_router(admin_router())
-    app.include_router(users_router())
-    register_platform_moderation(app)
+    def include_router_spec(router_or_factory: Any) -> None:
+        if isinstance(router_or_factory, APIRouter):
+            router = router_or_factory
+        else:
+            router = router_or_factory()
+        app.include_router(router)
+
+    public_specs: list[Any] = [
+        profile_router,
+        settings_router,
+        settings_me_router,
+        events_router,
+        telemetry_router,
+        notifications_router,
+        notifications_messages_router,
+        notifications_ws_router,
+        iam_router,
+        search_router,
+        media_router,
+        users_router,
+    ]
+    if settings.nodes_enabled:
+        public_specs.append(nodes_router)
+    if settings.tags_enabled:
+        public_specs.append(tags_router)
+    if settings.quests_enabled:
+        public_specs.append(quests_router)
+    if settings.navigation_enabled:
+        public_specs.append(navigation_router)
+    if settings.content_enabled:
+        public_specs.extend([content_router, home_public_router])
+    if settings.ai_enabled:
+        public_specs.append(ai_router)
+    if settings.achievements_enabled:
+        public_specs.append(achievements_router)
+    if settings.worlds_enabled:
+        public_specs.append(worlds_router)
+    if settings.referrals_enabled:
+        public_specs.append(referrals_router)
+    if settings.premium_enabled:
+        public_specs.append(premium_router)
+
+    admin_specs: list[Any] = [
+        admin_router,
+        notifications_admin_router,
+    ]
+    if settings.content_enabled:
+        admin_specs.append(home_admin_router)
+    if settings.ai_enabled:
+        admin_specs.append(ai_admin_router)
+    if settings.nodes_enabled:
+        admin_specs.append(nodes_admin_router)
+    if settings.tags_enabled and callable(tags_admin_router_factory):
+        admin_specs.append(tags_admin_router_factory)
+    if settings.moderation_enabled:
+        admin_specs.append(moderation_router)
+    admin_specs.append(notifications_templates_router)
+
+    ops_specs: list[Any] = [
+        billing_router,
+        audit_router,
+        quota_router,
+        flags_router,
+        telemetry_admin_router,
+    ]
+
+    contour_map: dict[str, list[Any]] = {
+        "public": public_specs,
+        "admin": admin_specs,
+        "ops": ops_specs,
+    }
+
+    special_hooks: dict[str, list[Callable[[FastAPI], None]]] = {
+        "admin": [register_platform_moderation],
+    }
+
+    def iter_specs(target: str):
+        if target == "all":
+            seen: set[int] = set()
+            for key in ("public", "admin", "ops"):
+                for spec in contour_map.get(key, []):
+                    ident = id(spec)
+                    if ident in seen:
+                        continue
+                    seen.add(ident)
+                    yield spec
+        else:
+            yield from contour_map.get(target, [])
+
+    def iter_hooks(target: str):
+        if target == "all":
+            yielded: set[Callable[[FastAPI], None]] = set()
+            for hooks in special_hooks.values():
+                for hook in hooks:
+                    if hook in yielded:
+                        continue
+                    yielded.add(hook)
+                    yield hook
+        else:
+            yield from special_hooks.get(target, [])
+
+    for spec in iter_specs(contour):
+        include_router_spec(spec)
+
+    for hook in iter_hooks(contour):
+        hook(app)
 
     if getattr(settings, "enable_debug_routes", False):
         if settings.env == "prod":
             logger.warning("Debug router requested in prod; skipping registration")
         else:
-            app.include_router(debug_router())
+            include_router_spec(debug_router)
+
+
+def _prune_routes(app: FastAPI, contour: str) -> None:
+    contour = contour.lower()
+    if contour == "all":
+        return
+
+    always_keep_paths = {
+        "/",
+        "/healthz",
+        "/readyz",
+        "/openapi.json",
+    }
+    always_keep_prefixes = ("/docs", "/redoc", "/static")
+    disallowed_public_prefixes = (
+        "/v1/admin",
+        "/api/moderation",
+        "/v1/notifications/admin",
+        "/v1/flags",
+        "/v1/quota",
+        "/v1/billing",
+        "/v1/audit",
+    )
+    admin_allowed_prefixes = (
+        "/v1/admin",
+        "/api/moderation",
+        "/v1/notifications/admin",
+    )
+    ops_allowed_prefixes = (
+        "/v1/billing",
+        "/v1/flags",
+        "/v1/quota",
+        "/v1/audit",
+        "/v1/admin/telemetry",
+        "/v1/notifications/admin",
+    )
+
+    def _keep(path: str) -> bool:
+        if path in always_keep_paths:
+            return True
+        if any(path.startswith(prefix) for prefix in always_keep_prefixes):
+            return True
+        if contour == "public":
+            return not any(
+                path.startswith(prefix) for prefix in disallowed_public_prefixes
+            )
+        if contour == "admin":
+            return any(path.startswith(prefix) for prefix in admin_allowed_prefixes)
+        if contour == "ops":
+            return any(path.startswith(prefix) for prefix in ops_allowed_prefixes)
+        return True
+
+    filtered_routes: list[Any] = []
+    for route in app.router.routes:
+        path = getattr(route, "path", None)
+        if not isinstance(path, str):
+            filtered_routes.append(route)
+            continue
+        if _keep(path):
+            filtered_routes.append(route)
+    app.router.routes = filtered_routes
+    try:
+        app.routes[:] = filtered_routes
+    except TypeError:  # pragma: no cover - defensive, FastAPI versions may differ
+        while len(app.routes) > 0:
+            app.routes.pop()
+        app.routes.extend(filtered_routes)
 
 
 def create_app(
     *,
+    contour: str | None = None,
     settings: Settings | None = None,
-    container_factory: Callable[[], Container] = build_container,
+    container_factory: Callable[..., Container] = build_container,
 ) -> FastAPI:
     settings = settings or load_settings()
-    lifespan = create_lifespan(settings, container_factory=container_factory)
+    raw_contour = (
+        contour
+        if contour is not None
+        else cast(str | None, getattr(settings, "api_contour", "all"))
+    )
+    if not raw_contour:
+        raw_contour = "all"
+    effective_contour = raw_contour.lower()
+    if effective_contour not in {"public", "admin", "ops", "all"}:
+        logger.warning("Unknown contour '%s', falling back to 'all'", effective_contour)
+        effective_contour = "all"
+    try:
+        settings.api_contour = cast(
+            Literal["public", "admin", "ops", "all"], effective_contour
+        )
+    except Exception:  # pragma: no cover - defensive assignment
+        logger.debug("Failed to set settings.api_contour", exc_info=True)
+    lifespan = create_lifespan(
+        settings,
+        contour=effective_contour,
+        container_factory=container_factory,
+    )
     app = FastAPI(
         lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True}
     )
     app.state.settings = settings
+    app.state.contour = effective_contour
 
     _configure_observability(app, service_name="backend")
     try:
@@ -472,7 +638,13 @@ def create_app(
     _configure_cors(app, settings)
     _setup_openapi_security(app, settings)
     _register_exception_handlers(app)
-    _register_core_routers(app, settings)
+    app.add_middleware(
+        AudienceMiddleware,
+        contour=effective_contour,
+        settings=settings,
+    )
+    _register_core_routers(app, settings, effective_contour)
+    _prune_routes(app, effective_contour)
     _register_health_routes(app, settings)
 
     return app

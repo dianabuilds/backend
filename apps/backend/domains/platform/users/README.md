@@ -6,7 +6,7 @@
 - Порт: `ports.py` (`UsersRepo` — get_by_id/email/wallet)
 - Адаптер: `adapters/repos_sql.py` (таблица `users`)
 - Сервис: `application/service.py` (`UsersService`, `ROLE_ORDER`)
-- API: `api/http.py` — `GET /v1/users/me`
+- API: `api/public/http.py` — `GET /v1/users/me`; `api/admin/http.py` — заглушка административного контура
 - DI: `wires.py`
 
 ## Использование с IAM

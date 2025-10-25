@@ -370,73 +370,81 @@ class HomeComposer:
                         _record_cache_metrics("hit")
                         return deepcopy(dict(cached_payload))
                 cache_result = "miss"
-        blocks: list[dict[str, Any]] = []
-        fallbacks: list[dict[str, Any]] = []
-        for raw_block in _iter_blocks(config.data):
-            block_cfg = _build_block_config(raw_block)
-            if block_cfg is None:
-                continue
-            if not block_cfg.enabled:
-                fallbacks.append({"id": block_cfg.id, "reason": "disabled"})
-                continue
-            data_source = block_cfg.data_source
-            if data_source is None:
-                blocks.append(_build_static_block_payload(block_cfg))
-                continue
-            service = self._entities.get(data_source.entity)
-            if service is None:
-                self._logger.warning(
-                    "home.unknown_entity",
-                    extra={
-                        "block_id": block_cfg.id,
-                        "entity": data_source.entity,
-                    },
-                )
-                fallbacks.append(
-                    {
-                        "id": block_cfg.id,
-                        "reason": "unknown_entity",
-                        "entity": data_source.entity,
-                    }
-                )
-                continue
-            strategy = self._strategies.get(data_source.mode)
-            if strategy is None:
-                fallbacks.append(
-                    {
-                        "id": block_cfg.id,
-                        "reason": "unknown_mode",
-                        "mode": data_source.mode,
-                    }
-                )
-                continue
+        block_configs = [
+            block_cfg
+            for raw_block in _iter_blocks(config.data)
+            if (block_cfg := _build_block_config(raw_block)) is not None
+        ]
+        block_payloads: list[dict[str, Any] | None] = [None] * len(block_configs)
+        fallback_map: dict[int, list[dict[str, Any]]] = {}
+        pending: list[
+            tuple[
+                int,
+                BlockConfig,
+                DataSourceConfig,
+                DataSourceStrategy,
+                EntityDataService,
+            ]
+        ] = []
+
+        async def resolve_dynamic_block(
+            index: int,
+            block_cfg: BlockConfig,
+            data_source: DataSourceConfig,
+            strategy: DataSourceStrategy,
+            service: EntityDataService,
+        ) -> tuple[int, dict[str, Any] | None, list[dict[str, Any]]]:
             try:
                 items = await strategy.resolve(
                     block_id=block_cfg.id,
                     config=data_source,
                     service=service,
                 )
+            except asyncio.CancelledError:
+                raise
             except DataSourceError as exc:
-                payload = {
+                fallback = {
                     "id": block_cfg.id,
                     "reason": exc.reason,
                     "mode": data_source.mode,
                     "entity": data_source.entity,
                 }
                 if exc.detail:
-                    payload["detail"] = exc.detail
-                fallbacks.append(payload)
-                continue
-            if not items:
-                fallbacks.append(
-                    {
-                        "id": block_cfg.id,
-                        "reason": "empty",
+                    fallback["detail"] = exc.detail
+                return index, None, [fallback]
+            except Exception as exc:  # pragma: no cover - defensive logging
+                self._logger.exception(
+                    "home.block_resolution_failed",
+                    extra={
+                        "block_id": block_cfg.id,
                         "mode": data_source.mode,
                         "entity": data_source.entity,
-                    }
+                    },
+                    exc_info=exc,
                 )
-                continue
+                detail = str(exc)
+                fallback = {
+                    "id": block_cfg.id,
+                    "reason": "error",
+                    "mode": data_source.mode,
+                    "entity": data_source.entity,
+                }
+                if detail:
+                    fallback["detail"] = detail
+                return index, None, [fallback]
+            if not items:
+                return (
+                    index,
+                    None,
+                    [
+                        {
+                            "id": block_cfg.id,
+                            "reason": "empty",
+                            "mode": data_source.mode,
+                            "entity": data_source.entity,
+                        }
+                    ],
+                )
             block_payload: dict[str, Any] = {
                 "id": block_cfg.id,
                 "type": block_cfg.type,
@@ -453,7 +461,72 @@ class HomeComposer:
                 block_payload["slots"] = deepcopy(block_cfg.slots)
             if block_cfg.layout is not None:
                 block_payload["layout"] = deepcopy(block_cfg.layout)
-            blocks.append(block_payload)
+            return index, block_payload, []
+
+        for index, block_cfg in enumerate(block_configs):
+            if not block_cfg.enabled:
+                fallback_map.setdefault(index, []).append(
+                    {"id": block_cfg.id, "reason": "disabled"}
+                )
+                continue
+            data_source = block_cfg.data_source
+            if data_source is None:
+                block_payloads[index] = _build_static_block_payload(block_cfg)
+                continue
+            service = self._entities.get(data_source.entity)
+            if service is None:
+                self._logger.warning(
+                    "home.unknown_entity",
+                    extra={
+                        "block_id": block_cfg.id,
+                        "entity": data_source.entity,
+                    },
+                )
+                fallback_map.setdefault(index, []).append(
+                    {
+                        "id": block_cfg.id,
+                        "reason": "unknown_entity",
+                        "entity": data_source.entity,
+                    }
+                )
+                continue
+            strategy = self._strategies.get(data_source.mode)
+            if strategy is None:
+                fallback_map.setdefault(index, []).append(
+                    {
+                        "id": block_cfg.id,
+                        "reason": "unknown_mode",
+                        "mode": data_source.mode,
+                    }
+                )
+                continue
+            pending.append((index, block_cfg, data_source, strategy, service))
+
+        if pending:
+            results = await asyncio.gather(
+                *[
+                    resolve_dynamic_block(
+                        index=index,
+                        block_cfg=block_cfg,
+                        data_source=data_source,
+                        strategy=strategy,
+                        service=service,
+                    )
+                    for index, block_cfg, data_source, strategy, service in pending
+                ]
+            )
+            for index, payload, block_fallbacks in results:
+                if payload is not None:
+                    block_payloads[index] = payload
+                if block_fallbacks:
+                    fallback_map.setdefault(index, []).extend(block_fallbacks)
+
+        blocks = [payload for payload in block_payloads if payload is not None]
+        fallbacks: list[dict[str, Any]] = []
+        for index in range(len(block_configs)):
+            entries = fallback_map.get(index)
+            if entries:
+                fallbacks.extend(entries)
         result: dict[str, Any] = {
             "slug": config.slug,
             "version": config.version,

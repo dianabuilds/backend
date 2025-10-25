@@ -1,9 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import {
+  ArrowPathIcon,
   ArrowsUpDownIcon,
   ChartBarIcon,
+  ClockIcon,
   ExclamationTriangleIcon,
-  GlobeAltIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import {
@@ -22,22 +23,23 @@ import { fetchRumEvents, fetchRumSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { RumEventRow, RumSummary } from '@shared/types/observability';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return numberFormatter.format(value);
 }
 
 function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return `${Math.round(value)} ms`;
 }
 
 function formatTs(value: string | number) {
-  if (!value) return '--';
+  if (!value) return 'вЂ”';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   const dd = String(date.getDate()).padStart(2, '0');
@@ -49,7 +51,7 @@ function formatTs(value: string | number) {
 }
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return 'вЂ”';
   return timeFormatter.format(date);
 }
 
@@ -95,6 +97,7 @@ export function ObservabilityRUM(): React.ReactElement {
     hasNext: eventsHasNext,
     loading: eventsLoading,
     error: eventsError,
+    refresh: refreshEvents,
   } = eventsQuery;
 
   const countsLength = React.useMemo(() => Object.keys(summary?.counts ?? {}).length, [summary]);
@@ -112,48 +115,87 @@ export function ObservabilityRUM(): React.ReactElement {
 
   const nav = summary?.navigation_avg;
   const counts = React.useMemo(
-    () => Object.entries(summary?.counts || {}).map(([event, count]) => ({ event, count: count as number })),
+    () =>
+      Object.entries(summary?.counts || {})
+        .map(([event, count]) => ({ event, count: count as number }))
+        .sort((a, b) => b.count - a.count),
     [summary?.counts],
   );
+  const topEventType = counts[0] ?? null;
   const countsTotal = counts.length;
   const countsStart = (countsPage - 1) * countsPageSize;
   const countsRows = counts.slice(countsStart, countsStart + countsPageSize);
   const countsHasNext = countsPage * countsPageSize < countsTotal;
 
-  const totalEvents = summary?.window ? formatNumber(summary.window) : '--';
+  const totalEvents = typeof summary?.window === 'number' ? summary.window : null;
 
-  const headerStats = hasData
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+            void setEventPage(1);
+            void refreshEvents();
+          }}
+          disabled={loading}
+          data-testid="observability-rum-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh, refreshEvents, setEventPage],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
     ? [
         {
-          label: 'Window size',
-          value: totalEvents,
-          hint: 'Events considered in summaries',
+          id: 'rum-events',
+          label: 'Events captured',
+          value: formatNumber(totalEvents),
+          helper: 'Current window size',
           icon: <ChartBarIcon className="size-4" aria-hidden="true" />,
+          accent: 'positive',
         },
         {
+          id: 'rum-top-event',
+          label: 'Top event type',
+          value: topEventType ? formatNumber(topEventType.count) : '—',
+          helper: topEventType ? topEventType.event : 'Awaiting data',
+          icon: <MagnifyingGlassIcon className="size-4" aria-hidden="true" />,
+          accent: 'neutral',
+        },
+        {
+          id: 'rum-login',
           label: 'Login latency',
           value: formatLatency(summary?.login_attempt_avg_ms ?? null),
-          hint: 'Average login attempt duration',
+          helper: 'Average authentication attempt',
           icon: <ArrowsUpDownIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
         {
-          label: 'TTFB average',
-          value: formatLatency(nav?.ttfb_ms ?? null),
-          hint: `Load ${formatLatency(nav?.load_event_ms ?? null)}`,
-          icon: <GlobeAltIcon className="size-4" aria-hidden="true" />,
-        },
-        {
+          id: 'rum-updated',
           label: 'Last update',
           value: formatUpdated(lastUpdated),
-          hint: `Auto refresh · ${RUM_POLL_INTERVAL_MS / 1000}s`,
-          icon: <ChartBarIcon className="size-4" aria-hidden="true" />,
+          helper: `Auto refresh В· ${RUM_POLL_INTERVAL_MS / 1000}s`,
+          icon: <ClockIcon className="size-4" aria-hidden="true" />,
+          accent: 'neutral',
         },
       ]
     : undefined;
 
   if (error) {
     return (
-      <ObservabilityLayout title="RUM telemetry">
+      <ObservabilityLayout title="RUM telemetry" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -179,13 +221,6 @@ export function ObservabilityRUM(): React.ReactElement {
 
   const metricCards = hasData
     ? [
-        {
-          id: 'login',
-          label: 'Login avg',
-          value: formatLatency(summary?.login_attempt_avg_ms ?? null),
-          description: 'Authentication flow duration',
-          tone: 'primary' as const,
-        },
         {
           id: 'ttfb',
           label: 'TTFB avg',
@@ -214,7 +249,8 @@ export function ObservabilityRUM(): React.ReactElement {
     <ObservabilityLayout
       title="RUM telemetry"
       description="Experience metrics and raw events collected from the browser SDK."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-rum-filters" data-analytics="observability:rum:filters">
@@ -465,6 +501,10 @@ export function ObservabilityRUM(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+
+
 
 
 

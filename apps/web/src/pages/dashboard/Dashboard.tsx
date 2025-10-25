@@ -1,7 +1,8 @@
 import React from 'react';
-import { ArrowTopRightOnSquareIcon, BoltIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
-import { Button, Card, MetricCard, PageHeader, Surface } from '@ui';
+import { Button, Card, PageHero, Surface } from '@ui';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { apiGet } from '@shared/api/client';
 
 type HealthResponse = {
@@ -10,6 +11,12 @@ type HealthResponse = {
 };
 
 type QueryStat = { q?: string; query?: string; count?: number; cnt?: number };
+
+const QUICK_PLAYBOOKS = [
+  'Deploy new world template >',
+  'Review moderation tickets backlog >',
+  'Audit AI fallbacks & latency >',
+];
 
 export default function DashboardPage() {
   const [health, setHealth] = React.useState<HealthResponse | null>(null);
@@ -46,41 +53,77 @@ export default function DashboardPage() {
   const topQuery = topQueries[0];
   const servicesOnline = Object.entries(health?.components || {}).filter(([, v]) => String(v).toLowerCase() !== 'false').length;
   const servicesTotal = Object.keys(health?.components || {}).length;
-  const refreshedLabel = refreshedAt ? refreshedAt.toLocaleTimeString() : 'syncing...';
+  const refreshedLabel = refreshedAt ? refreshedAt.toLocaleTimeString() : 'Syncing...';
+  const isHealthy = typeof health?.ok === 'boolean' ? health.ok : null;
 
-  const stats = [
-    {
-      label: 'Platform status',
-      value: health?.ok ? 'Operational' : 'Needs attention',
-      hint: `${servicesOnline}/${servicesTotal || 1} subsystems online`,
-    },
-    {
-      label: 'Trending query',
-      value: topQuery ? (topQuery.q || topQuery.query || '-') : 'Collecting',
-      hint: topQuery?.count || topQuery?.cnt ? `${topQuery.count ?? topQuery.cnt} hits` : 'No recent traffic',
-    },
-    {
-      label: 'Last refresh',
-      value: refreshedLabel,
-      hint: 'Auto-updates every few minutes',
-    },
-  ];
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(
+    () => [
+      {
+        label: 'Platform status',
+        value: isHealthy === null ? 'Syncing...' : isHealthy ? 'Operational' : 'Needs attention',
+        helper: isHealthy === null ? 'Waiting for /health' : 'Monitoring via /health',
+        accent: isHealthy === null ? 'neutral' : isHealthy ? 'positive' : 'danger',
+      },
+      {
+        label: 'Trending query',
+        value: topQuery ? topQuery.q || topQuery.query || '-' : 'Collecting',
+        helper:
+          topQuery?.count || topQuery?.cnt
+            ? `${topQuery.count ?? topQuery.cnt} hits`
+            : 'No recent traffic',
+      },
+      {
+        label: 'Last refresh',
+        value: refreshedLabel,
+        helper: 'Auto refresh every few minutes',
+      },
+      {
+        label: 'Active subsystems',
+        value: servicesTotal ? `${servicesOnline}/${servicesTotal}` : '0/0',
+        helper: servicesTotal ? 'Responding subsystems' : 'Awaiting registrations',
+      },
+    ],
+    [isHealthy, topQuery, refreshedLabel, servicesOnline, servicesTotal],
+  );
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        kicker="Command Center"
+      <PageHero
+        eyebrow="Command Center"
         title="Operational pulse across the cave network"
         description="Track experience health, search intent, and creator momentum from a single, cinematic workspace."
-        pattern="highlight"
-        stats={stats}
+        variant="metrics"
+        tone="light"
+        maxHeight={420}
+        className="py-10 sm:py-11 lg:py-12"
+        metrics={heroMetrics}
         actions={(
-          <Button as={Link} to="/observability" variant="filled">
-            <ArrowTopRightOnSquareIcon className="size-4" />
-            Open observability
+          <Button
+            as={Link}
+            to="/observability/rum"
+            variant="filled"
+            className="shadow-[0_18px_45px_-25px_rgba(79,70,229,0.6)]"
+            data-analytics="dashboard:hero:rum"
+          >
+            <ChartBarIcon className="size-4" />
+            Realtime RUM
           </Button>
         )}
-      />
+      >
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white/85 p-4 text-sm text-gray-700 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.25)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-500">Quick playbooks</span>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_PLAYBOOKS.map((label) => (
+              <span
+                key={label}
+                className="rounded-full border border-gray-200 bg-white/90 px-3 py-1.5 text-xs-plus font-medium text-gray-700 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-600"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </PageHero>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <Card padding="md" skin="bordered">
@@ -93,33 +136,6 @@ export default function DashboardPage() {
               Jump to status board
             </Button>
           </header>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              label="Operational score"
-              value={health?.ok ? '99.4%' : '87.0%'}
-              delta={health?.ok ? '+1.2%' : '-4.3%'}
-              trend={health?.ok ? 'up' : 'down'}
-              description="Composite uptime index rolling 24h"
-              icon={<BoltIcon className="size-5" />}
-            />
-            <MetricCard
-              label="Active subsystems"
-              value={`${servicesOnline}/${servicesTotal || 1}`}
-              delta={`${Math.max(servicesOnline - 1, 0)} recovered`}
-              trend="up"
-              tone="secondary"
-              description="API, orchestrators, asset pipeline"
-            />
-            <MetricCard
-              label="Search momentum"
-              value={topQuery ? topQuery.count ?? topQuery.cnt ?? 0 : 0}
-              delta={topQueries.length ? `${topQueries.length} active topics` : 'No data yet'}
-              trend={topQueries.length ? 'up' : 'steady'}
-              tone="success"
-              description={topQuery ? `Top: ${topQuery.q || topQuery.query}` : 'Collecting intent signals'}
-            />
-          </div>
 
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <Surface variant="soft" className="p-5">
@@ -162,21 +178,6 @@ export default function DashboardPage() {
         </Card>
 
         <div className="flex flex-col gap-6">
-          <Surface variant="frosted" className="p-5">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-dark-50">Quick playbooks</h3>
-            <ul className="mt-3 space-y-3 text-sm">
-              <li className="rounded-2xl bg-primary-500/10 px-4 py-3 text-primary-700 shadow-[0_15px_45px_-28px_rgba(79,70,229,0.6)] dark:text-primary-200">
-                Deploy new world template {'>'}
-              </li>
-              <li className="rounded-2xl bg-white/70 px-4 py-3 text-gray-600 shadow-[0_10px_30px_-24px_rgba(17,24,39,0.4)] dark:bg-dark-800/70 dark:text-dark-200">
-                Review moderation tickets backlog {'>'}
-              </li>
-              <li className="rounded-2xl bg-emerald-500/10 px-4 py-3 text-emerald-600 shadow-[0_10px_30px_-24px_rgba(16,185,129,0.45)] dark:text-emerald-200">
-                Audit AI fallbacks & latency {'>'}
-              </li>
-            </ul>
-          </Surface>
-
           <Surface variant="soft" className="p-5">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-dark-50">Connect the dots</h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-dark-200/80">

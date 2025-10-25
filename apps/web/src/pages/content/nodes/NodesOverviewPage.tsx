@@ -1,6 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { ContentLayout } from '../ContentLayout';
-import { Card } from "@ui";
+import { Card } from '@ui';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import { apiGet } from '@shared/api/client';
 import type { KPIs } from '../PageViews/Statistics';
 
@@ -30,12 +31,22 @@ export default function NodesOverviewPage() {
     })();
   }, []);
 
-  const headerStats = [
-    { label: 'Nodes', value: stats ? stats.nodes.toLocaleString() : '-' },
-    { label: 'Draft nodes', value: stats ? stats.drafts.toLocaleString() : '-' },
+  const heroMetrics: PageHeroMetric[] = [
     {
-      label: 'Avg links per node',
-      value: stats ? stats.linksPerObject.toFixed(2) : '-',
+      id: 'nodes-drafts',
+      label: 'Drafts',
+      value: stats ? stats.drafts.toLocaleString('ru-RU') : '—',
+      helper: stats ? `${stats.nodes.toLocaleString('ru-RU')} total nodes` : undefined,
+    },
+    {
+      id: 'nodes-published',
+      label: 'Published',
+      value: stats ? stats.published.toLocaleString('ru-RU') : '—',
+    },
+    {
+      id: 'nodes-links',
+      label: 'Links per node',
+      value: stats ? stats.linksPerObject.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
     },
   ];
 
@@ -43,8 +54,8 @@ export default function NodesOverviewPage() {
     <ContentLayout
       context="nodes"
       title="Nodes intelligence"
-      description="Monitor growth of the narrative graph, surface bottlenecks, and keep relations healthy across every node."
-      stats={headerStats}
+      description="Follow narrative graph growth, surface bottlenecks, and keep relations healthy across every node."
+      metrics={heroMetrics}
     >
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="space-y-4 p-6">
@@ -75,3 +86,4 @@ export default function NodesOverviewPage() {
     </ContentLayout>
   );
 }
+

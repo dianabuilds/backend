@@ -4,7 +4,7 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
 from domains.platform.events.adapters.outbox_memory import InMemoryOutbox
@@ -153,10 +153,13 @@ def _db_reachable(url: str, *, allow_remote: bool = False) -> bool:
 
 
 def _require_async_dsn(settings: Settings, *, allow_remote: bool) -> str:
-    dsn = to_async_dsn(settings.database_url)
-    if not dsn:
-        raise RuntimeError("APP_DATABASE_URL is required for SQL-backed storages")
-    if not _db_reachable(str(settings.database_url), allow_remote=allow_remote):
+    raw_url = settings.database_url_for_contour()
+    if not raw_url:
+        raise RuntimeError(
+            "APP_DATABASE_URL (or contour override) is required for SQL-backed storages"
+        )
+    dsn = to_async_dsn(raw_url)
+    if not _db_reachable(raw_url, allow_remote=allow_remote):
         raise RuntimeError("database unreachable for SQL-backed storages")
     return dsn
 
@@ -164,6 +167,7 @@ def _require_async_dsn(settings: Settings, *, allow_remote: bool) -> str:
 @dataclass
 class Container:
     settings: Settings
+    contour: str
     events: Any
     profile_service: Any
     nodes_service: Any
@@ -193,9 +197,40 @@ class Container:
     admin: Any
 
 
-def build_container(env: str = "dev") -> Container:
+def build_container(
+    env: str = "dev",
+    *,
+    contour: str | None = None,
+    settings: Settings | None = None,
+) -> Container:
     # Configuration is provided via pydantic-settings
-    settings = load_settings()
+    settings = settings or load_settings()
+    raw_contour = (
+        contour
+        if contour is not None
+        else cast(str | None, getattr(settings, "api_contour", "all"))
+    )
+    if not raw_contour:
+        raw_contour = "all"
+    effective_contour = raw_contour.lower()
+    if effective_contour not in {"public", "admin", "ops", "all"}:
+        logger.warning("Unknown contour '%s', falling back to 'all'", effective_contour)
+        effective_contour = "all"
+    try:
+        settings.api_contour = cast(  # type: ignore[attr-defined]
+            Literal["public", "admin", "ops", "all"], effective_contour
+        )
+    except Exception:  # pragma: no cover - defensive assignment
+        logger.debug("Failed to set settings.api_contour", exc_info=True)
+    # Ensure downstream components see contour-specific DSN
+    try:
+        settings.database_url = to_async_dsn(  # type: ignore[attr-defined]
+            settings.database_url_for_contour(effective_contour)
+        )
+    except Exception:  # pragma: no cover - fallback to raw URL
+        settings.database_url = settings.database_url_for_contour(  # type: ignore[attr-defined]
+            effective_contour
+        )
     test_mode = is_test_mode(settings)
     allow_remote_db = bool(
         getattr(settings, "database_allow_remote", False) or settings.env == "prod"
@@ -461,6 +496,7 @@ def build_container(env: str = "dev") -> Container:
     admin = build_admin_container(settings)
     return Container(
         settings=settings,
+        contour=effective_contour,
         events=events,
         profile_service=svc,
         nodes_service=nodes,

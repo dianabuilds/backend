@@ -1,4 +1,4 @@
-backend (demo)
+﻿backend (demo)
 
 Цель: минимальный каркас для старта разработки с ИИ‑агентом.
 
@@ -19,7 +19,7 @@ Dev: ручная публикация события
   - POST `http://localhost:8000/v1/events/dev/publish`
   - Body:
     { "topic": "node.tags.updated.v1", "payload": { "author_id": "<uuid>", "content_type": "node", "added": ["python"], "removed": [] } }
-  - Headers: `X-Admin-Key: <APP_ADMIN_API_KEY>`
+  - Headers: `X-Admin-Key: <APP_ADMIN_API_KEY>` (Ops контур ожидает `X-Ops-Key: <APP_OPS_API_KEY>``)
 
 - Через CLI-скрипт:
   - Пример:

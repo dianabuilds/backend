@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ArrowPathIcon,
   BanknotesIcon,
   BoltIcon,
   ClockIcon,
@@ -22,6 +23,7 @@ import { ObservabilityLayout } from './ObservabilityLayout';
 import { fetchWorkerSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { WorkersSummary } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -33,24 +35,24 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return '—';
   return timeFormatter.format(date);
 }
 
 const WORKERS_POLL_INTERVAL_MS = 30_000;
 
 function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return numberFormatter.format(value);
 }
 
 function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return `${Math.round(value)} ms`;
 }
 
 function formatCurrency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '$0.00';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return currencyFormatter.format(value);
 }
 export function ObservabilityWorkers(): React.ReactElement {
@@ -98,37 +100,62 @@ export function ObservabilityWorkers(): React.ReactElement {
   const jobStatusSeries = [completed, failed, pending];
   const hasData = Boolean(data) && !loading && !error;
   const isLoading = loading || (!data && !error);
-  const headerStats = hasData
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+          }}
+          disabled={loading}
+          data-testid="observability-workers-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
     ? [
         {
+          id: 'workers-started',
           label: 'Jobs started',
           value: formatNumber(started),
-          hint: `${formatNumber(completed)} completed`,
+          helper: `${formatNumber(completed)} completed`,
           icon: <BoltIcon className="size-4" aria-hidden="true" />,
+          accent: 'positive',
         },
         {
+          id: 'workers-failed',
           label: 'Failures recorded',
           value: formatNumber(failed),
-          hint: `${formatNumber(pending)} pending`,
+          helper: `${formatNumber(pending)} pending`,
           icon: <ExclamationTriangleIcon className="size-4" aria-hidden="true" />,
+          accent: 'danger',
         },
         {
+          id: 'workers-duration',
           label: 'Average duration',
           value: formatLatency(avgJobDuration),
-          hint: `${formatCurrency(costUsd)} spend`,
+          helper: `${formatCurrency(costUsd)} spend`,
           icon: <ClockIcon className="size-4" aria-hidden="true" />,
-        },
-        {
-          label: 'Last update',
-          value: formatUpdated(lastUpdated),
-          hint: `Auto refresh · ${WORKERS_POLL_INTERVAL_MS / 1000}s`,
-          icon: <SparklesIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
       ]
     : undefined;
   if (error) {
     return (
-      <ObservabilityLayout title="Worker telemetry">
+      <ObservabilityLayout title="Worker telemetry" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -178,11 +205,11 @@ export function ObservabilityWorkers(): React.ReactElement {
           tone: 'primary' as const,
         },
         {
-          id: 'sla',
-          label: 'Average job duration',
-          value: formatLatency(avgJobDuration),
+          id: 'queue',
+          label: 'Queue backlog',
+          value: formatNumber(pending),
           description: `${formatNumber(failed)} failures observed`,
-          icon: <ClockIcon className="size-5" aria-hidden="true" />,
+          icon: <ListBulletIcon className="size-5" aria-hidden="true" />,
           tone: 'warning' as const,
         },
       ]
@@ -191,7 +218,8 @@ export function ObservabilityWorkers(): React.ReactElement {
     <ObservabilityLayout
       title="Worker telemetry"
       description="Queue throughput, failure ratio, and stage timings for async jobs."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-workers-filters" data-analytics="observability:workers:filters">

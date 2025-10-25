@@ -65,84 +65,81 @@ export function NodesFilters({
   onAnnounce,
 }: NodesFiltersProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="dark:text-dark-100 truncate text-base font-medium tracking-wide text-gray-800">Nodes</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 dark:border-dark-500 dark:bg-dark-700">
-            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
-            <input
-              className="h-9 w-64 bg-transparent text-sm outline-none placeholder:text-gray-400"
-              placeholder="Search title/ID..."
-              value={q}
-              onChange={(e) => onQueryChange(e.target.value)}
-            />
-          </div>
-          <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 dark:border-dark-500 dark:bg-dark-700">
-            <span className="text-xs text-gray-500">Slug</span>
-            <input
-              className="h-9 w-56 bg-transparent text-sm outline-none placeholder:text-gray-400"
-              placeholder="16-hex"
-              value={slugQuery}
-              onChange={(e) => onSlugChange(e.target.value)}
-            />
-          </div>
-          {loading && <Spinner size="sm" />}
-          <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700">
-            <span className="text-xs text-gray-500">Sort</span>
-            <select className="form-select h-9 w-40" value={sort} onChange={(e) => onSortChange(e.target.value as NodeSortKey)}>
-              <option value="updated_at">Updated</option>
-              <option value="title">Title</option>
-              <option value="author">Author</option>
-              <option value="status">Status</option>
-            </select>
-            <select className="form-select h-9 w-28" value={order} onChange={(e) => onOrderChange(e.target.value as NodeSortOrder)}>
-              <option value="desc">Desc</option>
-              <option value="asc">Asc</option>
-            </select>
-          </div>
-          <div className="relative flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700">
-            <span className="text-xs text-gray-500">Author</span>
-            <input
-              className="h-9 w-56 bg-transparent text-sm outline-none placeholder:text-gray-400"
-              placeholder="Search username..."
-              value={authorQuery}
-              onChange={(e) => onAuthorChange(e.target.value)}
-              onFocus={onAuthorFocus}
-            />
-            {authorId && (
-              <button
-                className="rounded bg-gray-200 px-2 text-xs hover:bg-gray-300 dark:bg-dark-600"
-                onClick={onAuthorClear}
-                type="button"
-              >
-                Clear
-              </button>
-            )}
-            {showUserOptions && userOptions.length > 0 && (
-              <div className="absolute left-0 top-10 z-10 w-64 rounded border border-gray-300 bg-white shadow dark:border-dark-500 dark:bg-dark-700">
-                {userOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    className="block w-full truncate px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-600"
-                    onClick={() => onAuthorSelect(option)}
-                  >
-                    {option.username || option.id}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded hover:bg-gray-200/60 dark:hover:bg-dark-500"
-            title="Create node"
-            onClick={onCreateNode}
-          >
-            <PlusIcon className="h-5 w-5 text-gray-600" />
-          </button>
+    <div className="flex w-full flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-dark-500/70 dark:bg-dark-700/80">
+          <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+          <input
+            className="h-9 w-56 bg-transparent text-sm outline-none placeholder:text-gray-400 dark:text-dark-50"
+            placeholder="Search title / ID"
+            value={q}
+            onChange={(e) => onQueryChange(e.target.value)}
+          />
         </div>
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-dark-500/70 dark:bg-dark-700/80">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Slug</span>
+          <input
+            className="h-9 w-48 bg-transparent text-sm outline-none placeholder:text-gray-400 dark:text-dark-50"
+            placeholder="16-hex"
+            value={slugQuery}
+            onChange={(e) => onSlugChange(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-dark-500/70 dark:bg-dark-700/80">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Sort</span>
+          <select className="form-select h-9 w-36 bg-transparent text-sm" value={sort} onChange={(e) => onSortChange(e.target.value as NodeSortKey)}>
+            <option value="updated_at">Updated</option>
+            <option value="title">Title</option>
+            <option value="author">Author</option>
+            <option value="status">Status</option>
+          </select>
+          <select className="form-select h-9 w-24 bg-transparent text-sm" value={order} onChange={(e) => onOrderChange(e.target.value as NodeSortOrder)}>
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+        </div>
+        <div className="relative flex items-center gap-2 rounded-xl border border-gray-200/80 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-dark-500/70 dark:bg-dark-700/80">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Author</span>
+          <input
+            className="h-9 w-48 bg-transparent text-sm outline-none placeholder:text-gray-400 dark:text-dark-50"
+            placeholder="Search username"
+            value={authorQuery}
+            onChange={(e) => onAuthorChange(e.target.value)}
+            onFocus={onAuthorFocus}
+          />
+          {authorId && (
+            <button
+              className="rounded bg-gray-200 px-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-300 dark:bg-dark-600 dark:text-dark-100"
+              onClick={onAuthorClear}
+              type="button"
+            >
+              Clear
+            </button>
+          )}
+          {showUserOptions && userOptions.length > 0 && (
+            <div className="absolute left-0 top-12 z-10 w-64 rounded-xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur dark:border-dark-500 dark:bg-dark-700/95">
+              {userOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className="block w-full truncate px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-100 dark:text-dark-50 dark:hover:bg-dark-600"
+                  onClick={() => onAuthorSelect(option)}
+                >
+                  {option.username || option.id}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {loading && <Spinner size="sm" />}
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-700 transition hover:bg-primary-100 dark:border-primary-500/40 dark:bg-primary-900/20 dark:text-primary-200 dark:hover:bg-primary-900/30"
+          title="Create node"
+          onClick={onCreateNode}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm">

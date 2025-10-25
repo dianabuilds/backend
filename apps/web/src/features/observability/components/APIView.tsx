@@ -1,8 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
+import { Link } from 'react-router-dom';
 import {
+  ArrowPathIcon,
   ArrowTrendingUpIcon,
   ChartBarIcon,
-  ClockIcon,
   ExclamationTriangleIcon,
   ShieldExclamationIcon,
   SignalIcon,
@@ -23,27 +24,28 @@ import { ObservabilityLayout } from './ObservabilityLayout';
 import { fetchHttpSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
 import { HttpPathStats, HttpSummary } from '@shared/types/observability';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function formatUpdated(date: Date | null): string {
-  if (!date) return '--';
+  if (!date) return 'вЂ”';
   return timeFormatter.format(date);
 }
 
 function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return numberFormatter.format(value);
 }
 
 function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return `${Math.round(value)} ms`;
 }
 
 function formatPercent(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
   return `${(value * 100).toFixed(2)}%`;
 }
 
@@ -148,38 +150,71 @@ export function ObservabilityAPI(): React.ReactElement {
   const hasData = Boolean(data) && !loading && !error;
   const isLoading = loading || (!data && !error);
 
-  const headerStats = hasData
+  const heroActions = React.useMemo(
+    () => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
+          Updated {formatUpdated(lastUpdated)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          onClick={() => {
+            void refresh();
+          }}
+          disabled={loading}
+          data-testid="observability-api-refresh"
+        >
+          <ArrowPathIcon className="size-4" aria-hidden="true" />
+          Refresh
+        </Button>
+        <Button
+          as={Link}
+          to="/observability/rum"
+          variant="filled"
+          size="sm"
+          className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
+        >
+          <ChartBarIcon className="size-4" aria-hidden="true" />
+          Realtime RUM
+        </Button>
+      </div>
+    ),
+    [lastUpdated, loading, refresh],
+  );
+
+  const heroMetrics: PageHeroMetric[] | undefined = hasData
     ? [
         {
+          id: 'api-endpoints',
           label: 'Tracked endpoints',
           value: formatNumber(summary.totalEndpoints),
-          hint: `${formatNumber(summary.totalRequests)} requests`,
+          helper: `${formatNumber(summary.totalRequests)} requests`,
           icon: <ChartBarIcon className="size-4" aria-hidden="true" />,
         },
         {
+          id: 'api-latency',
           label: 'Average latency',
           value: formatLatency(summary.averageLatency),
-          hint: extremes.slowest ? `Peak ${formatLatency(extremes.slowest.avg_duration_ms)}` : 'Awaiting data',
+          helper: extremes.slowest ? `Peak ${formatLatency(extremes.slowest.avg_duration_ms)}` : 'Awaiting data',
           icon: <ArrowTrendingUpIcon className="size-4" aria-hidden="true" />,
+          accent: 'warning',
         },
         {
+          id: 'api-errors',
           label: 'Average 5xx ratio',
           value: formatPercent(summary.averageErrorRatio),
-          hint: extremes.highestError ? `Max ${formatPercent(extremes.highestError.error5xx_ratio)}` : 'Awaiting data',
+          helper: extremes.highestError ? `Max ${formatPercent(extremes.highestError.error5xx_ratio)}` : 'Awaiting data',
           icon: <ShieldExclamationIcon className="size-4" aria-hidden="true" />,
-        },
-        {
-          label: 'Last update',
-          value: formatUpdated(lastUpdated),
-          hint: `Auto refresh В· ${API_POLL_INTERVAL_MS / 1000}s`,
-          icon: <ClockIcon className="size-4" aria-hidden="true" />,
-        },
-      ]
+          accent: 'danger',
+        },]
     : undefined;
 
   if (error) {
     return (
-      <ObservabilityLayout title="HTTP API telemetry">
+      <ObservabilityLayout title="HTTP API telemetry" actions={heroActions} metrics={heroMetrics}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -208,14 +243,14 @@ export function ObservabilityAPI(): React.ReactElement {
         {
           id: 'slowest',
           label: 'Slowest endpoint',
-          value: extremes.slowest ? formatLatency(extremes.slowest.avg_duration_ms) : '--',
+          value: extremes.slowest ? formatLatency(extremes.slowest.avg_duration_ms) : '—',
           description: extremes.slowest ? `${extremes.slowest.method} ${extremes.slowest.path}` : 'Awaiting traffic',
           tone: 'warning' as const,
         },
         {
           id: 'highest-error',
           label: 'Highest 5xx ratio',
-          value: extremes.highestError ? formatPercent(extremes.highestError.error5xx_ratio) : '--',
+          value: extremes.highestError ? formatPercent(extremes.highestError.error5xx_ratio) : '—',
           description: extremes.highestError
             ? `${extremes.highestError.method} ${extremes.highestError.path}`
             : 'Awaiting traffic',
@@ -224,18 +259,11 @@ export function ObservabilityAPI(): React.ReactElement {
         {
           id: 'most-requests',
           label: 'Most requested',
-          value: extremes.mostRequested ? formatNumber(extremes.mostRequested.requests_total) : '--',
+          value: extremes.mostRequested ? formatNumber(extremes.mostRequested.requests_total) : '—',
           description: extremes.mostRequested
             ? `${extremes.mostRequested.method} ${extremes.mostRequested.path}`
             : 'Awaiting traffic',
           tone: 'secondary' as const,
-        },
-        {
-          id: 'average-latency',
-          label: 'Average latency (all)',
-          value: formatLatency(summary.averageLatency),
-          description: `${formatPercent(summary.averageErrorRatio)} avg 5xx ratio`,
-          tone: 'primary' as const,
         },
       ]
     : [];
@@ -244,7 +272,8 @@ export function ObservabilityAPI(): React.ReactElement {
     <ObservabilityLayout
       title="HTTP API telemetry"
       description="Latency, error ratio, and request volume for critical endpoints."
-      stats={headerStats}
+      actions={heroActions}
+      metrics={heroMetrics}
     >
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-api-filters" data-analytics="observability:api:filters">
@@ -457,6 +486,7 @@ export function ObservabilityAPI(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
 
 
 

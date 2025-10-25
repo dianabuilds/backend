@@ -42,6 +42,33 @@ const metrics: PageHeroMetric[] = [
   },
 ];
 
+const contentMetrics: PageHeroMetric[] = [
+  {
+    id: 'content-drafts',
+    label: 'Drafts',
+    value: '312',
+    helper: 'Nodes + quests awaiting review',
+  },
+  {
+    id: 'content-published',
+    label: 'Published',
+    value: '1 248',
+    helper: 'Live objects across hubs',
+  },
+  {
+    id: 'content-links',
+    label: 'Avg links',
+    value: '3.4',
+    helper: 'Per content object',
+  },
+  {
+    id: 'content-queued',
+    label: 'Queued broadcasts',
+    value: '28',
+    helper: '8 scheduled / 20 sending',
+  },
+];
+
 export const Default: Story = {
   args: {
     title: 'Сводка по узлам',
@@ -83,6 +110,39 @@ export const Metrics: Story = {
           Обновить
         </Button>
         <Button size="sm">Настроить панели</Button>
+      </div>
+    ),
+  },
+};
+
+export const ContentHub: Story = {
+  args: {
+    title: 'Content intelligence',
+    description: 'Unify authoring signals for nodes, quests, and notifications. Keep the pipeline healthy from a single hub.',
+    variant: 'metrics',
+    metrics: contentMetrics,
+    actions: (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm">New node</Button>
+        <Button size="sm" variant="outlined">
+          Import / Export
+        </Button>
+        <Button size="sm" variant="ghost">
+          Broadcast update
+        </Button>
+      </div>
+    ),
+    filters: (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="ghost">
+          Drafts
+        </Button>
+        <Button size="sm" variant="ghost">
+          Published
+        </Button>
+        <Button size="sm" variant="ghost">
+          Notifications
+        </Button>
       </div>
     ),
   },

@@ -52,12 +52,23 @@ def _ensure_event_loop() -> Generator[None, None, None]:
     yield
 
 
-def make_jwt(sub: str, role: str = "user") -> str:
+def make_jwt(sub: str, role: str = "user", audience: str | None = None) -> str:
     _ensure_backend_on_path()
     from packages.core.config import load_settings
 
     settings = load_settings()
+    role_value = str(role).lower()
+    aud = audience
+    if aud is None:
+        if role_value in {"admin", "moderator", "editor"}:
+            aud = "admin"
+        elif role_value == "finance_ops":
+            aud = "ops"
+        else:
+            aud = "public"
     payload = {"sub": sub, "role": role, "exp": int(time.time()) + 600}
+    if aud:
+        payload["audience"] = aud
     return jwt.encode(
         payload,
         key=settings.auth_jwt_secret.get_secret_value(),

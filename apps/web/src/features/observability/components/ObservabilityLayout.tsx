@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Button, PageHeader, Surface } from '@ui';
+import { Button, PageHero, Surface } from '@ui';
 import { ChartBarIcon } from '@heroicons/react/24/outline';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
 type NavItem = {
   to: string;
@@ -21,7 +22,8 @@ const NAV_LINKS: NavItem[] = [
 ];
 
 const DEFAULT_TITLE = 'Telemetry and experience lab';
-const DEFAULT_DESCRIPTION = 'Debug journeys, latency, and AI behaviour with cinematic monitoring panels.';
+const DEFAULT_DESCRIPTION =
+  'Telemetry snapshots across API, LLM, workers, events, transitions, and real-user signals.';
 
 const BREADCRUMB_ROOT: Array<{ label: string; to?: string }> = [
   { label: 'Operations', to: '/dashboard' },
@@ -32,7 +34,7 @@ type Props = {
   title?: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  stats?: Parameters<typeof PageHeader>[0]['stats'];
+  metrics?: PageHeroMetric[];
   children: React.ReactNode;
 };
 
@@ -40,7 +42,7 @@ export function ObservabilityLayout({
   title = DEFAULT_TITLE,
   description = DEFAULT_DESCRIPTION,
   actions,
-  stats,
+  metrics,
   children,
 }: Props) {
   const location = useLocation();
@@ -76,7 +78,8 @@ export function ObservabilityLayout({
         as={Link}
         to="/observability/rum"
         variant="filled"
-        className="shadow-[0_18px_45px_-25px_rgba(79,70,229,0.6)]"
+        size="sm"
+        className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
         data-testid="observability-header-cta"
         data-analytics="observability:cta:rum"
       >
@@ -84,16 +87,21 @@ export function ObservabilityLayout({
       </Button>
     );
 
+  const resolvedMetrics = React.useMemo(() => (metrics ? metrics.slice(0, 3) : undefined), [metrics]);
+
   return (
     <div className="space-y-6 lg:space-y-8">
-      <PageHeader
-        kicker="Telemetry"
+      <PageHero
         title={title}
         description={description}
         actions={resolvedActions}
-        stats={stats}
         breadcrumbs={resolvedBreadcrumbs}
-        pattern="subtle"
+        eyebrow={activeNav?.label ?? 'Observability'}
+        metrics={resolvedMetrics}
+        variant="compact"
+        align="start"
+        tone="light"
+        className="bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
       />
 
       <Surface variant="soft" inset className="px-4 py-3">
