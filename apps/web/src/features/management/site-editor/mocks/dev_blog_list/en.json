@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Site editor update: October highlights",
+      "subtitle": "DevRel · Oct 12, 2025",
+      "href": "/en/dev-blog/editor-updates-2025"
+    },
+    {
+      "title": "Measuring team productivity without vanity metrics",
+      "subtitle": "Product Analytics · Oct 2, 2025",
+      "href": "/en/dev-blog/productivity-metrics"
+    },
+    {
+      "title": "Getting started with the navigation API",
+      "subtitle": "Backend · Sep 18, 2025",
+      "href": "/en/dev-blog/navigation-api-guide"
+    }
+  ],
+  "meta": {
+    "note": "Dev blog mock payload for preview"
+  }
+}

@@ -1,7 +1,8 @@
 ﻿import React from 'react';
-import { Input, Textarea, Select, Switch, TagInput } from '@ui';
+import { Input, Textarea, Select, Switch } from '@ui';
 import type { HomeBlock, HomeBlockDataSource } from '../types';
 import type { FieldError } from '../validation';
+import { ManualItemsEditor } from './ManualItemsEditor';
 
 const DEFAULT_MODE_MAP: Record<HomeBlock['type'], 'auto' | 'manual'> = {
   hero: 'manual',
@@ -220,13 +221,18 @@ export function BlockSettingsForm({ block, onChange, errors }: BlockSettingsForm
   };
 
   const handleItemsChange = (items: string[]) => {
+    const normalized = items.map((item) => item.trim()).filter((item) => item.length > 0);
     updateDataSource((current) => ({
       ...current,
-      items,
+      items: normalized,
     }));
   };
 
   const dataSource = React.useMemo(() => ensureDataSource(block, block.dataSource), [block]);
+  const manualItems = React.useMemo(
+    () => (Array.isArray(dataSource.items) ? dataSource.items.map((item) => String(item)) : []),
+    [dataSource.items],
+  );
 
   const renderHeroSettings = block.type === 'hero';
   const renderDataSource = block.type !== 'hero';
@@ -399,15 +405,12 @@ export function BlockSettingsForm({ block, onChange, errors }: BlockSettingsForm
           </div>
 
           {dataSource.mode === 'manual' ? (
-            <div className="space-y-2">
-              <TagInput
-                value={Array.isArray(dataSource.items) ? dataSource.items.map((item) => String(item)) : []}
-                onChange={handleItemsChange}
-                label="Список элементов"
-                placeholder="id или slug"
-              />
-              {itemsError ? <div className="text-xs text-error">{itemsError}</div> : null}
-            </div>
+            <ManualItemsEditor
+              entity={dataSource.entity ?? null}
+              items={manualItems}
+              onChange={handleItemsChange}
+              error={itemsError ?? undefined}
+            />
           ) : null}
 
           {autoOnly ? (

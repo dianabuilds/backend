@@ -20,8 +20,8 @@ export function BlockInspector(): React.ReactElement {
 
   if (!block) {
     return (
-      <Card padding="sm" className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-gray-500">
+      <Card padding="sm" className="min-h-[160px]">
+        <div className="flex flex-col items-center justify-center gap-2 text-center text-sm text-gray-500">
           <p>Выберите блок на канвасе, чтобы посмотреть его параметры.</p>
         </div>
       </Card>
@@ -31,7 +31,7 @@ export function BlockInspector(): React.ReactElement {
   const definition = getBlockDefinition(block.type);
 
   return (
-    <Card padding="sm" className="h-full space-y-4">
+    <Card padding="sm" className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-gray-900">{block.title || definition?.label || block.type}</h3>

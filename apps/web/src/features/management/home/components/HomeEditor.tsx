@@ -306,12 +306,12 @@ export default function HomeEditor(): React.ReactElement {
               <HomePreview />
             </div>
             <div className="order-3 space-y-4">
+              <BlockInspector />
               <HistoryPanel
                 entries={history}
                 restoringVersion={restoringVersion}
                 onRestore={handleOpenRestore}
               />
-              <BlockInspector />
             </div>
           </div>
         )}

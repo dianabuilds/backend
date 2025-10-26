@@ -474,4 +474,285 @@ export type ManagementAuditUser = {
   username?: string | null;
 };
 
+export type SitePageType = 'landing' | 'collection' | 'article' | 'system';
+export type SitePageStatus = 'draft' | 'published' | 'archived';
+
+export type SitePageSummary = {
+  id: string;
+  slug: string;
+  type: SitePageType;
+  status: SitePageStatus;
+  title: string;
+  locale: string;
+  owner?: string | null;
+  updated_at?: string | null;
+  published_version?: number | null;
+  draft_version?: number | null;
+  has_pending_review?: boolean | null;
+};
+
+export type SitePageListResponse = {
+  items: SitePageSummary[];
+  page: number;
+  page_size: number;
+  total?: number | null;
+};
+
+export type SitePageReviewStatus = 'none' | 'pending' | 'approved' | 'rejected';
+
+export type SitePageDraft = {
+  page_id: string;
+  version: number;
+  data: Record<string, unknown>;
+  meta: Record<string, unknown>;
+  comment?: string | null;
+  review_status: SitePageReviewStatus;
+  updated_at?: string | null;
+  updated_by?: string | null;
+};
+
+export type SiteValidationErrorEntry = {
+  path: string;
+  message: string;
+  validator?: string;
+};
+
+export type SiteDraftValidationResult = {
+  valid: boolean;
+  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  code?: string;
+  errors?: {
+    general: SiteValidationErrorEntry[];
+    blocks: Record<string, SiteValidationErrorEntry[]>;
+  };
+};
+
+export type SiteMetricsPeriod = '1d' | '7d' | '30d';
+
+export type SiteMetricValue = {
+  value: number | null;
+  delta?: number | null;
+  unit?: string | null;
+  trend?: number[] | null;
+};
+
+export type SiteMetricAlert = {
+  code: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+};
+
+export type SiteMetricsRange = {
+  start: string;
+  end: string;
+};
+
+export type SitePageMetricsResponse = {
+  page_id: string;
+  period: string;
+  range: SiteMetricsRange;
+  previous_range?: SiteMetricsRange;
+  status: string;
+  source_lag_ms?: number | null;
+  metrics: Record<string, SiteMetricValue>;
+  alerts: SiteMetricAlert[];
+};
+
+export type SiteBlockMetricsTopPage = {
+  page_id: string;
+  slug: string;
+  title: string;
+  impressions?: number | null;
+  clicks?: number | null;
+  ctr?: number | null;
+};
+
+export type SiteGlobalBlockMetricsResponse = {
+  block_id: string;
+  period: string;
+  range: SiteMetricsRange;
+  previous_range?: SiteMetricsRange;
+  status: string;
+  source_lag_ms?: number | null;
+  metrics: Record<string, SiteMetricValue>;
+  alerts: SiteMetricAlert[];
+  top_pages: SiteBlockMetricsTopPage[];
+};
+
+export type SiteDiffChange = 'added' | 'removed' | 'updated' | 'moved';
+
+export type SitePageDiffEntry =
+  | {
+      type: 'block';
+      blockId: string;
+      change: SiteDiffChange;
+      before?: Record<string, unknown> | null;
+      after?: Record<string, unknown> | null;
+      from?: number | null;
+      to?: number | null;
+    }
+  | {
+      type: 'data' | 'meta';
+      field: string;
+      change: Exclude<SiteDiffChange, 'moved'>;
+      before?: unknown;
+      after?: unknown;
+    };
+
+export type SitePageVersion = {
+  id: string;
+  page_id: string;
+  version: number;
+  data: Record<string, unknown>;
+  meta: Record<string, unknown>;
+  comment?: string | null;
+  diff?: SitePageDiffEntry[] | null;
+  published_at?: string | null;
+  published_by?: string | null;
+};
+
+export type SitePageHistoryResponse = {
+  items: SitePageVersion[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type SitePageDraftDiffResponse = {
+  draft_version: number;
+  published_version?: number | null;
+  diff: SitePageDiffEntry[];
+};
+
+export type SitePagePreviewLayout = {
+  layout: string;
+  generated_at: string;
+  data: Record<string, unknown>;
+  meta: Record<string, unknown>;
+};
+
+export type SitePagePreviewResponse = {
+  page: SitePageSummary;
+  draft_version: number;
+  published_version?: number | null;
+  requested_version?: number | null;
+  version_mismatch: boolean;
+  layouts: Record<string, SitePagePreviewLayout>;
+};
+
+export type SiteAuditEntry = {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  snapshot?: Record<string, unknown> | null;
+  actor?: string | null;
+  created_at: string;
+};
+
+export type SiteAuditListResponse = {
+  items: SiteAuditEntry[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type SiteGlobalBlockStatus = 'draft' | 'published' | 'archived';
+export type SiteGlobalBlockReviewStatus = SitePageReviewStatus;
+
+export type SiteGlobalBlock = {
+  id: string;
+  key: string;
+  title: string;
+  section: string;
+  locale?: string | null;
+  status: SiteGlobalBlockStatus;
+  review_status: SiteGlobalBlockReviewStatus;
+  requires_publisher: boolean;
+  published_version?: number | null;
+  draft_version?: number | null;
+  usage_count?: number | null;
+  comment?: string | null;
+  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  updated_at?: string | null;
+  updated_by?: string | null;
+  has_pending_publish?: boolean | null;
+};
+
+export type SiteGlobalBlockUsage = {
+  block_id: string;
+  page_id: string;
+  slug: string;
+  title: string;
+  status: SitePageStatus;
+  section: string;
+  locale?: string | null;
+  has_draft?: boolean | null;
+  last_published_at?: string | null;
+};
+
+export type SiteGlobalBlockWarning = {
+  code: string;
+  page_id: string;
+  message: string;
+};
+
+export type SiteGlobalBlockListResponse = {
+  items: SiteGlobalBlock[];
+  page: number;
+  page_size: number;
+  total?: number | null;
+};
+
+export type SiteGlobalBlockDetailResponse = {
+  block: SiteGlobalBlock;
+  usage: SiteGlobalBlockUsage[];
+  warnings: SiteGlobalBlockWarning[];
+};
+
+export type SiteGlobalBlockPublishJob = {
+  job_id: string;
+  type: string;
+  status: string;
+};
+
+export type SiteGlobalBlockAffectedPage = {
+  page_id: string;
+  slug: string;
+  title: string;
+  status: SitePageStatus;
+  republish_status?: string | null;
+};
+
+export type SiteGlobalBlockPublishResponse = {
+  id: string;
+  published_version?: number | null;
+  affected_pages: SiteGlobalBlockAffectedPage[];
+  jobs: SiteGlobalBlockPublishJob[];
+  audit_id: string;
+  block: SiteGlobalBlock;
+  usage: SiteGlobalBlockUsage[];
+};
+
+export type SiteGlobalBlockHistoryItem = {
+  id: string;
+  block_id: string;
+  version: number;
+  data: Record<string, unknown>;
+  meta: Record<string, unknown>;
+  comment?: string | null;
+  diff?: SitePageDiffEntry[] | null;
+  published_at?: string | null;
+  published_by?: string | null;
+};
+
+export type SiteGlobalBlockHistoryResponse = {
+  items: SiteGlobalBlockHistoryItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 

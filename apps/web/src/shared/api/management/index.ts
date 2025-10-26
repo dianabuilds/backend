@@ -4,6 +4,7 @@ export * from './flags';
 export * from './integrations';
 export * from './system';
 export * from './audit';
+export * from './siteEditor';
 
 import {
   fetchBillingKpi,
@@ -52,6 +53,20 @@ import {
   fetchAuditEvents,
   fetchAuditUsers,
 } from './audit';
+import {
+  fetchSitePages,
+  fetchSitePage,
+  fetchSitePageDraft,
+  saveSitePageDraft,
+  validateSitePageDraft,
+  diffSitePageDraft,
+  previewSitePage,
+  previewSiteBlock,
+  fetchSitePageHistory,
+  fetchSitePageVersion,
+  restoreSitePageVersion,
+  fetchSiteAudit,
+} from './siteEditor';
 
 export const managementApi = {
   fetchBillingKpi,
@@ -92,4 +107,16 @@ export const managementApi = {
   fetchSystemConfig,
   fetchAuditEvents,
   fetchAuditUsers,
+  fetchSitePages,
+  fetchSitePage,
+  fetchSitePageDraft,
+  saveSitePageDraft,
+  validateSitePageDraft,
+  diffSitePageDraft,
+  previewSitePage,
+  previewSiteBlock,
+  fetchSitePageHistory,
+  fetchSitePageVersion,
+  restoreSitePageVersion,
+  fetchSiteAudit,
 };

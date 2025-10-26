@@ -37,9 +37,7 @@ logger = logging.getLogger(__name__)
 try:
     _redis_asyncio: ModuleType | None = import_module("redis.asyncio")
     _redis_exceptions = import_module("redis.exceptions")
-    RedisError = cast(
-        type[Exception], getattr(_redis_exceptions, "RedisError", Exception)
-    )
+    RedisError = cast(type[Exception], getattr(_redis_exceptions, "RedisError", Exception))
 except ImportError:  # pragma: no cover - optional dependency
     _redis_asyncio = None
     RedisError = type("RedisErrorFallback", (Exception,), {})
@@ -68,9 +66,7 @@ def _configure_cors(app: FastAPI, settings: Settings) -> None:
 
 def _configure_observability(app: FastAPI, service_name: str) -> None:
     try:
-        observability_module = import_module(
-            "apps.backend.infra.observability.opentelemetry"
-        )
+        observability_module = import_module("apps.backend.infra.observability.opentelemetry")
     except ImportError:  # pragma: no cover - optional dependency
         return
     setup_otel = getattr(observability_module, "setup_otel", None)
@@ -137,9 +133,7 @@ def _api_error_handler(request: Request, exc: ApiError) -> Response:
     return JSONResponse(status_code=exc.status_code, content=body, headers=headers)
 
 
-def _validation_error_handler(
-    request: Request, exc: RequestValidationError
-) -> Response:
+def _validation_error_handler(request: Request, exc: RequestValidationError) -> Response:
     try:
         return JSONResponse(
             status_code=400,
@@ -165,9 +159,7 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
 
     url = str(redis_url)
     try:
-        redis_client = _redis_asyncio.from_url(
-            url, encoding="utf-8", decode_responses=True
-        )
+        redis_client = _redis_asyncio.from_url(url, encoding="utf-8", decode_responses=True)
     except (RedisError, ValueError):
         logger.exception("Failed to create Redis client for limiter: %s", url)
         return hooks
@@ -188,9 +180,7 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
         await _close_redis_client(redis_client)
         raise
     except Exception as exc:
-        logger.exception(
-            "Failed to initialize FastAPILimiter for %s", url, exc_info=exc
-        )
+        logger.exception("Failed to initialize FastAPILimiter for %s", url, exc_info=exc)
         await _close_redis_client(redis_client)
         return hooks
 
@@ -308,14 +298,10 @@ def _register_health_routes(app: FastAPI, settings: Settings) -> None:
         if redis_url:
             try:
                 redis_module = import_module("redis")
-                redis_client = redis_module.Redis.from_url(
-                    str(redis_url), decode_responses=True
-                )
+                redis_client = redis_module.Redis.from_url(str(redis_url), decode_responses=True)
                 redis_client.ping()
             except ModuleNotFoundError:
-                logger.warning(
-                    "Redis package not installed; readyz will report redis=false"
-                )
+                logger.warning("Redis package not installed; readyz will report redis=false")
                 ok = False
             except RedisError as exc:
                 logger.warning("Redis health check failed: %s", exc)
@@ -327,9 +313,7 @@ def _register_health_routes(app: FastAPI, settings: Settings) -> None:
                     try:
                         redis_client.close()
                     except Exception as exc:
-                        logger.debug(
-                            "Failed to close Redis client during readyz", exc_info=exc
-                        )
+                        logger.debug("Failed to close Redis client during readyz", exc_info=exc)
         else:
             ok = False
 
@@ -400,6 +384,7 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
     from domains.product.profile.api.http import make_router as profile_router
     from domains.product.quests.api.http import make_router as quests_router
     from domains.product.referrals.api.http import make_router as referrals_router
+    from domains.product.site.api import make_router as site_router
     from domains.product.tags.api.http import make_router as tags_router
     from domains.product.worlds.api.http import make_router as worlds_router
 
@@ -461,7 +446,7 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
         notifications_admin_router,
     ]
     if settings.content_enabled:
-        admin_specs.append(home_admin_router)
+        admin_specs.extend([home_admin_router, site_router])
     if settings.ai_enabled:
         admin_specs.append(ai_admin_router)
     if settings.nodes_enabled:
@@ -569,9 +554,7 @@ def _prune_routes(app: FastAPI, contour: str) -> None:
         if any(path.startswith(prefix) for prefix in always_keep_prefixes):
             return True
         if contour == "public":
-            return not any(
-                path.startswith(prefix) for prefix in disallowed_public_prefixes
-            )
+            return not any(path.startswith(prefix) for prefix in disallowed_public_prefixes)
         if contour == "admin":
             return any(path.startswith(prefix) for prefix in admin_allowed_prefixes)
         if contour == "ops":
@@ -614,9 +597,7 @@ def create_app(
         logger.warning("Unknown contour '%s', falling back to 'all'", effective_contour)
         effective_contour = "all"
     try:
-        settings.api_contour = cast(
-            Literal["public", "admin", "ops", "all"], effective_contour
-        )
+        settings.api_contour = cast(Literal["public", "admin", "ops", "all"], effective_contour)
     except Exception:  # pragma: no cover - defensive assignment
         logger.debug("Failed to set settings.api_contour", exc_info=True)
     lifespan = create_lifespan(
@@ -624,9 +605,7 @@ def create_app(
         contour=effective_contour,
         container_factory=container_factory,
     )
-    app = FastAPI(
-        lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True}
-    )
+    app = FastAPI(lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True})
     app.state.settings = settings
     app.state.contour = effective_contour
 

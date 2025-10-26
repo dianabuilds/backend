@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "title": "Рекомендация: настроить персональные дайджесты",
+      "subtitle": "Провайдер compass · вероятность 0.82",
+      "href": "/n/personal-digest",
+      "badge": "compass"
+    },
+    {
+      "title": "Рекомендация: сценарии welcome-серии",
+      "subtitle": "Провайдер echo · вероятность 0.74",
+      "href": "/n/welcome-series",
+      "badge": "echo"
+    },
+    {
+      "title": "Рекомендация: сегменты лояльности",
+      "subtitle": "Провайдер curated · вероятность 0.68",
+      "href": "/n/loyalty-segments",
+      "badge": "curated"
+    }
+  ],
+  "meta": {
+    "note": "Моковый ответ навигации до подключения реального сервиса",
+    "provider": "mock-navigation",
+    "version": 1
+  }
+}

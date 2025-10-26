@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Quest “Laboratory”",
+      "subtitle": "Rating 4.9 · 45 min",
+      "href": "/en/quests/laboratory"
+    },
+    {
+      "title": "Quest “Station”",
+      "subtitle": "Rating 4.8 · 60 min",
+      "href": "/en/quests/station"
+    },
+    {
+      "title": "Quest “Engineers Trail”",
+      "subtitle": "Rating 4.7 · 50 min",
+      "href": "/en/quests/engineers-trail"
+    }
+  ],
+  "meta": {
+    "note": "Sample quest carousel payload"
+  }
+}

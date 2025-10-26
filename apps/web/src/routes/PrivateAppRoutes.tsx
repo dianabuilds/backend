@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@shared/auth';
 import { SettingsProvider } from '@shared/settings';
@@ -54,6 +54,8 @@ const ObservabilityRUM = React.lazy(() => import('../pages/observability/RUM'));
 
 const ManagementAI = React.lazy(() => import('../pages/management/AI'));
 const ManagementHome = React.lazy(() => import('../pages/management/Home'));
+const ManagementSiteEditor = React.lazy(() => import('../pages/management/SiteEditor'));
+const ManagementSiteEditorDetail = React.lazy(() => import('../pages/management/SitePageEditorDetail'));
 const ManagementDevBlog = React.lazy(() => import('../pages/management/DevBlog'));
 const ManagementPayments = React.lazy(() => import('../pages/management/Payments'));
 const PaymentsMonitoring = React.lazy(() => import('../pages/management/PaymentsMonitoring'));
@@ -138,6 +140,11 @@ export default function PrivateAppRoutes(): React.ReactElement {
 
         <Route path="/tools/import-export" element={withLayout(<ImportExportPage />)} />
         <Route path="/management/home" element={withLayout(<ManagementHome />, { requireAdmin: true })} />
+        <Route path="/management/site-editor" element={withLayout(<ManagementSiteEditor />, { requireAdmin: true })} />
+        <Route
+          path="/management/site-editor/pages/:pageId"
+          element={withLayout(<ManagementSiteEditorDetail />, { requireAdmin: true })}
+        />
         <Route path="/management/dev-blog" element={withLayout(<ManagementDevBlog />, { requireAdmin: true })} />
 
         <Route path="/billing" element={withLayout(<BillingPage />)} />

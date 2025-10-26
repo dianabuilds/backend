@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "title": "Hero headline",
+      "subtitle": "Use this space to explain the main value proposition",
+      "href": "/en"
+    },
+    {
+      "title": "CTA: Start free trial",
+      "subtitle": "Links to the onboarding flow",
+      "href": "/en/signup"
+    }
+  ],
+  "meta": {
+    "note": "Manual hero block · sample content"
+  }
+}

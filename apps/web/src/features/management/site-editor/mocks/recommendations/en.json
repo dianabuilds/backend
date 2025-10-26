@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "title": "Recommended: launch personalised digests",
+      "subtitle": "Provider compass · probability 0.82",
+      "href": "/en/nodes/personal-digest",
+      "badge": "compass"
+    },
+    {
+      "title": "Recommended: welcome series flows",
+      "subtitle": "Provider echo · probability 0.74",
+      "href": "/en/nodes/welcome-series",
+      "badge": "echo"
+    },
+    {
+      "title": "Recommended: loyalty segmentation",
+      "subtitle": "Provider curated · probability 0.68",
+      "href": "/en/nodes/loyalty-segments",
+      "badge": "curated"
+    }
+  ],
+  "meta": {
+    "note": "Mock recommendations until navigation service is wired",
+    "provider": "mock-navigation",
+    "version": 1
+  }
+}

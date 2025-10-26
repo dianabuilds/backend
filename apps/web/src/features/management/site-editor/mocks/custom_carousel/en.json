@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Fall campaign spotlight",
+      "subtitle": "20% off until October 31",
+      "href": "/en/promo/fall-sale"
+    },
+    {
+      "title": "Plan configurator",
+      "subtitle": "Link to the pricing page with a CTA",
+      "href": "/en/pricing"
+    },
+    {
+      "title": "Invite friends",
+      "subtitle": "Referral programme",
+      "href": "/en/promo/referral"
+    }
+  ],
+  "meta": {
+    "note": "Manual custom carousel example"
+  }
+}

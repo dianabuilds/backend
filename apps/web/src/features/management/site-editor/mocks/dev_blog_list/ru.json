@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Обновление редактора: что изменилось",
+      "subtitle": "DevRel · 12 октября 2025",
+      "href": "/dev-blog/editor-updates-2025"
+    },
+    {
+      "title": "Как мы измеряем продуктивность команд",
+      "subtitle": "Product Analytics · 2 октября 2025",
+      "href": "/dev-blog/productivity-metrics"
+    },
+    {
+      "title": "Гайд по новому API навигации",
+      "subtitle": "Backend · 18 сентября 2025",
+      "href": "/dev-blog/navigation-api-guide"
+    }
+  ],
+  "meta": {
+    "note": "Моковые данные дев-блога для предпросмотра"
+  }
+}

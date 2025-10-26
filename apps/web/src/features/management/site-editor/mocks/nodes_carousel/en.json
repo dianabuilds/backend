@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Updated automation playbook",
+      "subtitle": "Updated Oct 24, 2025",
+      "href": "/en/nodes/automation-guide"
+    },
+    {
+      "title": "Launch campaign scenarios",
+      "subtitle": "Updated Oct 20, 2025",
+      "href": "/en/nodes/release-campaigns"
+    },
+    {
+      "title": "Engagement metrics handbook",
+      "subtitle": "Updated Oct 18, 2025",
+      "href": "/en/nodes/views-handbook"
+    }
+  ],
+  "meta": {
+    "note": "Mock data for nodes carousel preview"
+  }
+}

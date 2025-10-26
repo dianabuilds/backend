@@ -7,27 +7,18 @@ This repository hosts two major applications:
 
 ## Backend
 
-All backend sources and configuration live under `apps/backend`:
+All backend sources and configuration live under `apps/backend`.
+
+### Domain layout
+Bounded contexts inside `apps/backend/domains/` разделены по слоям, чтобы бизнес-логика оставалась независимой от инфраструктуры:
+- `api/` — транспортные адаптеры (FastAPI роуты, фоновые задания, CLI).
+- `application/` — сценарии (commands, queries, services, DTO).
+- `adapters/sql/`, `adapters/memory/` — реализация портов для Postgres и in-memory фоллбеков; рядом лежат другие адаптеры (Redis, внешние сервисы).
+- `domain/` — сущности, политики и value-объекты.
+
+Сценарии обращаются только к портам из `application`/`domain`, поэтому смена адаптера — это вопрос конфигурации.
 
 ```
-### Domain layout
-
-Bounded contexts under `apps/backend/domains/` share a layered layout so use-cases stay infrastructure-agnostic:
-
-- `api/` contains transport adapters (FastAPI routers, task handlers, CLI).
-- `application/` hosts the use-case layer (commands, queries, services, DTOs).
-- `adapters/sql/` and `adapters/memory/` provide infrastructure for Postgres and deterministic fallbacks respectively; other adapter families (Redis, files) live alongside.
-- `domain/` keeps entities, value objects, and policies.
-
-Use-cases talk only to ports defined in `application` / `domain`, which keeps swapping adapters a configuration detail.
-
-
-### Billing domain snapshot
-
-- `domains/platform/billing/application/use_cases`   `BillingUseCases`   `public`, `admin`,     `settings.BillingSettingsUseCase`,   `apps/backend/app/api_gateway/settings/billing.py`  payload     .
--    `domains/platform/billing/infrastructure/sql`:    summary/history  ;      `BillingSummaryRepo`/`BillingHistoryRepo`.
--  unit-   `tests/unit/billing`, smoke-  `tests/smoke/test_api_billing.py`.
-
 apps/backend/
   +-- app/                # FastAPI entrypoints and wiring
   +-- domains/            # DDD modules (platform, product, ...)
@@ -94,7 +85,7 @@ If you need to add repository-level tooling, prefer wiring it through the respec
 
 ## Documentation
 
-Backend docs live in `apps/backend/docs/` (ADR, knowledge base, etc.).
+Backend docs live in `apps/backend/docs/` (ADR, knowledge base, etc.). Общие плейбуки и runbook'и — в `docs/` (см. `docs/README.md`).
 ### Test mode
 
 The backend exposes a unified test mode switch via `packages.core.testing.is_test_mode()`. When the mode is active (for example `APP_ENV=test` or whenever pytest bootstraps), all domain containers fall back to in-memory adapters for Postgres, Redis, audit logging, notifications, and events. External services are never touched during startup or tests.

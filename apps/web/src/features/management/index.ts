@@ -1,4 +1,4 @@
-﻿export * from './payments';
+export * from './payments';
 export * from './flags';
 export * from './integrations';
 export * from './audit';
@@ -7,3 +7,4 @@ export * from './ai';
 export * from './payments-monitoring';
 export * from './tariffs';
 export * from './home';
+export * from './site-editor';

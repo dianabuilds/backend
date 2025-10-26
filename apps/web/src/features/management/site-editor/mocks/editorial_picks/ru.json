@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Лучшие материалы недели",
+      "subtitle": "Подборка редакции",
+      "href": "/collections/editors-weekly"
+    },
+    {
+      "title": "Куда смотреть аналитикам",
+      "subtitle": "Советы от data-команды",
+      "href": "/collections/data-insights"
+    },
+    {
+      "title": "Как мы ускорили релизы",
+      "subtitle": "Разбор от платформенной команды",
+      "href": "/collections/release-speed"
+    }
+  ],
+  "meta": {
+    "note": "Ручной список редакции"
+  }
+}

@@ -15,6 +15,8 @@ export {
   Users,
   Gauge,
   TrendingDown,
+  ListFilter,
+  Search,
   Copy,
   GripVertical,
   Edit3,

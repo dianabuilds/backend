@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Квест «Лаборатория»",
+      "subtitle": "Рейтинг 4.9 · 45 минут",
+      "href": "/quests/laboratory"
+    },
+    {
+      "title": "Квест «Станция»",
+      "subtitle": "Рейтинг 4.8 · 60 минут",
+      "href": "/quests/station"
+    },
+    {
+      "title": "Квест «По следам инженеров»",
+      "subtitle": "Рейтинг 4.7 · 50 минут",
+      "href": "/quests/engineers-trail"
+    }
+  ],
+  "meta": {
+    "note": "Подборка квестов для демо карусели"
+  }
+}

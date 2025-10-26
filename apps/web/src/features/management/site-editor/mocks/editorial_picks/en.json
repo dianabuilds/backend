@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "title": "Editor’s picks of the week",
+      "subtitle": "Curated by the content team",
+      "href": "/en/collections/editors-weekly"
+    },
+    {
+      "title": "Analytics essentials",
+      "subtitle": "Advice from the data team",
+      "href": "/en/collections/data-insights"
+    },
+    {
+      "title": "How we sped up releases",
+      "subtitle": "Platform team breakdown",
+      "href": "/en/collections/release-speed"
+    }
+  ],
+  "meta": {
+    "note": "Manual editorial selection"
+  }
+}

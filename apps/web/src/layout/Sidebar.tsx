@@ -96,6 +96,7 @@ const sections: Section[] = [
         icon: <HomeModernIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
           { to: '/management/home', label: 'Homepage' },
+          { to: '/management/site-editor', label: 'Site Editor' },
           { to: '/management/dev-blog', label: 'Dev Blog' },
         ],
       },
