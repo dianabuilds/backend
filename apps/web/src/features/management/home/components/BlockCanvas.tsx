@@ -44,13 +44,13 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
   const isDisabled = !block.enabled;
 
   const cardClass = [
-    'relative rounded-lg border bg-white p-3 shadow-sm transition-all',
+    'relative flex items-center gap-3 rounded-xl border bg-white px-3 py-2 shadow-sm transition-all',
     selected
-      ? 'border-primary-500 shadow-primary-200/60 ring-1 ring-primary-500/30'
+      ? 'border-primary-400 shadow-primary-200/70 ring-1 ring-primary-300/50'
       : hasErrors
-        ? 'border-amber-400 bg-amber-50/80'
-        : 'border-gray-200',
-    isDragging ? 'shadow-lg ring-2 ring-primary-400/40' : '',
+        ? 'border-amber-400 bg-amber-50/70'
+        : 'border-gray-200 hover:border-gray-300 hover:shadow-md',
+    isDragging ? 'cursor-grabbing shadow-lg ring-2 ring-primary-300/40' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -63,53 +63,52 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
       data-testid={`home-block-${block.id}`}
       onClick={() => onSelect(block.id)}
     >
-      <div className={`flex items-start gap-3 ${isDisabled ? 'opacity-60' : ''}`}>
-        <button
+      <button
+        type="button"
+        aria-label="Переместить блок"
+        className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
+        {...attributes}
+        {...listeners}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      <div className={`flex min-w-0 flex-1 flex-col gap-1 ${isDisabled ? 'opacity-60' : ''}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-gray-900">{block.title || label}</span>
+          <Badge variant="outline" color="neutral">{label}</Badge>
+          {hasErrors ? <Badge color="warning">Есть ошибки</Badge> : null}
+          {isDisabled ? <Badge color="neutral">Отключён</Badge> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500">
+          <span>#{index + 1}</span>
+          <span className="opacity-40">•</span>
+          <span className="font-mono lowercase">{block.id}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div onClick={(event) => event.stopPropagation()}>
+          <Switch
+            aria-label="Включить или выключить блок"
+            checked={block.enabled}
+            onChange={(event) => onToggle(block.id, event.target.checked)}
+          />
+        </div>
+        <Button
+          aria-label="Удалить блок"
           type="button"
-          aria-label="Переместить блок"
-          className="mt-1 inline-flex h-6 w-6 shrink-0 cursor-grab items-center justify-center rounded border border-gray-200 bg-gray-50 text-gray-500 hover:text-gray-700"
-          {...attributes}
-          {...listeners}
-          onClick={(event) => event.stopPropagation()}
+          size="icon"
+          variant="ghost"
+          color="neutral"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(block.id);
+          }}
         >
-          <GripVertical className="h-4 w-4" />
-        </button>
-
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm font-semibold text-gray-900">{block.title || label}</span>
-            <Badge variant="outline" color="neutral">{label}</Badge>
-            {hasErrors ? <Badge color="warning">Есть ошибки</Badge> : null}
-            {isDisabled ? <Badge color="neutral">Отключён</Badge> : null}
-          </div>
-          <div className="text-xs text-gray-500">
-            <span className="uppercase tracking-wide">#{index + 1}</span>
-            <span className="mx-2">•</span>
-            <span className="font-mono text-[11px]">{block.id}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div onClick={(event) => event.stopPropagation()}>
-            <Switch
-              aria-label="Включить или выключить блок"
-              checked={block.enabled}
-              onChange={(event) => onToggle(block.id, event.target.checked)}
-            />
-          </div>
-          <Button aria-label="Удалить блок"
-            type="button"
-            size="icon"
-            variant="ghost"
-            color="neutral"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRemove(block.id);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -153,8 +152,8 @@ export function BlockCanvas(): React.ReactElement {
   }, [selectBlock]);
 
   return (
-    <Card padding="sm" className="min-h-[600px] space-y-3">
-      <div className="flex items-center justify-between">
+    <Card padding="sm" className="space-y-3 bg-white/95 shadow-sm">
+      <div className="flex items-center justify-between rounded-xl border border-gray-100/80 bg-gray-50/60 px-3 py-2">
         <h3 className="text-sm font-semibold text-gray-900">Текущая раскладка</h3>
         <span className="text-xs text-gray-500">{blocks.length} блок(ов)</span>
       </div>

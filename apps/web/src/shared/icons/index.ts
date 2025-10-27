@@ -27,5 +27,6 @@ export {
   Send,
   Paperclip,
   Image,
+  Pin,
 
 } from 'lucide-react';

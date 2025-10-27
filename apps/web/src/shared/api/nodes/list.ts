@@ -210,7 +210,7 @@ function normalizeListPayload(payload: unknown, pageSize: number): NodesListResu
     }
   }
 
-  const effectivePageSize = pageSize > 0 ? pageSize : items.length || 20;
+  const effectivePageSize = pageSize > 0 ? pageSize : items.length || 10;
 
   return {
     items,
@@ -225,7 +225,7 @@ function normalizeListPayload(payload: unknown, pageSize: number): NodesListResu
 }
 
 export async function fetchNodesList(options: FetchNodesListOptions = {}): Promise<NodesListResult> {
-  const limit = typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0 ? options.limit : 20;
+  const limit = typeof options.limit === 'number' && Number.isFinite(options.limit) && options.limit > 0 ? options.limit : 10;
   const offset = typeof options.offset === 'number' && Number.isFinite(options.offset) && options.offset >= 0 ? options.offset : 0;
   const params = buildSearchParams({ ...options, limit, offset });
   const url = params.toString()

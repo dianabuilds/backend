@@ -1,6 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
 import {
-  ArrowPathIcon,
   ArrowTrendingUpIcon,
   ArrowsRightLeftIcon,
   ExclamationTriangleIcon,
@@ -18,39 +17,19 @@ import {
   TablePagination,
 } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { fetchTransitionsSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
+import { formatLatency, formatNumber, formatPercent } from '../utils/format';
 import { TransitionModeSummary } from '@shared/types/observability';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
-const numberFormatter = new Intl.NumberFormat('en-US');
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return '—';
-  return timeFormatter.format(date);
-}
-
-  function formatNumber(value: number | null | undefined) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-    return numberFormatter.format(value);
-  }
-
-  function formatLatency(value: number | null | undefined) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-    return `${Math.round(value)} ms`;
-  }
-
 const TRANSITIONS_POLL_INTERVAL_MS = 30_000;
-
-  function formatPercent(value: number | null | undefined) {
-    if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-    return `${(value * 100).toFixed(2)}%`;
-  }
 
 export function ObservabilityTransitions(): React.ReactElement {
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [search, setSearch] = React.useState('');
 
   const { data, loading, error, refresh, lastUpdated } = useTelemetryQuery<TransitionModeSummary[]>({
@@ -112,25 +91,14 @@ export function ObservabilityTransitions(): React.ReactElement {
 
   const heroActions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-transitions-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-transitions-refresh"
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -141,7 +109,7 @@ export function ObservabilityTransitions(): React.ReactElement {
             id: 'transitions-total',
             label: 'Transitions processed',
             value: formatNumber(totals.totalTransitions),
-          helper: `${formatPercent(totals.averageFallback)} fallback avg`,
+          helper: `${formatPercent(totals.averageFallback, { maximumFractionDigits: 2 })} fallback avg`,
           icon: <ArrowsRightLeftIcon className="size-4" aria-hidden="true" />,
           accent: 'positive',
         },
@@ -156,7 +124,7 @@ export function ObservabilityTransitions(): React.ReactElement {
           {
             id: 'transitions-no-route',
             label: 'No-route avg',
-            value: formatPercent(totals.averageNoRoute),
+            value: formatPercent(totals.averageNoRoute, { maximumFractionDigits: 2 }),
             helper: extremes.highestNoRoute ? `${extremes.highestNoRoute.mode} max` : 'Awaiting data',
             icon: <ShieldCheckIcon className="size-4" aria-hidden="true" />,
             accent: 'danger',
@@ -166,7 +134,7 @@ export function ObservabilityTransitions(): React.ReactElement {
 
   if (error) {
     return (
-      <ObservabilityLayout title="Routing telemetry" actions={heroActions} metrics={heroMetrics}>
+      <ObservabilityLayout title="Routing telemetry" actions={heroActions}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -215,14 +183,18 @@ export function ObservabilityTransitions(): React.ReactElement {
         {
           id: 'fallback',
           label: 'Highest fallback',
-          value: extremes.highestFallback ? formatPercent(extremes.highestFallback.fallback_ratio) : '—',
+          value: extremes.highestFallback
+            ? formatPercent(extremes.highestFallback.fallback_ratio, { maximumFractionDigits: 2 })
+            : '—',
           description: extremes.highestFallback ? extremes.highestFallback.mode : 'Awaiting data',
           tone: 'secondary' as const,
         },
         {
           id: 'no-route',
           label: 'Highest no-route',
-          value: extremes.highestNoRoute ? formatPercent(extremes.highestNoRoute.no_route_ratio) : '—',
+          value: extremes.highestNoRoute
+            ? formatPercent(extremes.highestNoRoute.no_route_ratio, { maximumFractionDigits: 2 })
+            : '—',
           description: extremes.highestNoRoute ? extremes.highestNoRoute.mode : 'Awaiting data',
           tone: 'warning' as const,
         },
@@ -241,8 +213,8 @@ export function ObservabilityTransitions(): React.ReactElement {
       title="Routing telemetry"
       description="Latency, fallback usage, and volume per transition mode."
       actions={heroActions}
-      metrics={heroMetrics}
     >
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-transitions-filters" data-analytics="observability:transitions:filters">
           <Surface variant="soft" className="space-y-4">
@@ -401,8 +373,8 @@ export function ObservabilityTransitions(): React.ReactElement {
                         >
                           <Table.TD className="font-mono text-xs">{row.mode}</Table.TD>
                           <Table.TD>{Math.round(row.avg_latency_ms || 0)}</Table.TD>
-                          <Table.TD>{formatPercent(row.no_route_ratio)}</Table.TD>
-                          <Table.TD>{formatPercent(row.fallback_ratio)}</Table.TD>
+                          <Table.TD>{formatPercent(row.no_route_ratio, { maximumFractionDigits: 2 })}</Table.TD>
+                          <Table.TD>{formatPercent(row.fallback_ratio, { maximumFractionDigits: 2 })}</Table.TD>
                           <Table.TD>{formatNumber(row.count)}</Table.TD>
                         </Table.TR>
                       ))}
@@ -431,11 +403,11 @@ export function ObservabilityTransitions(): React.ReactElement {
                       </div>
                       <div>
                         <dt className="font-semibold text-gray-500 dark:text-dark-200/80">No-route %</dt>
-                        <dd>{formatPercent(row.no_route_ratio)}</dd>
+                        <dd>{formatPercent(row.no_route_ratio, { maximumFractionDigits: 2 })}</dd>
                       </div>
                       <div>
                         <dt className="font-semibold text-gray-500 dark:text-dark-200/80">Fallback %</dt>
-                        <dd>{formatPercent(row.fallback_ratio)}</dd>
+                        <dd>{formatPercent(row.fallback_ratio, { maximumFractionDigits: 2 })}</dd>
                       </div>
                     </dl>
                   </Surface>
@@ -462,6 +434,9 @@ export function ObservabilityTransitions(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+
 
 
 

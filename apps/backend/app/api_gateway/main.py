@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 try:
     _redis_asyncio: ModuleType | None = import_module("redis.asyncio")
     _redis_exceptions = import_module("redis.exceptions")
-    RedisError = cast(type[Exception], getattr(_redis_exceptions, "RedisError", Exception))
+    RedisError = cast(
+        type[Exception], getattr(_redis_exceptions, "RedisError", Exception)
+    )
 except ImportError:  # pragma: no cover - optional dependency
     _redis_asyncio = None
     RedisError = type("RedisErrorFallback", (Exception,), {})
@@ -66,7 +68,9 @@ def _configure_cors(app: FastAPI, settings: Settings) -> None:
 
 def _configure_observability(app: FastAPI, service_name: str) -> None:
     try:
-        observability_module = import_module("apps.backend.infra.observability.opentelemetry")
+        observability_module = import_module(
+            "apps.backend.infra.observability.opentelemetry"
+        )
     except ImportError:  # pragma: no cover - optional dependency
         return
     setup_otel = getattr(observability_module, "setup_otel", None)
@@ -133,7 +137,9 @@ def _api_error_handler(request: Request, exc: ApiError) -> Response:
     return JSONResponse(status_code=exc.status_code, content=body, headers=headers)
 
 
-def _validation_error_handler(request: Request, exc: RequestValidationError) -> Response:
+def _validation_error_handler(
+    request: Request, exc: RequestValidationError
+) -> Response:
     try:
         return JSONResponse(
             status_code=400,
@@ -159,7 +165,9 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
 
     url = str(redis_url)
     try:
-        redis_client = _redis_asyncio.from_url(url, encoding="utf-8", decode_responses=True)
+        redis_client = _redis_asyncio.from_url(
+            url, encoding="utf-8", decode_responses=True
+        )
     except (RedisError, ValueError):
         logger.exception("Failed to create Redis client for limiter: %s", url)
         return hooks
@@ -180,7 +188,9 @@ async def _setup_rate_limiter(app: Starlette, settings: Settings) -> list[Shutdo
         await _close_redis_client(redis_client)
         raise
     except Exception as exc:
-        logger.exception("Failed to initialize FastAPILimiter for %s", url, exc_info=exc)
+        logger.exception(
+            "Failed to initialize FastAPILimiter for %s", url, exc_info=exc
+        )
         await _close_redis_client(redis_client)
         return hooks
 
@@ -220,6 +230,34 @@ async def _close_redis_client(client: Any) -> None:
             await result
 
 
+async def _warmup_search(container: Container) -> None:
+    search_container = getattr(container, "search", None)
+    if search_container is None:
+        return
+    warmup = getattr(search_container, "warmup", None)
+    if callable(warmup):
+        try:
+            await warmup()
+        except Exception as exc:
+            logger.warning("Search warmup failed", exc_info=exc)
+        finally:
+            try:
+                search_container.warmup = None
+            except Exception:
+                logger.debug("Failed to clear search warmup handle", exc_info=True)
+
+
+async def _warmup_tag_catalog(container: Container) -> None:
+    nodes_service = getattr(container, "nodes_service", None)
+    tag_catalog = getattr(nodes_service, "tags", None)
+    refresh_now = getattr(tag_catalog, "refresh_now", None)
+    if callable(refresh_now):
+        try:
+            await refresh_now()
+        except Exception as exc:
+            logger.warning("Tag catalog warmup failed", exc_info=exc)
+
+
 def create_lifespan(
     settings: Settings,
     *,
@@ -252,6 +290,9 @@ def create_lifespan(
             raise
 
         try:
+            if container is not None:
+                await _warmup_tag_catalog(container)
+                await _warmup_search(container)
             try:
                 shutdown_callbacks.append(await start_events_relay(app))
             except Exception as exc:
@@ -298,10 +339,14 @@ def _register_health_routes(app: FastAPI, settings: Settings) -> None:
         if redis_url:
             try:
                 redis_module = import_module("redis")
-                redis_client = redis_module.Redis.from_url(str(redis_url), decode_responses=True)
+                redis_client = redis_module.Redis.from_url(
+                    str(redis_url), decode_responses=True
+                )
                 redis_client.ping()
             except ModuleNotFoundError:
-                logger.warning("Redis package not installed; readyz will report redis=false")
+                logger.warning(
+                    "Redis package not installed; readyz will report redis=false"
+                )
                 ok = False
             except RedisError as exc:
                 logger.warning("Redis health check failed: %s", exc)
@@ -313,7 +358,9 @@ def _register_health_routes(app: FastAPI, settings: Settings) -> None:
                     try:
                         redis_client.close()
                     except Exception as exc:
-                        logger.debug("Failed to close Redis client during readyz", exc_info=exc)
+                        logger.debug(
+                            "Failed to close Redis client during readyz", exc_info=exc
+                        )
         else:
             ok = False
 
@@ -369,9 +416,6 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
     from domains.product.achievements.api.http import make_router as achievements_router
     from domains.product.ai.api.admin_http import make_router as ai_admin_router
     from domains.product.ai.api.http import make_router as ai_router
-    from domains.product.content.api.home_http import (
-        make_admin_router as home_admin_router,
-    )
     from domains.product.content.api.home_http import (
         make_public_router as home_public_router,
     )
@@ -446,7 +490,7 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
         notifications_admin_router,
     ]
     if settings.content_enabled:
-        admin_specs.extend([home_admin_router, site_router])
+        admin_specs.append(site_router)
     if settings.ai_enabled:
         admin_specs.append(ai_admin_router)
     if settings.nodes_enabled:
@@ -554,7 +598,9 @@ def _prune_routes(app: FastAPI, contour: str) -> None:
         if any(path.startswith(prefix) for prefix in always_keep_prefixes):
             return True
         if contour == "public":
-            return not any(path.startswith(prefix) for prefix in disallowed_public_prefixes)
+            return not any(
+                path.startswith(prefix) for prefix in disallowed_public_prefixes
+            )
         if contour == "admin":
             return any(path.startswith(prefix) for prefix in admin_allowed_prefixes)
         if contour == "ops":
@@ -597,7 +643,9 @@ def create_app(
         logger.warning("Unknown contour '%s', falling back to 'all'", effective_contour)
         effective_contour = "all"
     try:
-        settings.api_contour = cast(Literal["public", "admin", "ops", "all"], effective_contour)
+        settings.api_contour = cast(
+            Literal["public", "admin", "ops", "all"], effective_contour
+        )
     except Exception:  # pragma: no cover - defensive assignment
         logger.debug("Failed to set settings.api_contour", exc_info=True)
     lifespan = create_lifespan(
@@ -605,7 +653,9 @@ def create_app(
         contour=effective_contour,
         container_factory=container_factory,
     )
-    app = FastAPI(lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True})
+    app = FastAPI(
+        lifespan=lifespan, swagger_ui_parameters={"persistAuthorization": True}
+    )
     app.state.settings = settings
     app.state.contour = effective_contour
 

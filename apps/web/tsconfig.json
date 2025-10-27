@@ -33,10 +33,14 @@
       ],
       "@shared/*": [
         "src/shared/*"
+      ],
+      "@features/*": [
+        "src/features/*"
       ]
     },
     "types": [
-      "vite/client"
+      "vite/client",
+      "vitest/globals"
     ],
     "allowImportingTsExtensions": true
   },

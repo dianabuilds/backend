@@ -1,8 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { HomeBlocks } from '../HomeBlocks';
+import { HomeBlocks } from '@features/public/home';
 import type { HomeBlockItem, HomeBlockPayload } from '@shared/types/homePublic';
 import { rumEvent } from '@shared/rum';
 

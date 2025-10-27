@@ -1,10 +1,10 @@
 import React from 'react';
-import { AlertTriangle, FileCode2 } from '@icons';
-import { Badge, Button, Card, Input, Select, Spinner, Surface, Table, TablePagination } from '@ui';
+import { AlertTriangle } from '@icons';
+import { Badge, Button, Input, Select, Spinner, Surface, Table, TablePagination } from '@ui';
 import { apiGet } from '@shared/api/client';
 import { usePaginatedQuery } from '@shared/hooks/usePaginatedQuery';
 import { extractErrorMessage } from '@shared/utils/errors';
-import { PlatformAdminFrame, type PlatformAdminQuickLink } from '@shared/layouts/management';
+import { PlatformAdminFrame } from '@shared/layouts/management';
 
 type AuditEventMeta = {
   module?: string;
@@ -62,6 +62,15 @@ type UserOption = {
   id: string;
   username?: string | null;
 };
+
+function formatAuditUserIdentifier(id: string): string {
+  if (!id) return '—';
+  const trimmed = id.trim();
+  if (trimmed.length <= 12) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
+}
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const RESULT_OPTIONS = [
@@ -148,7 +157,7 @@ export default function ManagementAudit() {
     loading,
     error,
   } = usePaginatedQuery<AuditEvent, AuditResponse>({
-    initialPageSize: 20,
+    initialPageSize: 10,
     dependencies: [
       filters.search,
       filters.module,
@@ -257,6 +266,8 @@ export default function ManagementAudit() {
     if (filters.resourceType) entries.add(filters.resourceType);
     return Array.from(entries).sort();
   }, [data?.facets?.resource_types, filters.resourceType]);
+  const moduleSummary = React.useMemo(() => topEntries(data?.facets?.modules, 4), [data?.facets?.modules]);
+  const resultSummary = React.useMemo(() => topEntries(data?.facets?.results, 4), [data?.facets?.results]);
 
   const totalItems = calculateTotalItems(data, page, pageSize);
   const currentCount = items.length;
@@ -281,26 +292,59 @@ export default function ManagementAudit() {
     setRefreshToken((prev) => prev + 1);
   }, []);
 
-  const roleHint = (
-    <div className="space-y-2 text-sm">
-      <p>Доступ к аудиту имеет только роль <code>admin</code>.</p>
-      <p className="text-xs text-gray-500 dark:text-dark-200">Если права отсутствуют, обратитесь к владельцу аккаунта за эскалацией.</p>
+  const summaryPanel = (
+    <div className="rounded-2xl border border-white/60 bg-white/80 p-4 text-xs sm:text-sm shadow-sm backdrop-blur-[2px] dark:border-white/10 dark:bg-white/5">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-200">
+        <AlertTriangle className="h-4 w-4" />
+        Сводка по событиям
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-gray-600 dark:text-dark-200">
+        {totalItems !== undefined ? (
+          <span className="rounded-lg border border-white/70 bg-white px-3 py-1 font-medium text-gray-800 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-white">
+            Всего событий: {totalItems}
+          </span>
+        ) : null}
+        {loading ? (
+          <span className="inline-flex items-center gap-1 text-primary-600 dark:text-primary-200">
+            <Spinner size="sm" /> Обновляем данные...
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Модули</p>
+          {moduleSummary.length === 0 ? (
+            <p className="text-[11px] text-gray-500 dark:text-dark-200">Детализация появится после первых событий.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {moduleSummary.map(([module, count]) => (
+                <Badge key={module} color="neutral" variant="soft" className="px-2 py-1 text-[11px] font-medium">
+                  {module || '—'} · {count}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Результаты</p>
+          {resultSummary.length === 0 ? (
+            <p className="text-[11px] text-gray-500 dark:text-dark-200">Будут доступны после загрузки событий.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {resultSummary.map(([result, count]) => {
+                const badge = getResultBadge(result);
+                return (
+                  <Badge key={result} color={badge.color} variant="soft" className="px-2 py-1 text-[11px] font-medium">
+                    {badge.label} · {count}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-
-  const quickLinks: PlatformAdminQuickLink[] = [
-    {
-      label: 'Документация: аудит платформы',
-      href: 'https://docs.caves.dev/platform/audit',
-      description: 'Структура событий и принципы ведения журнала действий.',
-      icon: <FileCode2 className="h-4 w-4" />,
-    },
-    {
-      label: 'API reference: /v1/audit',
-      href: 'https://docs.caves.dev/api/audit',
-      description: 'Параметры фильтрации и примеры экспорта журнала.',
-    },
-  ];
 
   return (
     <PlatformAdminFrame
@@ -323,18 +367,24 @@ export default function ManagementAudit() {
           Экспорт CSV
         </Button>
       }
-      roleHint={roleHint}
-      quickLinks={quickLinks}
-      helpText="Используйте фильтры, чтобы найти конкретное действие. Для расследований сохраняйте экспорт и прикладывайте в тикеты поддержки."
+      heroVariant="compact"
+      heroMetrics={summaryPanel}
+      heroMaxHeight={360}
+      heroClassName="px-5 py-5 sm:px-7 sm:py-6"
     >
       <Surface variant="soft" className="space-y-6 p-6">
         <div className="grid gap-4 lg:grid-cols-4">
-          <Input
-            label="Поиск"
-            placeholder="Событие, ресурс или IP"
-            value={filters.search}
-            onChange={(event) => updateFilter('search', event.target.value)}
-          />
+          <Select
+            value={filters.result}
+            onChange={(event) => updateFilter('result', event.target.value)}
+            className="h-[58px]"
+          >
+            {RESULT_OPTIONS.map((option) => (
+              <option key={option.value || 'all'} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           <Select
             value={filters.module}
             onChange={(event) => updateFilter('module', event.target.value)}
@@ -371,21 +421,17 @@ export default function ManagementAudit() {
               </option>
             ))}
           </Select>
-          <Select
-            value={filters.result}
-            onChange={(event) => updateFilter('result', event.target.value)}
+          <Input
+            label="Поиск"
+            placeholder="Событие, ресурс или IP"
+            value={filters.search}
+            onChange={(event) => updateFilter('search', event.target.value)}
             className="h-[58px]"
-          >
-            {RESULT_OPTIONS.map((option) => (
-              <option key={option.value || 'all'} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
+          />
           <div className="relative">
             <Input
               label="Актор"
-              placeholder="email или ID"
+              placeholder="email, username или ID"
               value={actorQuery}
               onChange={(event) => {
                 setActorQuery(event.target.value);
@@ -393,6 +439,7 @@ export default function ManagementAudit() {
               }}
               onFocus={() => setShowUserOpts(true)}
               onBlur={() => window.setTimeout(() => setShowUserOpts(false), 150)}
+              className="h-[58px]"
             />
             {filters.actorId ? (
               <button
@@ -408,24 +455,31 @@ export default function ManagementAudit() {
             ) : null}
             {showUserOpts && userOpts.length > 0 ? (
               <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dark-500 dark:bg-dark-700">
-                {userOpts.map((user) => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-600"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => {
-                      updateFilter('actorId', user.id);
-                      setActorQuery(user.username || user.id);
-                      setShowUserOpts(false);
-                    }}
-                  >
-                    <span className="font-medium text-gray-900 dark:text-white">{user.username || user.id}</span>
-                    {user.username && user.username !== user.id ? (
-                      <span className="text-xs text-gray-500 dark:text-dark-200">{user.id}</span>
-                    ) : null}
-                  </button>
-                ))}
+                {userOpts.map((user) => {
+                  const username = user.username?.trim();
+                  const hasDistinctUsername = Boolean(username && username !== user.id);
+                  const formattedId = formatAuditUserIdentifier(user.id);
+                  const label = hasDistinctUsername ? username! : formattedId;
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-600"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        updateFilter('actorId', user.id);
+                        setActorQuery(label);
+                        setShowUserOpts(false);
+                      }}
+                      title={user.id}
+                    >
+                      <span className="font-medium text-gray-900 dark:text-white">{label}</span>
+                      {!hasDistinctUsername ? (
+                        <span className="text-xs text-gray-500 dark:text-dark-200">ID: {formattedId}</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
           </div>
@@ -434,12 +488,14 @@ export default function ManagementAudit() {
             label="От"
             value={filters.dateFrom}
             onChange={(event) => updateFilter('dateFrom', event.target.value)}
+            className="h-[58px]"
           />
           <Input
             type="datetime-local"
             label="До"
             value={filters.dateTo}
             onChange={(event) => updateFilter('dateTo', event.target.value)}
+            className="h-[58px]"
           />
         </div>
 
@@ -584,49 +640,6 @@ export default function ManagementAudit() {
         />
       </Surface>
 
-      <Card className="space-y-6 p-6">
-        <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-          <AlertTriangle className="h-5 w-5 text-primary-500" />
-          Сводка по событиям
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Модули</h4>
-            {topEntries(data?.facets?.modules).length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
-                Детализация появится после первых событий.
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {topEntries(data?.facets?.modules).map(([module, count]) => (
-                  <Badge key={module} color="neutral" variant="soft">
-                    {module || '—'} · {count}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Результаты</h4>
-            {topEntries(data?.facets?.results).length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
-                Будут доступны после загрузки событий.
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {topEntries(data?.facets?.results).map(([result, count]) => {
-                  const badge = getResultBadge(result);
-                  return (
-                    <Badge key={result} color={badge.color} variant="soft">
-                      {badge.label} · {count}
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
     </PlatformAdminFrame>
   );
 }

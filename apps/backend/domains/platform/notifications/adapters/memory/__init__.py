@@ -1,6 +1,7 @@
 from .audience import InMemoryAudienceResolver
 from .repository import (
     InMemoryBroadcastRepo,
+    InMemoryNotificationConfigRepository,
     InMemoryNotificationConsentAuditRepo,
     InMemoryNotificationMatrixRepo,
     InMemoryNotificationPreferenceRepo,
@@ -14,6 +15,7 @@ __all__ = [
     "InMemoryNotificationConsentAuditRepo",
     "InMemoryNotificationMatrixRepo",
     "InMemoryNotificationPreferenceRepo",
+    "InMemoryNotificationConfigRepository",
     "InMemoryNotificationRepository",
     "InMemoryTemplateRepo",
 ]

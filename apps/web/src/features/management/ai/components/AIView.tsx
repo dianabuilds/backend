@@ -24,9 +24,9 @@ import { buildUsageRows, groupFallbacksByPrimary, groupFallbacksBySecondary } fr
 import type { Model, ModelFormState, Provider, ProviderFormState } from '../types';
 
 const TAB_ITEMS = [
-  { key: 'overview', label: 'РћР±Р·РѕСЂ' },
-  { key: 'models', label: 'РњРѕРґРµР»Рё' },
-  { key: 'providers', label: 'РџСЂРѕРІР°Р№РґРµСЂС‹' },
+  { key: 'overview', label: 'Обзор' },
+  { key: 'models', label: 'Модели' },
+  { key: 'providers', label: 'Провайдеры' },
   { key: 'fallbacks', label: 'Fallback' },
   { key: 'playground', label: 'Playground' },
 ] as const;

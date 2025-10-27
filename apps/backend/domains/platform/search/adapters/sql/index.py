@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from threading import Lock
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.pool import NullPool
 
 from domains.platform.search.ports import Doc, Hit, IndexPort, QueryPort
 from packages.core.db import get_async_engine
@@ -13,11 +15,22 @@ class SQLSearchIndex(IndexPort, QueryPort):
     """Postgres-backed TF/TS vector search index."""
 
     def __init__(self, engine: AsyncEngine | str) -> None:
-        self._engine: AsyncEngine = (
-            engine
-            if isinstance(engine, AsyncEngine)
-            else get_async_engine("platform-search", url=engine)
-        )
+        self._engine: AsyncEngine | None
+        self._engine_factory: Callable[[], AsyncEngine] | None
+        if isinstance(engine, AsyncEngine):
+            self._engine = engine
+            self._engine_factory = None
+        else:
+            dsn = str(engine)
+            self._engine = None
+            self._engine_factory = lambda: get_async_engine(
+                "platform-search.index",
+                url=dsn,
+                cache=False,
+                pool_pre_ping=False,
+                poolclass=NullPool,
+            )
+        self._engine_lock = Lock()
 
     async def upsert(self, doc: Doc) -> None:
         sql = text(
@@ -40,17 +53,17 @@ class SQLSearchIndex(IndexPort, QueryPort):
             "tags": list(doc.tags or ()),
             "vector": f"{doc.title}\n{doc.text}",
         }
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             await conn.execute(sql, params)
 
     async def delete(self, id: str) -> None:  # noqa: A002 - id name OK here
         sql = text("DELETE FROM search_documents WHERE id = :id")
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             await conn.execute(sql, {"id": id})
 
     async def list_all(self) -> list[Doc]:
         sql = text("SELECT id, title, body, tags FROM search_documents ORDER BY id")
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             rows = (await conn.execute(sql)).mappings().all()
         docs: list[Doc] = []
         for row in rows:
@@ -110,7 +123,7 @@ class SQLSearchIndex(IndexPort, QueryPort):
               LIMIT :limit OFFSET :offset
             """
         )  # nosec
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             rows = (await conn.execute(sql, params)).mappings().all()
         hits: list[Hit] = []
         for row in rows:
@@ -124,6 +137,18 @@ class SQLSearchIndex(IndexPort, QueryPort):
                 )
             )
         return hits
+
+    def _get_engine(self) -> AsyncEngine:
+        existing = self._engine
+        if existing is not None:
+            return existing
+        factory = self._engine_factory
+        if factory is None:
+            raise RuntimeError("search index engine is not configured")
+        with self._engine_lock:
+            if self._engine is None:
+                self._engine = factory()
+            return self._engine
 
 
 __all__ = ["SQLSearchIndex"]

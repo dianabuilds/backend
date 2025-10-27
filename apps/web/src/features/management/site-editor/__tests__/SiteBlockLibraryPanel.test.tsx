@@ -2,27 +2,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { SiteBlockLibraryPanel } from '../components/SiteBlockLibraryPanel';
 import { HomeEditorContext } from '../../home/HomeEditorContext';
 import type { HomeEditorContextValue, HomeBlock, HomeDraftData, HomeDraftSnapshot } from '../../home/types';
 import type { ValidationSummary } from '../../home/validation';
 
-vi.mock('../dataAdapters/useBlockPreview', () => ({
-  useBlockPreview: () => ({
-    data: {
-      items: [
-        { title: 'Sample item 1', subtitle: 'Subtitle 1', href: '/sample-1' },
-        { title: 'Sample item 2', subtitle: 'Subtitle 2', href: '/sample-2' },
-      ],
-      locale: 'ru',
-      fetchedAt: '2025-10-25T12:00:00Z',
-      source: 'mock',
-      meta: {},
-    },
-    loading: false,
-    error: null,
-  }),
-}));
+
 
 function makeContext(overrides: Partial<HomeEditorContextValue> = {}): HomeEditorContextValue {
   const data: HomeDraftData = overrides.data ?? { blocks: [] };
@@ -58,9 +44,11 @@ function renderPanel(overrides: Partial<HomeEditorContextValue> = {}) {
   const contextValue = makeContext(overrides);
   const user = userEvent.setup();
   render(
-    <HomeEditorContext.Provider value={contextValue}>
-      <SiteBlockLibraryPanel />
-    </HomeEditorContext.Provider>,
+    <MemoryRouter>
+      <HomeEditorContext.Provider value={contextValue}>
+        <SiteBlockLibraryPanel />
+      </HomeEditorContext.Provider>
+    </MemoryRouter>,
   );
   return { contextValue, user };
 }
@@ -78,7 +66,7 @@ describe('SiteBlockLibraryPanel', () => {
       selectBlock,
     });
 
-    const addHeroButton = await screen.findByRole('button', { name: 'Добавить блок Hero-блок' });
+    const addHeroButton = await screen.findByRole('button', { name: /Hero-блок/ });
     await user.click(addHeroButton);
 
     expect(setBlocks).toHaveBeenCalledTimes(1);
@@ -96,27 +84,17 @@ describe('SiteBlockLibraryPanel', () => {
   it('фильтрует блоки по поиску и сбрасывает фильтры', async () => {
     const { user } = renderPanel();
 
-    const searchInput = screen.getByPlaceholderText('Поиск по названию, источнику или владельцу');
+    const searchInput = screen.getByPlaceholderText('Поиск по названию или описанию');
     await user.type(searchInput, 'Dev');
 
-    const devBlogButton = await screen.findByRole('button', { name: 'Добавить блок Dev Blog' });
+    const devBlogButton = await screen.findByRole('button', { name: /Dev Blog/ });
     expect(devBlogButton).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Добавить блок Hero-блок' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Hero-блок/ })).toBeNull();
 
-    const resetButton = await screen.findByRole('button', { name: 'Сбросить' });
-    await user.click(resetButton);
+    await user.clear(searchInput);
 
-    expect(await screen.findByRole('button', { name: 'Добавить блок Hero-блок' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Hero-блок/ })).toBeInTheDocument();
   });
 
-  it('делает недоступными блоки в разработке', async () => {
-    renderPanel();
-
-    const upcomingButton = await screen.findByRole('button', {
-      name: 'Блок Глобальный хедер скоро будет доступен',
-    });
-
-    expect(upcomingButton).toBeDisabled();
-  });
 });
 

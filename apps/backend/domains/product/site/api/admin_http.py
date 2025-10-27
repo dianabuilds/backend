@@ -4,9 +4,18 @@ from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from pydantic import BaseModel, Field
 
 from apps.backend.app.api_gateway.routers import get_container
@@ -15,6 +24,8 @@ from domains.platform.iam.application.facade import (
     get_current_user,
     require_role_db,
 )
+from domains.product.content.api.home_http import get_home_composer
+from domains.product.content.domain.models import HomeConfig, HomeConfigStatus
 from domains.product.site.application import SiteService
 from domains.product.site.application.block_preview import (
     get_block_preview as build_block_preview,
@@ -29,9 +40,11 @@ from domains.product.site.domain import (
     PageReviewStatus,
     PageStatus,
     PageType,
+    SitePageNotFound,
     SiteRepositoryError,
     SiteValidationError,
 )
+from domains.product.site.infrastructure.repositories import helpers as repo_helpers
 
 
 def _serialize_page(page) -> dict[str, Any]:
@@ -48,6 +61,7 @@ def _serialize_page(page) -> dict[str, Any]:
         "published_version": page.published_version,
         "draft_version": page.draft_version,
         "has_pending_review": page.has_pending_review,
+        "pinned": page.pinned,
     }
 
 
@@ -61,6 +75,7 @@ def _serialize_draft(draft) -> dict[str, Any]:
         "review_status": draft.review_status.value,
         "updated_at": draft.updated_at.isoformat(),
         "updated_by": draft.updated_by,
+        "global_blocks": repo_helpers.format_global_block_refs(draft.data, draft.meta),
     }
 
 
@@ -75,7 +90,39 @@ def _serialize_version(version) -> dict[str, Any]:
         "diff": version.diff,
         "published_at": version.published_at.isoformat(),
         "published_by": version.published_by,
+        "global_blocks": repo_helpers.format_global_block_refs(
+            version.data, version.meta
+        ),
     }
+
+
+def _serialize_page_global_blocks(
+    blocks: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    serialized: list[dict[str, Any]] = []
+    for block in blocks:
+        item = {
+            "block_id": block.get("block_id"),
+            "key": block.get("key"),
+            "title": block.get("title"),
+            "section": block.get("section"),
+            "status": block.get("status"),
+            "locale": block.get("locale"),
+            "requires_publisher": bool(block.get("requires_publisher")),
+            "published_version": block.get("published_version"),
+            "draft_version": block.get("draft_version"),
+            "review_status": block.get("review_status"),
+            "updated_by": block.get("updated_by"),
+        }
+        updated_at = block.get("updated_at")
+        if isinstance(updated_at, datetime):
+            item["updated_at"] = updated_at.isoformat()
+        elif updated_at is not None:
+            item["updated_at"] = str(updated_at)
+        else:
+            item["updated_at"] = None
+        serialized.append(item)
+    return serialized
 
 
 def _serialize_block(block) -> dict[str, Any]:
@@ -96,7 +143,8 @@ def _serialize_block(block) -> dict[str, Any]:
         "requires_publisher": block.requires_publisher,
         "comment": block.comment,
         "usage_count": int(block.usage_count or 0),
-        "has_pending_publish": (block.draft_version or 0) > (block.published_version or 0),
+        "has_pending_publish": (block.draft_version or 0)
+        > (block.published_version or 0),
     }
 
 
@@ -171,7 +219,8 @@ def _serialize_page_metrics(metrics: PageMetrics) -> dict[str, Any]:
         "status": metrics.status,
         "source_lag_ms": metrics.source_lag_ms,
         "metrics": {
-            name: _serialize_metric_value(value) for name, value in metrics.metrics.items()
+            name: _serialize_metric_value(value)
+            for name, value in metrics.metrics.items()
         },
         "alerts": [_serialize_metric_alert(alert) for alert in metrics.alerts],
     }
@@ -194,7 +243,8 @@ def _serialize_block_metrics(metrics: GlobalBlockMetrics) -> dict[str, Any]:
         "status": metrics.status,
         "source_lag_ms": metrics.source_lag_ms,
         "metrics": {
-            name: _serialize_metric_value(value) for name, value in metrics.metrics.items()
+            name: _serialize_metric_value(value)
+            for name, value in metrics.metrics.items()
         },
         "alerts": [_serialize_metric_alert(alert) for alert in metrics.alerts],
         "top_pages": [_serialize_top_page(item) for item in metrics.top_pages],
@@ -247,6 +297,15 @@ class PageCreatePayload(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     locale: str = Field(default="ru", min_length=2, max_length=8)
     owner: str | None = Field(default=None, max_length=255)
+    pinned: bool = Field(default=False)
+
+
+class PageUpdatePayload(BaseModel):
+    slug: str | None = Field(default=None, min_length=1, max_length=255)
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    locale: str | None = Field(default=None, min_length=2, max_length=8)
+    owner: str | None = Field(default=None, max_length=255)
+    pinned: bool | None = None
 
 
 class PageDraftPayload(BaseModel):
@@ -323,6 +382,15 @@ def get_site_service(container=Depends(get_container)) -> SiteService:
 router = APIRouter(prefix="/v1/site", tags=["site"])
 
 
+_PAGE_UPDATE_VALIDATION_ERRORS = {
+    "site_page_invalid_slug",
+    "site_page_invalid_title",
+    "site_page_invalid_locale",
+    "site_page_invalid_owner",
+    "site_page_invalid_pinned",
+}
+
+
 @router.get(
     "/blocks/{block_id}/preview",
     dependencies=[Depends(require_role_db("site.editor"))],
@@ -361,7 +429,8 @@ def _collect_site_roles(claims: Mapping[str, Any]) -> set[str]:
         elif isinstance(raw, Iterable) and not isinstance(raw, (str, bytes)):
             for item in raw:
                 if isinstance(item, str) and (
-                    item.startswith("site.") or item.strip().lower() in {"admin", "moderator"}
+                    item.startswith("site.")
+                    or item.strip().lower() in {"admin", "moderator"}
                 ):
                     _add_role(roles, item)
     return roles
@@ -406,7 +475,11 @@ async def list_pages(
     locale: str | None = Query(default=None),
     q: str | None = Query(default=None, min_length=1),
     has_draft: bool | None = Query(default=None),
-    sort: str = Query("updated_at_desc", pattern="^(updated_at_desc|updated_at_asc|title_asc)$"),
+    pinned: bool | None = Query(default=None),
+    sort: str = Query(
+        "updated_at_desc",
+        pattern="^(updated_at_desc|updated_at_asc|title_asc|title_desc|pinned_desc|pinned_asc)$",
+    ),
     claims: Mapping[str, Any] = Depends(get_current_user),
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
@@ -422,6 +495,7 @@ async def list_pages(
         query=q,
         has_draft=has_draft,
         sort=sort,
+        pinned=pinned,
         viewer_roles=roles,
         viewer_team=team,
         viewer_id=actor,
@@ -453,8 +527,58 @@ async def create_page(
         locale=payload.locale,
         owner=payload.owner,
         actor=actor,
+        pinned=payload.pinned,
     )
     return _serialize_page(page)
+
+
+@router.patch(
+    "/pages/{page_id}",
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+)
+async def update_page(
+    request: Request,
+    page_id: UUID,
+    payload: PageUpdatePayload = Body(...),
+    service: SiteService = Depends(get_site_service),
+) -> dict[str, Any]:
+    user = await get_current_user(request)
+    actor = user.get("email") or user.get("id")
+    fields = payload.model_dump(exclude_unset=True)
+    try:
+        page = await service.update_page(page_id=page_id, actor=actor, **fields)
+    except SitePageNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except SiteRepositoryError as exc:
+        detail = str(exc)
+        status_code = (
+            status.HTTP_400_BAD_REQUEST
+            if detail in _PAGE_UPDATE_VALIDATION_ERRORS
+            else status.HTTP_409_CONFLICT
+        )
+        raise HTTPException(status_code, detail=detail) from exc
+    return _serialize_page(page)
+
+
+@router.delete(
+    "/pages/{page_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+)
+async def delete_page(
+    request: Request,
+    page_id: UUID,
+    service: SiteService = Depends(get_site_service),
+) -> Response:
+    user = await get_current_user(request)
+    actor = user.get("email") or user.get("id")
+    try:
+        await service.delete_page(page_id=page_id, actor=actor)
+    except SitePageNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except SiteRepositoryError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get(
@@ -469,7 +593,10 @@ async def get_page(
         page = await service.get_page(page_id)
     except SiteRepositoryError as exc:  # pragma: no cover - defensive
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return _serialize_page(page)
+    blocks = await service.list_page_global_blocks(page_id)
+    payload = _serialize_page(page)
+    payload["global_blocks"] = _serialize_page_global_blocks(blocks)
+    return payload
 
 
 @router.get(
@@ -569,6 +696,7 @@ async def preview_page(
     page_id: UUID,
     payload: PagePreviewPayload = Body(default=PagePreviewPayload()),
     service: SiteService = Depends(get_site_service),
+    container=Depends(get_container),
 ) -> dict[str, Any]:
     try:
         page = await service.get_page(page_id)
@@ -586,13 +714,24 @@ async def preview_page(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=_serialize_validation_errors(exc),
         ) from exc
-    generated_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    composer = get_home_composer(container)
+    preview_config = _build_site_preview_config(
+        page=page,
+        draft=draft,
+        payload=validated.data,
+        meta=validated.meta,
+    )
+    rendered_payload = await composer.compose(preview_config, use_cache=False)
+    generated_at = rendered_payload.get("generated_at") or datetime.now(
+        UTC
+    ).isoformat().replace("+00:00", "Z")
     layout_payload = {
         layout: {
             "layout": layout,
             "generated_at": generated_at,
             "data": deepcopy(validated.data),
             "meta": deepcopy(validated.meta),
+            "payload": deepcopy(rendered_payload),
         }
         for layout in layouts
     }
@@ -646,7 +785,9 @@ async def list_page_history(
     offset: int = Query(0, ge=0),
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
-    versions, total = await service.list_page_history(page_id, limit=limit, offset=offset)
+    versions, total = await service.list_page_history(
+        page_id, limit=limit, offset=offset
+    )
     return {
         "items": [_serialize_version(v) for v in versions],
         "total": total,
@@ -724,6 +865,8 @@ async def list_global_blocks(
     locale: str | None = Query(default=None),
     q: str | None = Query(default=None),
     has_draft: bool | None = Query(default=None),
+    requires_publisher: bool | None = Query(default=None),
+    review_status: PageReviewStatus | None = Query(default=None),
     sort: str = Query(default="updated_at_desc"),
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
@@ -737,6 +880,8 @@ async def list_global_blocks(
         locale=locale,
         query=q,
         has_draft=has_draft,
+        requires_publisher=requires_publisher,
+        review_status=review_status,
         sort=sort,
     )
     return {
@@ -874,7 +1019,8 @@ async def publish_global_block(
         for item in usage_after
     ]
     job_payload = [
-        {"job_id": str(job.job_id), "type": job.type, "status": job.status.value} for job in jobs
+        {"job_id": str(job.job_id), "type": job.type, "status": job.status.value}
+        for job in jobs
     ]
     response: dict[str, Any] = {
         "id": str(published_block.id),
@@ -898,7 +1044,9 @@ async def list_global_block_history(
     offset: int = Query(default=0, ge=0),
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
-    items, total = await service.list_global_block_history(block_id, limit=limit, offset=offset)
+    items, total = await service.list_global_block_history(
+        block_id, limit=limit, offset=offset
+    )
     return {
         "items": [_serialize_block_version(item) for item in items],
         "total": total,
@@ -931,7 +1079,9 @@ async def get_global_block_metrics(
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
     try:
-        metrics = await service.get_global_block_metrics(block_id, period=period, locale=locale)
+        metrics = await service.get_global_block_metrics(
+            block_id, period=period, locale=locale
+        )
     except SiteRepositoryError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if metrics is None:
@@ -1014,3 +1164,42 @@ async def list_audit(
 
 def make_router() -> APIRouter:
     return router
+
+
+def _build_site_preview_config(
+    *,
+    page,
+    draft,
+    payload: Mapping[str, Any],
+    meta: Mapping[str, Any],
+) -> HomeConfig:
+    now = datetime.now(UTC)
+    data = deepcopy(payload)
+    meta_copy = deepcopy(meta)
+    if isinstance(meta_copy, Mapping):
+        preview_meta = dict(meta_copy)
+    else:
+        preview_meta = {}
+    preview_marker = preview_meta.get("preview")
+    if isinstance(preview_marker, Mapping):
+        preview_meta["preview"] = {**preview_marker, "mode": "site_preview"}
+    else:
+        preview_meta["preview"] = {"mode": "site_preview"}
+    if isinstance(data, Mapping):
+        data = dict(data)
+    else:
+        data = {}
+    data["meta"] = preview_meta
+    return HomeConfig(
+        id=uuid4(),
+        slug=page.slug,
+        version=draft.version,
+        status=HomeConfigStatus.DRAFT,
+        data=data,
+        created_by=draft.updated_by,
+        updated_by=draft.updated_by,
+        created_at=now,
+        updated_at=now,
+        published_at=None,
+        draft_of=page.id,
+    )

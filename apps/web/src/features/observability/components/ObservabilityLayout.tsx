@@ -1,8 +1,6 @@
 import React from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Button, PageHero, Surface } from '@ui';
-import { ChartBarIcon } from '@heroicons/react/24/outline';
-import type { PageHeroMetric } from '@ui/patterns/PageHero';
+import { NavLink, useLocation } from 'react-router-dom';
+import { PageHero, Surface } from '@ui';
 
 type NavItem = {
   to: string;
@@ -34,7 +32,6 @@ type Props = {
   title?: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  metrics?: PageHeroMetric[];
   children: React.ReactNode;
 };
 
@@ -42,7 +39,6 @@ export function ObservabilityLayout({
   title = DEFAULT_TITLE,
   description = DEFAULT_DESCRIPTION,
   actions,
-  metrics,
   children,
 }: Props) {
   const location = useLocation();
@@ -72,32 +68,14 @@ export function ObservabilityLayout({
     return breadcrumbs;
   }, [activeNav]);
 
-  const resolvedActions =
-    actions ?? (
-      <Button
-        as={Link}
-        to="/observability/rum"
-        variant="filled"
-        size="sm"
-        className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
-        data-testid="observability-header-cta"
-        data-analytics="observability:cta:rum"
-      >
-        <ChartBarIcon className="size-4" aria-hidden="true" /> Realtime RUM
-      </Button>
-    );
-
-  const resolvedMetrics = React.useMemo(() => (metrics ? metrics.slice(0, 3) : undefined), [metrics]);
-
   return (
     <div className="space-y-6 lg:space-y-8">
       <PageHero
         title={title}
         description={description}
-        actions={resolvedActions}
+        actions={actions}
         breadcrumbs={resolvedBreadcrumbs}
-        eyebrow={activeNav?.label ?? 'Observability'}
-        metrics={resolvedMetrics}
+        eyebrow="Observability"
         variant="compact"
         align="start"
         tone="light"

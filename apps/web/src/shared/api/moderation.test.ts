@@ -170,9 +170,9 @@ describe('moderation api', () => {
       total: '50',
     });
 
-    const result = await fetchModerationAIRules({ limit: 20, offset: 20 });
+    const result = await fetchModerationAIRules({ limit: 10, offset: 10 });
 
-    expect(apiGet).toHaveBeenCalledWith('/api/moderation/ai-rules?limit=20&offset=20', { signal: undefined });
+    expect(apiGet).toHaveBeenCalledWith('/api/moderation/ai-rules?limit=10&offset=10', { signal: undefined });
     expect(result.items[0]).toMatchObject({
       id: 'r-1',
       category: 'toxicity',

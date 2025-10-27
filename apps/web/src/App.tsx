@@ -50,7 +50,12 @@ type AppProps = {
 export default function App({ initialData }: AppProps = {}): React.ReactElement {
   return (
     <AppShell initialData={initialData}>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <RumRouteTracker />
         <AppRoutes />
       </BrowserRouter>

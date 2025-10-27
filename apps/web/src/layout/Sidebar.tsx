@@ -95,8 +95,8 @@ const sections: Section[] = [
         label: 'Public Site',
         icon: <HomeModernIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
-          { to: '/management/home', label: 'Homepage' },
           { to: '/management/site-editor', label: 'Site Editor' },
+          { to: '/management/site-editor/library', label: 'Block Library' },
           { to: '/management/dev-blog', label: 'Dev Blog' },
         ],
       },

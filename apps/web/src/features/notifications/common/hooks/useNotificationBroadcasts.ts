@@ -50,7 +50,7 @@ export type UseNotificationBroadcastsResult = {
 export function useNotificationBroadcasts({
   status = 'all',
   search = '',
-  pageSize = 20,
+  pageSize = 10,
   debounceMs = 300,
   mapError,
 }: UseNotificationBroadcastsOptions = {}): UseNotificationBroadcastsResult {

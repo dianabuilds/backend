@@ -122,7 +122,7 @@ export default function QuestsPage(): React.ReactElement {
     error,
     refresh,
   } = usePaginatedQuery<Quest, QuestFetchResult>({
-    initialPageSize: 20,
+    initialPageSize: 10,
     dependencies: [query, status],
     debounceMs: 250,
     fetcher: async ({ page: currentPage, pageSize: currentPageSize, signal }) => {

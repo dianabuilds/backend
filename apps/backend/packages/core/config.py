@@ -8,6 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from pydantic import (
     AliasChoices,
     AnyUrl,
+    BaseModel,
     Field,
     SecretStr,
     ValidationError,
@@ -100,6 +101,11 @@ def sanitize_async_dsn(url: AnyUrl | str) -> str:
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class NotificationsSettings(BaseModel):
+    retention_days: int | None = Field(default=None, ge=0)
+    max_per_user: int | None = Field(default=None, ge=0)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="APP_",
@@ -111,6 +117,7 @@ class Settings(BaseSettings):
         ),
         env_file_encoding="utf-8",
         extra="ignore",
+        env_nested_delimiter="__",
     )
 
     api_contour: Literal["public", "admin", "ops", "all"] = Field(
@@ -331,6 +338,10 @@ class Settings(BaseSettings):
     content_enabled: bool = True
     ai_enabled: bool = True
     moderation_enabled: bool = True
+
+    notifications: NotificationsSettings = Field(
+        default_factory=NotificationsSettings,
+    )
 
     def database_url_for_contour(self, contour: str | None = None) -> str:
         effective = (contour or getattr(self, "api_contour", "all") or "all").lower()

@@ -1,6 +1,7 @@
-﻿import * as React from 'react';
+import clsx from 'clsx';
+import * as React from 'react';
 
-import { Button, PageHero } from '@ui';
+import { Button, PageHero, Spinner } from '@ui';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
 import {
   ArrowPathIcon,
@@ -22,72 +23,96 @@ type UsersHeaderMetrics = {
 type UsersHeaderProps = {
   metrics: UsersHeaderMetrics;
   lastRefreshLabel: string;
+  loading?: boolean;
+  hasError?: boolean;
   onRefresh: () => void;
   onCreateCase?: () => void;
 };
 
-export function UsersHeader({ metrics, lastRefreshLabel, onRefresh, onCreateCase }: UsersHeaderProps): JSX.Element {
+export function UsersHeader({
+  metrics,
+  lastRefreshLabel,
+  loading,
+  hasError,
+  onRefresh,
+  onCreateCase,
+}: UsersHeaderProps): JSX.Element {
   const heroMetrics = React.useMemo<PageHeroMetric[]>(
     () => [
       {
-        id: 'total-users',
-        label: 'Users on page',
-        value: metrics.total.toLocaleString('ru-RU'),
-        helper: 'Current filtered selection',
-        trend: (
-          <>
-            <ShieldCheckIcon className="size-4" aria-hidden="true" />
-            {`${metrics.active.toLocaleString('ru-RU')} active`}
-          </>
-        ),
-        accent: 'positive',
-        icon: <UsersIcon className="size-5" aria-hidden="true" />,
+        id: 'high-risk-users',
+        label: 'High risk',
+        value: metrics.highRisk.toLocaleString(),
+        helper: `${metrics.total.toLocaleString()} total`,
+        icon: <ShieldExclamationIcon className="size-5" aria-hidden="true" />,
+        accent: metrics.highRisk > 0 ? 'warning' : 'neutral',
       },
       {
         id: 'sanctioned-users',
         label: 'Under sanctions',
-        value: metrics.sanctioned.toLocaleString('ru-RU'),
-        helper: `${metrics.highRisk.toLocaleString('ru-RU')} high risk`,
-        icon: <ShieldExclamationIcon className="size-5" aria-hidden="true" />,
-        accent: 'warning',
+        value: metrics.sanctioned.toLocaleString(),
+        helper: `${metrics.active.toLocaleString()} active`,
+        icon: <ShieldCheckIcon className="size-5" aria-hidden="true" />,
+        accent: metrics.sanctioned > 0 ? 'danger' : 'neutral',
       },
       {
         id: 'complaints',
-        label: 'Complaints',
-        value: metrics.complaints.toLocaleString('ru-RU'),
-        helper: 'Across current page',
+        label: 'Complaints (page)',
+        value: metrics.complaints.toLocaleString(),
+        helper: 'Across current filters',
         icon: <ClipboardDocumentListIcon className="size-5" aria-hidden="true" />,
-        accent: 'neutral',
+        accent: metrics.complaints > 0 ? 'warning' : 'neutral',
+      },
+      {
+        id: 'active-users',
+        label: 'Active',
+        value: metrics.active.toLocaleString(),
+        helper: 'Users on page',
+        icon: <UsersIcon className="size-5" aria-hidden="true" />,
+        accent: metrics.active > 0 ? 'positive' : 'neutral',
       },
     ],
     [metrics],
   );
 
+  const statusToneClass = hasError ? 'text-rose-500 dark:text-rose-300' : 'text-gray-500 dark:text-dark-200/80';
+  const statusDotClass = clsx(
+    'inline-flex h-2 w-2 rounded-full',
+    loading ? 'animate-pulse' : '',
+    hasError ? 'bg-rose-400 dark:bg-rose-300' : 'bg-emerald-400 dark:bg-emerald-300',
+  );
+  const refreshLabel = loading ? 'Refreshing…' : hasError ? 'Last refresh failed' : lastRefreshLabel || 'Waiting for data';
+
   return (
     <PageHero
-      variant="compact"
+      variant="metrics"
       tone="light"
       eyebrow="Moderation"
-      title="Moderation - Users"
+      title="Moderation · Users"
       description="Investigate member profiles, escalate sanctions, and keep the network healthy."
       align="start"
-      className="bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
+      className="bg-white/95 shadow-sm ring-1 ring-primary-500/10 dark:bg-dark-850/85 dark:ring-primary-400/20"
       breadcrumbs={[
         { label: 'Moderation', to: '/moderation' },
         { label: 'Users' },
       ]}
+      metrics={heroMetrics}
       actions={(
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">{lastRefreshLabel}</span>
+          <div className={clsx('flex items-center gap-2 text-xs', statusToneClass)}>
+            <span className={statusDotClass} aria-hidden="true" />
+            <span>{refreshLabel}</span>
+          </div>
           <Button
             variant="ghost"
             color="neutral"
             size="sm"
             onClick={onRefresh}
+            disabled={loading}
             data-testid="moderation-users-refresh"
             data-analytics="moderation:users:refresh"
           >
-            <ArrowPathIcon className="size-4" aria-hidden="true" />
+            {loading ? <Spinner size="sm" className="mr-1" /> : <ArrowPathIcon className="size-4" aria-hidden="true" />}
             Refresh
           </Button>
           <Button
@@ -102,9 +127,6 @@ export function UsersHeader({ metrics, lastRefreshLabel, onRefresh, onCreateCase
           </Button>
         </div>
       )}
-      metrics={heroMetrics}
-      metricsTestId="moderation-users-hero-metrics"
     />
   );
 }
-

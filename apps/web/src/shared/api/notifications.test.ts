@@ -142,7 +142,9 @@ describe('notifications api', () => {
           read_at: '2025-10-02T00:00:00Z',
         },
       ],
-      unread: '5',
+      unread_total: '5',
+      total: '42',
+      has_more: true,
     });
 
     const result = await fetchNotificationsHistory({ limit: 200, offset: -5 });
@@ -180,8 +182,10 @@ describe('notifications api', () => {
         },
       ],
       nextOffset: 2,
-      hasMore: false,
+      hasMore: true,
       unread: 5,
+      unreadTotal: 5,
+      total: 42,
     });
   });
 

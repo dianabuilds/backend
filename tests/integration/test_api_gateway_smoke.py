@@ -37,5 +37,5 @@ def test_openapi_available(app_client) -> None:
     assert "BearerAuth" in components["securitySchemes"]
     paths = data.get("paths", {})
     assert "/v1/public/home" in paths
-    assert "/v1/admin/home" in paths
-    assert "/v1/admin/home/publish" in paths
+    assert "/v1/site/pages" in paths
+    assert "/v1/site/pages/{page_id}/preview" in paths

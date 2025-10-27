@@ -24,11 +24,13 @@ export type NotificationsHistoryPage = {
   nextOffset: number;
   hasMore: boolean;
   unread: number;
+  unreadTotal: number;
+  total: number;
 };
 
 const HISTORY_ENDPOINT = '/v1/notifications';
 
-function normalizeHistoryItem(value: unknown, fallbackId?: string): NotificationHistoryItem | null {
+export function normalizeHistoryItem(value: unknown, fallbackId?: string): NotificationHistoryItem | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -64,16 +66,30 @@ function normalizeHistoryItem(value: unknown, fallbackId?: string): Notification
   };
 }
 
-function normalizeHistoryResponse(payload: unknown): NotificationsListResponse {
+function normalizeHistoryResponse(
+  payload: unknown,
+): NotificationsListResponse {
   if (!isObjectRecord(payload)) {
     return {
       items: [],
       unread: 0,
+      unread_total: 0,
+      total: 0,
+      has_more: false,
     };
   }
   const items = ensureArray(payload.items, normalizeHistoryItem);
   const unread = pickNumber(payload.unread) ?? 0;
-  return { items, unread };
+  const unreadTotal = pickNumber(payload.unread_total) ?? unread;
+  const total = pickNumber(payload.total) ?? Math.max(items.length, unreadTotal);
+  const hasMore = pickBoolean(payload.has_more) ?? false;
+  return {
+    items,
+    unread,
+    unread_total: unreadTotal,
+    total,
+    has_more: hasMore,
+  };
 }
 
 function sanitizeLimit(limit?: number): number {
@@ -112,11 +128,20 @@ export async function fetchNotificationsHistory(
   );
   const normalized = normalizeHistoryResponse(response);
   const items = normalized.items;
+  const unreadTotal = normalized.unread_total ?? normalized.unread ?? 0;
+  const total = normalized.total ?? items.length;
+  const hasMore =
+    normalized.has_more ??
+    (typeof normalized.total === 'number'
+      ? offset + items.length < Math.max(normalized.total, 0)
+      : items.length === limit);
   return {
     items,
-    unread: normalized.unread,
-    nextOffset: offset + items.length,
-    hasMore: items.length === limit,
+    unread: normalized.unread ?? unreadTotal,
+    unreadTotal,
+    total,
+    nextOffset: Math.min(total, offset + items.length),
+    hasMore,
   };
 }
 

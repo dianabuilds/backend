@@ -20,7 +20,8 @@ export type FetchSitePagesParams = {
   status?: SitePageStatus | '';
   locale?: string;
   hasDraft?: boolean | null;
-  sort?: 'updated_at_desc' | 'updated_at_asc' | 'title_asc';
+  pinned?: boolean | null;
+  sort?: 'updated_at_desc' | 'updated_at_asc' | 'title_asc' | 'title_desc' | 'pinned_desc' | 'pinned_asc';
 };
 
 export type FetchSitePageMetricsParams = {
@@ -31,6 +32,23 @@ export type FetchSitePageMetricsParams = {
 export type PublishSitePagePayload = {
   comment?: string | null;
   diff?: Array<Record<string, unknown>> | null;
+};
+
+export type CreateSitePagePayload = {
+  slug: string;
+  title: string;
+  type: SitePageType;
+  locale?: string;
+  owner?: string | null;
+  pinned?: boolean;
+};
+
+export type UpdateSitePagePayload = {
+  slug?: string | null;
+  title?: string | null;
+  locale?: string | null;
+  owner?: string | null;
+  pinned?: boolean | null;
 };
 
 export type SaveSitePageDraftPayload = {
@@ -54,6 +72,8 @@ export type FetchSiteGlobalBlocksParams = {
   locale?: string;
   query?: string;
   hasDraft?: boolean | null;
+  requiresPublisher?: boolean | null;
+  reviewStatus?: SiteGlobalBlock['review_status'] | '';
   sort?: 'updated_at_desc' | 'updated_at_asc' | 'title_asc' | 'usage_desc';
 };
 

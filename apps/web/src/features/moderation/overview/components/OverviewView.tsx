@@ -1,8 +1,20 @@
-﻿import React from 'react';
+import React from 'react';
+import clsx from 'clsx';
 import { Link } from 'react-router-dom';
-import { Card, Spinner, Button, LineChart, BarChart, PieChart, PageHero, Skeleton } from '@ui';
+import { Badge, Button, Card, PageHero, Skeleton, Spinner, LineChart, BarChart, PieChart } from '@ui';
 import { fetchModerationOverview } from '@shared/api/moderation';
-import type { ModerationOverview, ModerationOverviewCard, ModerationOverviewChart } from '@shared/types/moderation';
+import type { PageHeroMetric } from '@ui/patterns/PageHero';
+import type {
+  ModerationOverview,
+  ModerationOverviewCard,
+  ModerationOverviewChart,
+  ModerationSanctionRecord,
+} from '@shared/types/moderation';
+
+type QueueEntry = [string, number];
+
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_INTERVAL_MINUTES = Math.round(REFRESH_INTERVAL_MS / 60000);
 
 function toTitleCase(value: string): string {
   return value
@@ -35,9 +47,6 @@ function formatRelativeTime(value?: string | null): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return dt.toLocaleDateString();
 }
-
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-const REFRESH_INTERVAL_MINUTES = Math.round(REFRESH_INTERVAL_MS / 60000);
 
 function getFirstSeriesValue(series: unknown): number | null {
   if (!Array.isArray(series) || series.length === 0) {
@@ -78,17 +87,60 @@ function formatHours(value: number): string {
   return '0h';
 }
 
-type HeroMetric = {
-  id?: string;
+function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  const clamped = Math.max(0, Math.min(1, value));
+  return `${Math.round(clamped * 100)}%`;
+}
+
+type HighlightCard = {
+  id: string;
   label: string;
   value: React.ReactNode;
-  trend?: React.ReactNode;
   helper?: React.ReactNode;
-  icon?: React.ReactNode;
   accent?: 'neutral' | 'positive' | 'warning' | 'danger';
+  action?: { label: string; to?: string };
+  loading?: boolean;
 };
 
-function ChartRenderer({ chart }: { chart: ModerationOverviewChart }) {
+const HIGHLIGHT_ACCENT_CLASS: Record<Exclude<HighlightCard['accent'], undefined>, string> = {
+  neutral: 'border-gray-200',
+  positive: 'border-emerald-200',
+  warning: 'border-amber-200',
+  danger: 'border-rose-200',
+};
+
+function HighlightCardView({ card }: { card: HighlightCard }): React.ReactElement {
+  const accentClass = card.accent ? HIGHLIGHT_ACCENT_CLASS[card.accent] : 'border-gray-200';
+  return (
+    <Card
+      skin="shadow"
+      className={clsx(
+        'flex h-full flex-col justify-between rounded-2xl border bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90',
+        accentClass
+      )}
+    >
+      <div className="space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200/80">
+          {card.label}
+        </div>
+        <div className="text-2xl font-semibold text-gray-900 dark:text-white">
+          {card.loading ? <Skeleton aria-hidden className="h-6 w-16 rounded" /> : card.value}
+        </div>
+        {card.helper ? (
+          <p className="text-sm text-gray-600 dark:text-dark-200/80">{card.helper}</p>
+        ) : null}
+      </div>
+      {card.action?.to ? (
+        <Button as={Link} to={card.action.to} size="sm" variant="outlined" className="self-start">
+          {card.action.label}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
+function ChartRenderer({ chart }: { chart: ModerationOverviewChart }): React.ReactElement {
   const { type = 'line', series, options, height } = chart;
 
   if (!Array.isArray(series) || series.length === 0) {
@@ -106,59 +158,163 @@ function ChartRenderer({ chart }: { chart: ModerationOverviewChart }) {
   return <LineChart series={series} options={options} height={height} />;
 }
 
-function ActionCard({ card }: { card: ModerationOverviewCard }) {
-  const actions = card.actions ?? [];
-  return (
-    <Card skin="shadow" className="flex h-full flex-col justify-between p-4">
-      <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{card.title}</div>
-        <div className="text-2xl font-semibold text-gray-900 dark:text-white">{card.value}</div>
-        {card.description ? (
-          <p className="text-sm text-gray-600 dark:text-dark-100/80">{card.description}</p>
-        ) : null}
-        {card.delta ? (
-          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{card.delta}</div>
-        ) : null}
+function QueueHealthList({
+  entries,
+  loading,
+}: {
+  entries: QueueEntry[];
+  loading: boolean;
+}): React.ReactElement {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between">
+            <Skeleton aria-hidden className="h-4 w-32 rounded" />
+            <Skeleton aria-hidden className="h-4 w-12 rounded" />
+          </div>
+        ))}
       </div>
-      {actions.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {actions.map((action, index) => {
-            const key = `${card.id}-action-${index}`;
-            if (action.to) {
-              return (
-                <Button key={key} as={Link} to={action.to} size="sm" variant="outlined">
-                  {action.label}
-                </Button>
-              );
-            }
-            if (action.href) {
-              return (
-                <Button
-                  key={key}
-                  as="a"
-                  href={action.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  size="sm"
-                  variant="outlined"
-                >
-                  {action.label}
-                </Button>
-              );
-            }
-            return (
-              <span key={key} className="text-xs text-gray-500">
-                {action.label}
-              </span>
-            );
-          })}
-        </div>
-      ) : null}
-    </Card>
+    );
+  }
+
+  if (!entries.length) {
+    return (
+      <div className="rounded border border-dashed border-gray-200/80 p-4 text-sm text-gray-500 dark:border-dark-700/70 dark:text-dark-200/80">
+        All queues are clear. Connect additional feeds to track backlog trends.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {entries.map(([key, value], index) => {
+        const isPrimary = index === 0;
+        return (
+          <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100/70 p-3 dark:border-dark-700/70">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-dark-50">
+              {isPrimary ? <Badge color="warning" variant="soft">Top queue</Badge> : null}
+              <span>{toTitleCase(key)}</span>
+            </div>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumber(value)}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-export default function ModerationOverview() {
+function IncidentsList({
+  complaints,
+  tickets,
+  loading,
+}: {
+  complaints: Array<[string, unknown]>;
+  tickets: Array<[string, unknown]>;
+  loading: boolean;
+}): React.ReactElement {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between">
+            <Skeleton aria-hidden className="h-4 w-40 rounded" />
+            <Skeleton aria-hidden className="h-4 w-10 rounded" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (!complaints.length && !tickets.length) {
+    return (
+      <div className="rounded border border-dashed border-gray-200/80 p-4 text-sm text-gray-500 dark:border-dark-700/70 dark:text-dark-200/80">
+        No new complaints or tickets in the last 24 hours.
+      </div>
+    );
+  }
+
+  const renderEntries = (entries: Array<[string, unknown]>, title: string) => (
+    <div className="space-y-2">
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200/80">{title}</div>
+      {entries.map(([key, value]) => (
+        <div key={key} className="flex items-center justify-between rounded-lg border border-gray-100/70 bg-white/80 p-3 text-sm text-gray-600 dark:border-dark-700/70 dark:bg-dark-900/60 dark:text-dark-200/80">
+          <span>{toTitleCase(key)}</span>
+          <span className="font-semibold text-gray-900 dark:text-white">{formatNumber(value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {complaints.length ? renderEntries(complaints, 'Complaints (24h)') : null}
+      {tickets.length ? renderEntries(tickets, 'Tickets') : null}
+    </div>
+  );
+}
+
+function SanctionsList({
+  sanctions,
+  loading,
+}: {
+  sanctions: ModerationSanctionRecord[];
+  loading: boolean;
+}): React.ReactElement {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Card key={index} skin="bordered" className="space-y-2 p-3">
+            <Skeleton aria-hidden className="h-4 w-32 rounded" />
+            <Skeleton aria-hidden className="h-3 w-48 rounded" />
+            <Skeleton aria-hidden className="h-3 w-24 rounded" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!sanctions.length) {
+    return (
+      <div className="rounded border border-dashed border-gray-200/80 p-4 text-sm text-gray-500 dark:border-dark-700/70 dark:text-dark-200/80">
+        No recent sanctions. All clear.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {sanctions.map((sanction) => (
+        <Card
+          key={sanction.id}
+          skin="bordered"
+          className="space-y-2 rounded-2xl border-gray-200/80 p-3 dark:border-dark-700/70"
+        >
+          <div className="flex items-center justify-between text-sm font-semibold text-gray-800 dark:text-white">
+            <span>{toTitleCase(sanction.type)}</span>
+            <span className="text-xs font-medium text-gray-400">{formatRelativeTime(sanction.issued_at)}</span>
+          </div>
+          {sanction.reason ? (
+            <div className="text-xs text-gray-500 dark:text-dark-200/80 line-clamp-3">{sanction.reason}</div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-dark-200/80">
+            {sanction.status ? <Badge color="neutral" variant="soft">{toTitleCase(sanction.status)}</Badge> : null}
+            {sanction.target_type ? (
+              <span>
+                Target: {toTitleCase(sanction.target_type)}
+                {sanction.target_id ? ` #${sanction.target_id}` : ''}
+              </span>
+            ) : null}
+            {sanction.moderator ? <span>By {sanction.moderator}</span> : null}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export default function ModerationOverview(): React.ReactElement {
   const [data, setData] = React.useState<ModerationOverview | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -189,10 +345,10 @@ export default function ModerationOverview() {
     return () => window.clearInterval(intervalId);
   }, [load]);
 
-  const queueEntries = React.useMemo(
+  const queueEntries = React.useMemo<QueueEntry[]>(
     () => {
       const entries = Object.entries(data?.contentQueues ?? {}).map(
-        ([key, value]) => [key, Number(value ?? 0)] as [string, number],
+        ([key, value]) => [key, Number(value ?? 0)] as QueueEntry,
       );
       entries.sort((a, b) => b[1] - a[1]);
       return entries;
@@ -215,8 +371,17 @@ export default function ModerationOverview() {
     return avgChart ? getFirstSeriesValue(avgChart.series) : null;
   }, [chartConfigs]);
 
+  const aiAutoShare = React.useMemo(() => {
+    const aiChart = chartConfigs.find((chart) => chart.id === 'ai-decisions-share');
+    const firstValue = aiChart ? getFirstSeriesValue(aiChart.series) : null;
+    if (firstValue == null) {
+      return null;
+    }
+    return Math.max(0, Math.min(1, firstValue));
+  }, [chartConfigs]);
+
+  const initialLoading = loading && !data;
   const hasData = Boolean(data);
-  const initialLoading = loading && !hasData;
 
   const escalatedComplaints =
     typeof data?.complaints?.escalated === 'number' ? data.complaints.escalated : null;
@@ -235,18 +400,8 @@ export default function ModerationOverview() {
     return entries.reduce((acc, [, value]) => acc + Number(value ?? 0), 0);
   }, [data?.complaints]);
 
-  const heroMetrics = React.useMemo<HeroMetric[]>(() => {
+  const heroMetrics = React.useMemo<PageHeroMetric[]>(() => {
     const placeholder = <Skeleton aria-hidden className="h-6 w-16 rounded" />;
-    const metrics: HeroMetric[] = [];
-
-    const queueValue =
-      initialLoading
-        ? placeholder
-        : hasData && queueEntries.length
-        ? formatNumber(queueTotal)
-        : hasData
-        ? '0'
-        : '—';
 
     const queueHelper = initialLoading
       ? 'Preparing data...'
@@ -256,23 +411,51 @@ export default function ModerationOverview() {
       ? 'All queues clear'
       : 'No data available';
 
-    metrics.push({
-      id: 'queues',
-      label: 'Queues backlog',
-      value: queueValue,
-      helper: queueHelper,
-    });
+    const slaHelper = initialLoading
+      ? 'Preparing data...'
+      : avgResponseHours != null
+      ? 'Average response time (24h)'
+      : hasData
+      ? 'Awaiting SLA signal'
+      : 'No data available';
 
+    const slaAccent: PageHeroMetric['accent'] =
+      !initialLoading && avgResponseHours != null
+        ? avgResponseHours <= 4
+          ? 'positive'
+          : avgResponseHours <= 6
+          ? 'warning'
+          : 'danger'
+        : undefined;
+
+    return [
+      {
+        id: 'queues',
+        label: 'Queues backlog',
+        value: initialLoading
+          ? placeholder
+          : hasData
+          ? formatNumber(queueTotal)
+          : '—',
+        helper: queueHelper,
+      },
+      {
+        id: 'sla',
+        label: 'SLA avg response',
+        value: initialLoading
+          ? placeholder
+          : avgResponseHours != null
+          ? formatHours(avgResponseHours)
+          : '—',
+        helper: slaHelper,
+        accent: slaAccent,
+      },
+    ];
+  }, [avgResponseHours, hasData, initialLoading, queueEntries, queueTotal]);
+
+  const secondaryHighlights = React.useMemo<HighlightCard[]>(() => {
+    const placeholderValue = <Skeleton aria-hidden className="h-6 w-16 rounded" />;
     const incidentsSource = escalatedComplaints ?? totalComplaints;
-    const incidentsValue =
-      initialLoading
-        ? placeholder
-        : incidentsSource != null
-        ? formatNumber(incidentsSource)
-        : hasData
-        ? '0'
-        : '—';
-
     const incidentsHelper = initialLoading
       ? 'Preparing data...'
       : escalatedComplaints != null
@@ -283,78 +466,61 @@ export default function ModerationOverview() {
       ? 'No new incidents'
       : 'No data available';
 
-    metrics.push({
+    const incidentsCard: HighlightCard = {
       id: 'incidents',
-      label: 'Incidents',
-      value: incidentsValue,
-      helper: incidentsHelper,
-    });
-
-    const slaMetric: HeroMetric = {
-      id: 'sla',
-      label: 'SLA',
+      label: 'Incidents (24h)',
       value: initialLoading
-        ? placeholder
-        : avgResponseHours != null
-        ? formatHours(avgResponseHours)
-        : '—',
-      helper: initialLoading
-        ? 'Preparing data...'
-        : avgResponseHours != null
-        ? 'Average response time (24h)'
+        ? placeholderValue
+        : incidentsSource != null
+        ? formatNumber(incidentsSource)
         : hasData
-        ? 'Awaiting SLA signal'
-        : 'No data available',
+        ? '0'
+        : '—',
+      helper: incidentsHelper,
+      accent: incidentsSource != null && incidentsSource > 0 ? 'warning' : 'neutral',
+      action: { label: 'Review incidents', to: '/moderation/cases?statuses=open' },
+      loading: initialLoading,
     };
 
-    if (!initialLoading && avgResponseHours != null) {
-      if (avgResponseHours <= 4) {
-        slaMetric.accent = 'positive';
-      } else if (avgResponseHours <= 6) {
-        slaMetric.accent = 'warning';
-      } else {
-        slaMetric.accent = 'danger';
-      }
-    }
+    const aiAccent =
+      !initialLoading && aiAutoShare != null
+        ? aiAutoShare <= 0.35
+          ? 'positive'
+          : aiAutoShare <= 0.65
+          ? 'warning'
+          : 'danger'
+        : 'neutral';
 
-    metrics.push(slaMetric);
+    const aiCard: HighlightCard = {
+      id: 'ai-share',
+      label: 'AI automation share',
+      value: initialLoading ? placeholderValue : aiAutoShare != null ? formatPercent(aiAutoShare) : hasData ? '0%' : '—',
+      helper: initialLoading
+        ? 'Preparing data...'
+        : aiAutoShare != null
+        ? 'Share of automated moderation (24h)'
+        : hasData
+        ? 'No AI decisions logged'
+        : 'No data available',
+      accent: aiAccent,
+      action: { label: 'Configure AI rules', to: '/moderation/ai-rules' },
+      loading: initialLoading,
+    };
 
-    return metrics;
-  }, [
-    avgResponseHours,
-    escalatedComplaints,
-    hasData,
-    initialLoading,
-    queueEntries,
-    queueTotal,
-    totalComplaints,
-  ]);
-  const actionCards = React.useMemo<ModerationOverviewCard[]>(() => {
-    const cards = Array.isArray(data?.cards) ? data.cards : [];
-    const normalized = cards.map((card) => ({
-      ...card,
-      value: card.value ?? 'вЂ”',
-      actions: card.actions ?? [],
-    }));
+    return [incidentsCard, aiCard];
+  }, [aiAutoShare, escalatedComplaints, hasData, initialLoading, totalComplaints]);
 
-    if (queueEntries.length > 0) {
-      const [queueName, queueValue] = queueEntries[0];
-      normalized.unshift({
-        id: 'queue-priority',
-        title: `${toTitleCase(queueName)} queue`,
-        value: formatNumber(queueValue),
-        description: 'Highest workload queue right now',
-        actions: [
-          {
-            label: 'Review queue',
-            to: `/nodes/library?moderation_status=${encodeURIComponent(queueName)}`,
-          },
-        ],
-      });
-    }
+  const complaintEntries = React.useMemo(
+    () => Object.entries(data?.complaints ?? {}).sort((a, b) => Number(b[1] ?? 0) - Number(a[1] ?? 0)),
+    [data?.complaints],
+  );
 
-    return normalized;
-  }, [data?.cards, queueEntries]);
+  const ticketEntries = React.useMemo(
+    () => Object.entries(data?.tickets ?? {}).sort((a, b) => Number(b[1] ?? 0) - Number(a[1] ?? 0)),
+    [data?.tickets],
+  );
+
+  const lastSanctions = Array.isArray(data?.lastSanctions) ? data?.lastSanctions ?? [] : [];
 
   const refreshStatus = React.useMemo(() => {
     if (initialLoading) {
@@ -382,34 +548,28 @@ export default function ModerationOverview() {
     .join(' ');
   const lastUpdatedTitle = lastUpdated ? new Date(lastUpdated).toLocaleString() : undefined;
 
-  const complaintEntries = React.useMemo(
-    () => Object.entries(data?.complaints ?? {}).sort((a, b) => Number(b[1] ?? 0) - Number(a[1] ?? 0)),
-    [data?.complaints],
-  );
-
-  const ticketEntries = React.useMemo(
-    () => Object.entries(data?.tickets ?? {}).sort((a, b) => Number(b[1] ?? 0) - Number(a[1] ?? 0)),
-    [data?.tickets],
-  );
-
-  const lastSanctions = Array.isArray(data?.lastSanctions) ? data?.lastSanctions ?? [] : [];
-
   const heroActions = React.useMemo(
     () => (
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          onClick={load}
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          disabled={loading}
-          type="button"
-          data-analytics="moderation:hero"
-        >
-          {loading ? <Spinner size="sm" className="mr-2" /> : null}
-          Refresh
-        </Button>
-        <div className={`flex items-center gap-2 text-xs ${statusToneClass}`} aria-live="polite">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => void load()}
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            disabled={loading}
+            type="button"
+            data-analytics="moderation:overview:refresh"
+            className="flex items-center gap-2"
+          >
+            {loading ? <Spinner size="sm" /> : null}
+            Refresh
+          </Button>
+          <Button as={Link} to="/operations/integrations?tab=moderation" size="sm" variant="outlined">
+            Manage sources
+          </Button>
+        </div>
+        <div className={clsx('flex items-center gap-2 text-xs', statusToneClass)} aria-live="polite">
           <span className={statusDotClasses} aria-hidden="true" />
           <span title={lastUpdatedTitle}>{refreshStatus}</span>
         </div>
@@ -418,155 +578,174 @@ export default function ModerationOverview() {
     [lastUpdatedTitle, load, loading, refreshStatus, statusDotClasses, statusToneClass],
   );
 
+  const actionCards = React.useMemo<ModerationOverviewCard[]>(() => {
+    const cards = Array.isArray(data?.cards) ? data.cards : [];
+    return cards.map((card) => ({
+      ...card,
+      value: card.value ?? '—',
+      actions: card.actions ?? [],
+    }));
+  }, [data?.cards]);
+
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="Trust & Safety"
-        title="Moderation Overview"
-        description="Monitor queues, incidents, and action items to keep the platform safe."
+        title="Moderation overview"
+        description="Track queues, incidents, and automation health to keep the network safe."
         metrics={heroMetrics}
         actions={heroActions}
         align="start"
+        variant="metrics"
         tone="light"
-        variant="compact"
-        className="bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
+        className="ring-1 ring-primary-500/10 dark:ring-primary-400/15"
       />
 
       {error ? (
-        <Card skin="shadow" className="border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <Card skin="shadow" className="border border-rose-200 bg-rose-50/80 p-4 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
           {error}
         </Card>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {actionCards.map((card) => (
-          <ActionCard key={card.id} card={card} />
+        {secondaryHighlights.map((card) => (
+          <HighlightCardView key={card.id} card={card} />
         ))}
-        {actionCards.length === 0 && !loading ? (
-          <Card skin="shadow" className="p-4 text-sm text-gray-500">
-            No action items right now.
+        {actionCards.map((card) => (
+          <Card key={card.id} skin="shadow" className="flex h-full flex-col justify-between rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200/80">
+                {card.title}
+              </div>
+              <div className="text-2xl font-semibold text-gray-900 dark:text-white">{card.value}</div>
+              {card.description ? (
+                <p className="text-sm text-gray-600 dark:text-dark-200/80">{card.description}</p>
+              ) : null}
+              {card.delta ? (
+                <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{card.delta}</div>
+              ) : null}
+            </div>
+            {card.actions?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {card.actions.map((action, index) => {
+                  const key = `${card.id}-action-${index}`;
+                  if (action.to) {
+                    return (
+                      <Button key={key} as={Link} to={action.to} size="sm" variant="outlined">
+                        {action.label}
+                      </Button>
+                    );
+                  }
+                  if (action.href) {
+                    return (
+                      <Button
+                        key={key}
+                        as="a"
+                        href={action.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        size="sm"
+                        variant="outlined"
+                      >
+                        {action.label}
+                      </Button>
+                    );
+                  }
+                  return (
+                    <span key={key} className="text-xs text-gray-500 dark:text-dark-200/80">
+                      {action.label}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : null}
           </Card>
-        ) : null}
+        ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card skin="shadow" className="p-4">
-          <h3 className="text-sm font-semibold text-gray-700">Content queues</h3>
-          <div className="mt-3 space-y-3">
-            {queueEntries.length > 0 ? (
-              queueEntries.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{toTitleCase(key)}</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{formatNumber(value)}</span>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-500">No queued content.</div>
-            )}
-          </div>
-        </Card>
-
-        <Card skin="shadow" className="p-4">
-          <h3 className="text-sm font-semibold text-gray-700">New complaints</h3>
-          <div className="mt-3 space-y-3">
-            {complaintEntries.length > 0 ? (
-              complaintEntries.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{toTitleCase(key)}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatNumber(value)}</span>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-500">No new complaints.</div>
-            )}
-          </div>
-        </Card>
-
-        <Card skin="shadow" className="p-4">
-          <h3 className="text-sm font-semibold text-gray-700">Tickets health</h3>
-          <div className="mt-3 space-y-3">
-            {ticketEntries.length > 0 ? (
-              ticketEntries.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">{toTitleCase(key)}</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{formatNumber(value)}</span>
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-500">No active tickets.</div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card skin="shadow" className="xl:col-span-2 p-4">
-          <div className="flex items-start justify-between">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Card skin="shadow" className="space-y-4 rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-gray-700">Operational trends</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-100">Queues health</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-dark-200/80">
+                Backlog by queue with the most loaded queue highlighted.
+              </p>
+            </div>
+            <Button as={Link} to="/moderation/cases" size="sm" variant="ghost" color="neutral">
+              View cases
+            </Button>
+          </div>
+          <QueueHealthList entries={queueEntries} loading={initialLoading} />
+        </Card>
+
+        <Card skin="shadow" className="space-y-4 rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-100">Incidents</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-dark-200/80">
+                New complaints and ticket activity over the last 24 hours.
+              </p>
+            </div>
+            <Button as={Link} to="/moderation/cases?statuses=open" size="sm" variant="ghost" color="neutral">
+              Open queue
+            </Button>
+          </div>
+          <IncidentsList complaints={complaintEntries} tickets={ticketEntries} loading={initialLoading} />
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Card skin="shadow" className="rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-100">Operational trends</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-dark-200/80">
                 Queue volume, escalations, and SLA performance from analytics feed.
               </p>
             </div>
             {loading ? <Spinner size="sm" /> : null}
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {chartConfigs.length > 0 ? (
+            {initialLoading ? (
+              Array.from({ length: 2 }).map((_, index) => (
+                <Card key={index} skin="bordered" className="space-y-3 rounded-2xl border-gray-100/80 p-4 dark:border-dark-700/70">
+                  <Skeleton aria-hidden className="h-4 w-24 rounded" />
+                  <Skeleton aria-hidden className="h-3 w-40 rounded" />
+                  <Skeleton aria-hidden className="h-32 w-full rounded" />
+                </Card>
+              ))
+            ) : chartConfigs.length > 0 ? (
               chartConfigs.map((chart) => (
-                <div key={chart.id} className="space-y-2">
-                  <div className="text-sm font-medium text-gray-700">{chart.title}</div>
+                <div key={chart.id} className="space-y-2 rounded-2xl border border-gray-100/80 bg-white/90 p-4 dark:border-dark-700/70 dark:bg-dark-900/70">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-100">{chart.title}</div>
                   {chart.description ? (
-                    <div className="text-xs text-gray-500">{chart.description}</div>
+                    <div className="text-xs text-gray-500 dark:text-dark-200/80">{chart.description}</div>
                   ) : null}
                   <ChartRenderer chart={chart} />
                 </div>
               ))
             ) : (
-              <div className="rounded border border-dashed border-gray-200 p-4 text-sm text-gray-500">
-                Analytics feed does not provide charts yet.
+              <div className="rounded-2xl border border-dashed border-gray-200/80 p-6 text-sm text-gray-500 dark:border-dark-700/70 dark:text-dark-200/80">
+                Analytics feed does not provide charts yet. Connect telemetry or import historical data to populate this
+                section.
               </div>
             )}
           </div>
         </Card>
 
-        <Card skin="shadow" className="p-4">
-          <h3 className="text-sm font-semibold text-gray-700">Recent sanctions</h3>
-          <div className="mt-3 space-y-3">
-            {lastSanctions.length > 0 ? (
-              lastSanctions.map((sanction) => (
-                <div
-                  key={sanction.id}
-                  className="rounded-lg border border-gray-200 p-3 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200"
-                >
-                  <div className="flex items-center justify-between text-sm font-semibold text-gray-800 dark:text-white">
-                    <span className="uppercase tracking-wide">{toTitleCase(sanction.type)}</span>
-                    <span className="text-xs font-medium text-gray-400">{formatRelativeTime(sanction.issued_at)}</span>
-                  </div>
-                  <div className="mt-1">
-                    Status: <span className="font-medium text-gray-700 dark:text-dark-100">{toTitleCase(sanction.status)}</span>
-                  </div>
-                  {sanction.target_type ? (
-                    <div className="mt-1 text-xs text-gray-500">
-                      Target: {toTitleCase(sanction.target_type)}{sanction.target_id ? ` #${sanction.target_id}` : ''}
-                    </div>
-                  ) : null}
-                  {sanction.reason ? (
-                    <div className="mt-2 text-xs text-gray-500 line-clamp-3">{sanction.reason}</div>
-                  ) : null}
-                  {sanction.moderator ? (
-                    <div className="mt-2 text-xs text-gray-400">by {sanction.moderator}</div>
-                  ) : null}
-                </div>
-              ))
-            ) : (
-              <div className="text-sm text-gray-500">No recent sanctions.</div>
-            )}
+        <Card skin="shadow" className="rounded-2xl border border-gray-200 bg-white/95 p-4 dark:border-dark-700/70 dark:bg-dark-900/90">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-100">Recent sanctions</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-dark-200/80">
+                Latest enforcement actions with responsible moderator.
+              </p>
+            </div>
           </div>
+          <SanctionsList sanctions={lastSanctions} loading={initialLoading} />
         </Card>
       </div>
     </div>
   );
 }
-
-
-

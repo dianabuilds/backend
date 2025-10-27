@@ -70,6 +70,12 @@ export async function fetchSiteGlobalBlocks(
   if (typeof params.hasDraft === 'boolean') {
     searchParams.set('has_draft', String(params.hasDraft));
   }
+  if (typeof params.requiresPublisher === 'boolean') {
+    searchParams.set('requires_publisher', String(params.requiresPublisher));
+  }
+  if (params.reviewStatus && REVIEW_STATUSES.has(params.reviewStatus)) {
+    searchParams.set('review_status', params.reviewStatus);
+  }
   if (params.sort && GLOBAL_BLOCK_SORT.has(params.sort)) {
     searchParams.set('sort', params.sort);
   }

@@ -54,7 +54,7 @@ export type UseManagementAuditResult = {
 
 export function useManagementAudit(
   filters: ManagementAuditFilters,
-  { initialPageSize = 20 }: UseManagementAuditOptions = {},
+  { initialPageSize = 10 }: UseManagementAuditOptions = {},
 ): UseManagementAuditResult {
   const filtersKey = React.useMemo(
     () => JSON.stringify(filters),

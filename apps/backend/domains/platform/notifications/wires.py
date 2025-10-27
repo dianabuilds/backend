@@ -127,11 +127,13 @@ class NotificationsContainer:
     ws_manager: Any
     matrix_repo: NotificationMatrixRepo
     preference_repo: NotificationPreferenceRepo
+    config_repo: Any
     consent_audit_repo: NotificationConsentAuditRepo | None
     flag_service: FlagService | None
     audience_resolver: Any
     orchestrator: Any
     delivery: DeliveryService
+    retention_service: Any
 
 
 def build_container(
@@ -152,11 +154,13 @@ def build_container(
         ws_manager=backend.ws_manager,
         matrix_repo=backend.matrix_repo,
         preference_repo=backend.preference_repo,
+        config_repo=backend.config_repo,
         consent_audit_repo=backend.consent_audit_repo,
         flag_service=flag_service,
         audience_resolver=backend.audience_resolver,
         orchestrator=backend.orchestrator,
         delivery=backend.delivery,
+        retention_service=backend.retention_service,
     )
 
 

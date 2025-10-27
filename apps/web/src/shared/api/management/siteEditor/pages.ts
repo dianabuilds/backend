@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from '../../client';
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from '../../client';
 import { ensureArray, pickNumber } from '../utils';
 
 import type {
@@ -23,6 +23,8 @@ import {
 } from './normalizers';
 import type {
   FetchOptions,
+  CreateSitePagePayload,
+  UpdateSitePagePayload,
   FetchSitePageHistoryParams,
   FetchSitePagesParams,
   PreviewSitePagePayload,
@@ -64,6 +66,10 @@ export async function fetchSitePages(
     searchParams.set('has_draft', String(params.hasDraft));
   }
 
+  if (typeof params.pinned === 'boolean') {
+    searchParams.set('pinned', String(params.pinned));
+  }
+
   if (params.sort && SORT_ORDERS.has(params.sort)) {
     searchParams.set('sort', params.sort);
   }
@@ -97,6 +103,104 @@ export async function fetchSitePage(
     options,
   );
   return normalizePage(response);
+}
+
+export async function createSitePage(
+  payload: CreateSitePagePayload,
+  options: FetchOptions = {},
+): Promise<SitePageSummary> {
+  const slug = payload.slug?.trim();
+  const title = payload.title?.trim();
+  if (!slug || !title || !payload.type) {
+    throw new Error('site_page_create_invalid_payload');
+  }
+
+  const body: Record<string, unknown> = {
+    slug,
+    title,
+    type: payload.type,
+  };
+
+  if (payload.locale) {
+    body.locale = payload.locale.trim();
+  }
+  if (payload.owner != null && payload.owner !== '') {
+    body.owner = payload.owner;
+  }
+  if (typeof payload.pinned === 'boolean') {
+    body.pinned = payload.pinned;
+  }
+
+  const response = await apiPost<Record<string, unknown>>('/v1/site/pages', body, options);
+  const page = normalizePage(response);
+  if (!page) {
+    throw new Error('site_page_create_invalid_response');
+  }
+  return page;
+}
+
+export async function updateSitePage(
+  pageId: string,
+  payload: UpdateSitePagePayload,
+  options: FetchOptions = {},
+): Promise<SitePageSummary> {
+  if (!pageId) {
+    throw new Error('site_page_update_missing_id');
+  }
+  const body: Record<string, unknown> = {};
+  if (payload.slug != null) {
+    const normalized = typeof payload.slug === 'string' ? payload.slug.trim() : '';
+    if (normalized) {
+      body.slug = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    } else {
+      body.slug = null;
+    }
+  }
+  if (payload.title != null) {
+    body.title = typeof payload.title === 'string' ? payload.title.trim() : null;
+  }
+  if (payload.locale != null) {
+    body.locale = typeof payload.locale === 'string' ? payload.locale.trim() : null;
+  }
+  if (payload.owner !== undefined) {
+    if (payload.owner === null) {
+      body.owner = null;
+    } else {
+      const trimmedOwner = payload.owner.trim();
+      body.owner = trimmedOwner.length > 0 ? trimmedOwner : null;
+    }
+  }
+  if (typeof payload.pinned === 'boolean') {
+    body.pinned = payload.pinned;
+  } else if (payload.pinned === null) {
+    body.pinned = null;
+  }
+
+  if (Object.keys(body).length === 0) {
+    const current = await fetchSitePage(pageId, options);
+    if (!current) {
+      throw new Error('site_page_update_not_found');
+    }
+    return current;
+  }
+
+  const response = await apiPatch<Record<string, unknown>>(
+    `/v1/site/pages/${encodeURIComponent(pageId)}`,
+    body,
+    options,
+  );
+  const normalized = normalizePage(response);
+  if (!normalized) {
+    throw new Error('site_page_update_invalid_response');
+  }
+  return normalized;
+}
+
+export async function deleteSitePage(pageId: string, options: FetchOptions = {}): Promise<void> {
+  if (!pageId) {
+    throw new Error('site_page_delete_missing_id');
+  }
+  await apiDelete(`/v1/site/pages/${encodeURIComponent(pageId)}`, options);
 }
 
 export async function fetchSitePageDraft(

@@ -173,7 +173,7 @@ export default function TagsPage({
     setError,
     refresh,
   } = usePaginatedQuery<Tag, { items: Tag[]; hasNext: boolean }>({
-    initialPageSize: 20,
+    initialPageSize: 10,
     dependencies: [q, group],
     onError: (err) => extractErrorMessage(err, translate(COPY.messages.tagsLoadError)),
     fetcher: async ({ page: currentPage, pageSize: currentPageSize, signal }) => {

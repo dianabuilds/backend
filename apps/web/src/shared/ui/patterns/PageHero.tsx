@@ -284,7 +284,7 @@ export function PageHero({
         {filters ? (
           <div
             className={clsx(
-              'flex flex-wrap gap-3 rounded-2xl border p-4 text-sm shadow-sm',
+              'flex flex-wrap gap-3 rounded-2xl border p-5 text-sm shadow-sm',
               isLightTone ? 'border-gray-200 bg-white/90 dark:border-white/10 dark:bg-white/10' : 'border-white/40 bg-white/10 dark:border-white/10 dark:bg-white/5',
               align === 'center' ? 'justify-center' : 'justify-start'
             )}

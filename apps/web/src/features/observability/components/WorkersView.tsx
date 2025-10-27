@@ -1,6 +1,5 @@
-import React from 'react';
+﻿import React from 'react';
 import {
-  ArrowPathIcon,
   BanknotesIcon,
   BoltIcon,
   ClockIcon,
@@ -20,44 +19,18 @@ import {
   TablePagination,
 } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { fetchWorkerSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
+import { formatCurrency, formatLatency, formatNumber } from '../utils/format';
 import { WorkersSummary } from '@shared/types/observability';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
-const numberFormatter = new Intl.NumberFormat('en-US');
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-});
-
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return '—';
-  return timeFormatter.format(date);
-}
-
 const WORKERS_POLL_INTERVAL_MS = 30_000;
-
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return numberFormatter.format(value);
-}
-
-function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return `${Math.round(value)} ms`;
-}
-
-function formatCurrency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return currencyFormatter.format(value);
-}
 export function ObservabilityWorkers(): React.ReactElement {
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [stageSearch, setStageSearch] = React.useState('');
   const { data, loading, error, refresh, lastUpdated } = useTelemetryQuery<WorkersSummary>({
     fetcher: (signal) => fetchWorkerSummary({ signal }),
@@ -102,25 +75,14 @@ export function ObservabilityWorkers(): React.ReactElement {
   const isLoading = loading || (!data && !error);
   const heroActions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-workers-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-workers-refresh"
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -147,7 +109,7 @@ export function ObservabilityWorkers(): React.ReactElement {
           id: 'workers-duration',
           label: 'Average duration',
           value: formatLatency(avgJobDuration),
-          helper: `${formatCurrency(costUsd)} spend`,
+        helper: `${formatCurrency(costUsd, 'USD')} spend`,
           icon: <ClockIcon className="size-4" aria-hidden="true" />,
           accent: 'warning',
         },
@@ -155,7 +117,7 @@ export function ObservabilityWorkers(): React.ReactElement {
     : undefined;
   if (error) {
     return (
-      <ObservabilityLayout title="Worker telemetry" actions={heroActions} metrics={heroMetrics}>
+      <ObservabilityLayout title="Worker telemetry" actions={heroActions}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -191,7 +153,7 @@ export function ObservabilityWorkers(): React.ReactElement {
         {
           id: 'spend',
           label: 'Spend (USD)',
-          value: formatCurrency(costUsd),
+          value: formatCurrency(costUsd, 'USD'),
           description: 'Cumulative worker cost',
           icon: <BanknotesIcon className="size-5" aria-hidden="true" />,
           tone: 'secondary' as const,
@@ -219,8 +181,8 @@ export function ObservabilityWorkers(): React.ReactElement {
       title="Worker telemetry"
       description="Queue throughput, failure ratio, and stage timings for async jobs."
       actions={heroActions}
-      metrics={heroMetrics}
     >
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-workers-filters" data-analytics="observability:workers:filters">
           <Surface variant="soft" className="space-y-4">
@@ -423,3 +385,6 @@ export function ObservabilityWorkers(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+

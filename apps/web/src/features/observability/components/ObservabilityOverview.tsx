@@ -1,8 +1,7 @@
-
+﻿
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowPathIcon,
   ChartBarIcon,
   Cog6ToothIcon,
   CpuChipIcon,
@@ -12,34 +11,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { Badge, Button, MetricCard, Skeleton, Surface, Table } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
-import { fetchTelemetryOverview } from "@shared/api";
+import { fetchTelemetryOverview } from '@shared/api';
+import { formatMs, formatNumber, formatPercent } from '../utils/format';
 import type { EventHandlerRow, TelemetryOverview } from '@shared/types/observability';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
 
-const numberFormatter = new Intl.NumberFormat('en-US');
-const percentFormatter = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatNumber(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return numberFormatter.format(value);
-}
-
-function formatPercent(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return percentFormatter.format(value);
-}
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return '—';
-  return timeFormatter.format(date);
-}
-
-function formatMs(value: number | null | undefined): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  return `${Math.round(value)} ms`;
-}
 
 type LlmFlowRow = {
   provider: string;
@@ -206,37 +185,21 @@ export function ObservabilityOverview(): React.ReactElement {
 
   const actions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-overview-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-        <Button
-          as={Link}
-          to="/observability/rum"
-          variant="filled"
-          size="sm"
-          className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
-          data-testid="observability-header-cta"
-          data-analytics="observability:cta:rum"
-        >
-          <ChartBarIcon className="size-4" aria-hidden="true" />
-          Realtime RUM
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-overview-refresh"
+        cta={{
+          to: '/observability/rum',
+          label: 'Realtime RUM',
+          icon: <ChartBarIcon className="size-4" aria-hidden="true" />,
+          analyticsId: 'observability:cta:rum',
+          testId: 'observability-header-cta',
+        }}
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -261,9 +224,9 @@ export function ObservabilityOverview(): React.ReactElement {
       title="Telemetry command centre"
       description="Monitor AI output, worker queues, domain events, transitions, and client-side health from a single pane of glass."
       actions={actions}
-      metrics={heroMetrics}
     >
       {errorSurface}
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <Surface variant="frosted" className="space-y-4 xl:col-span-12" data-testid="observability-overview-metrics">
           {showSkeleton ? (
@@ -539,4 +502,7 @@ export function ObservabilityOverview(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+
 

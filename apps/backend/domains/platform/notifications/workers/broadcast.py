@@ -75,6 +75,7 @@ class _BroadcastWorker(PeriodicWorker):
             return
 
         if not summaries:
+            await self._run_retention()
             return
 
         elapsed_ms = max((perf_counter() - started_at) * 1000.0, 0.0)
@@ -95,6 +96,68 @@ class _BroadcastWorker(PeriodicWorker):
                 summary.total,
                 summary.sent,
                 summary.failed,
+            )
+
+        await self._run_retention()
+
+    async def _run_retention(self) -> None:
+        settings = getattr(self._container, "settings", None)
+        repo = getattr(self._container, "repo", None)
+        if repo is None:
+            return
+        retention_service = getattr(self._container, "retention_service", None)
+        retention_days = None
+        max_per_user = None
+        if retention_service is not None:
+            try:
+                config = await retention_service.get_config()
+            except Exception as exc:  # pragma: no cover - defensive
+                self.logger.exception(
+                    "notifications retention config load failed", exc_info=exc
+                )
+                config = None
+            if isinstance(config, dict):
+                retention_days = config.get("retention_days")
+                max_per_user = config.get("max_per_user")
+        if retention_days is None or max_per_user is None:
+            if settings:
+                retention_days = retention_days or getattr(
+                    settings.notifications, "retention_days", None
+                )
+                max_per_user = max_per_user or getattr(
+                    settings.notifications, "max_per_user", None
+                )
+        if retention_days in {None, 0} and max_per_user in {None, 0}:
+            return
+        try:
+            result = await repo.prune(
+                retention_days=retention_days,
+                max_per_user=max_per_user,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.exception("notifications retention failed", exc_info=exc)
+            worker_metrics.inc("failed")
+            return
+        worker_metrics.inc("retention_runs")
+        worker_metrics.inc(
+            "retention_removed_age", int(result.get("removed_by_age", 0))
+        )
+        worker_metrics.inc(
+            "retention_removed_limit", int(result.get("removed_by_limit", 0))
+        )
+        worker_metrics.inc(
+            "retention_removed_messages", int(result.get("removed_messages", 0))
+        )
+        total_removed = int(result.get("removed_by_age", 0)) + int(
+            result.get("removed_by_limit", 0)
+        )
+        if total_removed or result.get("removed_messages"):
+            self.logger.info(
+                "notifications retention cleaned rows=%s age=%s limit=%s messages=%s",
+                total_removed,
+                int(result.get("removed_by_age", 0)),
+                int(result.get("removed_by_limit", 0)),
+                int(result.get("removed_messages", 0)),
             )
 
     async def shutdown(self) -> None:

@@ -1,4 +1,4 @@
-# ADR 2026-10-07 Frontend Refactor
+﻿# ADR 2026-10-07 Frontend Refactor
 
 ## Статус
 Accepted
@@ -177,7 +177,7 @@ Accepted
 
 **Прогресс (2026-10-08)**
 - [x] apps/web/README.md обновлён: структура модулей, UI primitives, Storybook/Chromatic сценарии.
-- [x] docs/admin-ui-interaction-rules.md фиксирует правила быстрых действий, метрик и адаптивности для админских экранов.
+- [x] docs/features/admin-ui/interaction-rules.md фиксирует правила быстрых действий, метрик и адаптивности для админских экранов.
 - [x] Добавлены vitest config и общий setup (`apps/web/vitest.config.ts`, `apps/web/src/test/setup.ts`), скрипты npm синхронизированы.
 - [ ] Диаграмма модулей и конфиги Qodana/ESLint ещё не обновлены.
 
@@ -232,7 +232,7 @@ Accepted
 **Прогресс (2026-10-08)**
 - [x] `apps/web/src/shared/ui/patterns/PageHero.tsx` реализует варианты default/metrics/compact, breadcrumbs и сетку метрик.
 - [x] Storybook и MDX (`apps/web/src/shared/ui/patterns/PageHero.stories.tsx`, `PageHero.docs.mdx`) описывают сценарии и ограничения.
-- [x] docs/admin-ui-interaction-rules.md фиксирует требования к hero/метрикам/быстрым действиям.
+- [x] docs/features/admin-ui/interaction-rules.md фиксирует требования к hero/метрикам/быстрым действиям.
 - [ ] Страницы Management/Observability/Moderation пока используют PageHeader; интеграция с PageHero не начата.
 - [ ] Не подготовлены smoke/visual сценарии под новый hero.
 

@@ -6,6 +6,7 @@ from typing import Any
 from domains.platform.flags.application.service import FlagService
 from domains.platform.notifications.adapters.memory import (
     InMemoryBroadcastRepo,
+    InMemoryNotificationConfigRepository,
     InMemoryNotificationConsentAuditRepo,
     InMemoryNotificationMatrixRepo,
     InMemoryNotificationPreferenceRepo,
@@ -17,6 +18,9 @@ from domains.platform.notifications.adapters.memory.audience import (
 )
 from domains.platform.notifications.adapters.pusher_ws import WebSocketPusher
 from domains.platform.notifications.adapters.sql.broadcasts import SQLBroadcastRepo
+from domains.platform.notifications.adapters.sql.config import (
+    NotificationConfigRepository as SQLNotificationConfigRepository,
+)
 from domains.platform.notifications.adapters.sql.consent_audit import (
     SQLNotificationConsentAuditRepo,
 )
@@ -43,6 +47,9 @@ from domains.platform.notifications.application.notify_service import NotifyServ
 from domains.platform.notifications.application.preference_service import (
     PreferenceService,
 )
+from domains.platform.notifications.application.retention_service import (
+    NotificationRetentionService,
+)
 from domains.platform.notifications.application.template_service import (
     TemplateService,
 )
@@ -56,6 +63,7 @@ from domains.platform.notifications.ports import (
 from domains.platform.notifications.ports_notify import (
     INotificationRepository,
 )
+from packages.core.async_utils import run_sync
 from packages.core.config import Settings, to_async_dsn
 
 
@@ -66,6 +74,7 @@ class NotificationsBackend:
     broadcast_repo: BroadcastRepo
     matrix_repo: NotificationMatrixRepo
     preference_repo: NotificationPreferenceRepo
+    config_repo: Any
     consent_audit_repo: NotificationConsentAuditRepo | None
     notify_service: NotifyService
     preference_service: PreferenceService
@@ -75,6 +84,7 @@ class NotificationsBackend:
     delivery: DeliveryService
     audience_resolver: Any
     orchestrator: BroadcastOrchestrator
+    retention_service: NotificationRetentionService
 
 
 def select_backend(
@@ -98,6 +108,7 @@ def select_backend(
             InMemoryNotificationConsentAuditRepo()
         )
         audience_resolver = InMemoryAudienceResolver()
+        config_repo = InMemoryNotificationConfigRepository()
     else:
         async_dsn = to_async_dsn(settings.database_url)
         template_repo = SQLTemplateRepo(async_dsn)
@@ -107,6 +118,7 @@ def select_backend(
         preference_repo = SQLNotificationPreferenceRepo(async_dsn)
         consent_repo = SQLNotificationConsentAuditRepo(async_dsn)
         audience_resolver = BroadcastAudienceResolver(async_dsn)
+        config_repo = SQLNotificationConfigRepository(async_dsn)
 
     template_service = TemplateService(template_repo)
     notify_service = NotifyService(notification_repo, pusher)
@@ -122,7 +134,18 @@ def select_backend(
         notify_service=notify_service,
         template_service=template_service,
         flag_service=flag_service,
+        retention_days=getattr(settings.notifications, "retention_days", None),
+        max_per_user=getattr(settings.notifications, "max_per_user", None),
     )
+    retention_service = NotificationRetentionService(
+        config_repo,
+        settings,
+        delivery_service,
+    )
+    try:
+        run_sync(retention_service.refresh_delivery())
+    except Exception:
+        pass
     broadcasts = BroadcastService(broadcast_repo)
     orchestrator = BroadcastOrchestrator(
         repo=broadcast_repo,
@@ -137,6 +160,7 @@ def select_backend(
         broadcast_repo=broadcast_repo,
         matrix_repo=matrix_repo,
         preference_repo=preference_repo,
+        config_repo=config_repo,
         consent_audit_repo=consent_repo,
         notify_service=notify_service,
         preference_service=preference_service,
@@ -146,6 +170,7 @@ def select_backend(
         delivery=delivery_service,
         audience_resolver=audience_resolver,
         orchestrator=orchestrator,
+        retention_service=retention_service,
     )
 
 

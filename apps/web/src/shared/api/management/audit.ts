@@ -99,7 +99,7 @@ function normalizeTaxonomy(raw: unknown): ManagementAuditTaxonomy | undefined {
 
 export async function fetchAuditEvents({
   page = 1,
-  pageSize = 20,
+  pageSize = 10,
   search,
   module,
   action,

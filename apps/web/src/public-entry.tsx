@@ -21,7 +21,8 @@ if (container) {
     </React.StrictMode>
   );
 
-  if (container.hasChildNodes()) {
+  const hasSSRMarkup = container.childElementCount > 0;
+  if (hasSSRMarkup) {
     hydrateRoot(container, app);
   } else {
     createRoot(container).render(app);

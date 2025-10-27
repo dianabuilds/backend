@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
         '@constants': path.resolve(__dirname, 'vendor/template/src/constants'),
         '@utils': path.resolve(__dirname, 'vendor/template/src/utils'),
         '@shared': path.resolve(__dirname, 'src/shared'),
+        '@features': path.resolve(__dirname, 'src/features'),
       },
     },
     server: {
@@ -31,11 +32,13 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true,
           secure: false,
+          ws: true,
         },
         '/api': {
           target,
           changeOrigin: true,
           secure: false,
+          ws: true,
         },
       },
     },

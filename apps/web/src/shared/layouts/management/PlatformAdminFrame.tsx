@@ -7,7 +7,7 @@ import type {
   PlatformAdminQuickLink as SharedPlatformAdminQuickLink,
 } from '@shared/types/management';
 import type { PageHeaderStat } from '@ui/patterns/PageHeader';
-import type { PageHeroMetric, PageHeroBreadcrumb } from '@ui/patterns/PageHero';
+import type { PageHeroMetric, PageHeroBreadcrumb, PageHeroTone, PageHeroVariant } from '@ui/patterns/PageHero';
 
 export type PlatformAdminQuickLink = SharedPlatformAdminQuickLink;
 export type PlatformAdminChangelogEntry = SharedPlatformAdminChangelogEntry;
@@ -18,6 +18,8 @@ export type PlatformAdminFrameProps = {
   description?: React.ReactNode;
   breadcrumbs?: Array<{ label: string; to?: string }>;
   actions?: React.ReactNode;
+  heroMetrics?: PageHeroMetric[] | React.ReactNode;
+  heroChildren?: React.ReactNode;
   stats?: PageHeaderStat[];
   roleHint?: React.ReactNode;
   quickLinks?: PlatformAdminQuickLink[];
@@ -26,6 +28,10 @@ export type PlatformAdminFrameProps = {
   changelog?: PlatformAdminChangelogEntry[] | null;
   integrations?: PlatformAdminIntegration[] | null;
   children: React.ReactNode;
+  heroVariant?: PageHeroVariant;
+  heroTone?: PageHeroTone;
+  heroClassName?: string;
+  heroMaxHeight?: number;
 };
 
 export function PlatformAdminFrame({
@@ -33,6 +39,8 @@ export function PlatformAdminFrame({
   description,
   breadcrumbs,
   actions,
+  heroMetrics,
+  heroChildren,
   stats,
   roleHint,
   quickLinks,
@@ -41,6 +49,10 @@ export function PlatformAdminFrame({
   changelog,
   integrations,
   children,
+  heroVariant,
+  heroTone,
+  heroClassName,
+  heroMaxHeight,
 }: PlatformAdminFrameProps) {
   const hasQuickLinks = Boolean(quickLinks && quickLinks.length);
   const hasHelpCopy = Boolean(helpText);
@@ -52,7 +64,7 @@ export function PlatformAdminFrame({
   );
 
   const mainColumnClass = hasAsideContent ? 'space-y-6 lg:col-span-8' : 'space-y-6 lg:col-span-12';
-  const heroMetrics = React.useMemo<PageHeroMetric[] | undefined>(() => {
+  const metricsFromStats = React.useMemo<PageHeroMetric[] | undefined>(() => {
     if (!stats || !stats.length) return undefined;
     return stats.slice(0, 3).map((stat, index) => ({
       id: `platform-admin-metric-${index}`,
@@ -67,6 +79,8 @@ export function PlatformAdminFrame({
     [breadcrumbs],
   );
 
+  const metricsContent = heroMetrics ?? metricsFromStats;
+
   return (
     <div className="space-y-8">
       <PageHero
@@ -74,13 +88,16 @@ export function PlatformAdminFrame({
         description={description}
         breadcrumbs={heroBreadcrumbs}
         actions={actions}
-        metrics={heroMetrics}
+        metrics={metricsContent}
         eyebrow="Platform Admin"
-        variant="compact"
-        tone="light"
+        variant={heroVariant ?? 'metrics'}
+        tone={heroTone ?? 'light'}
         align="start"
-        className="bg-white/95 shadow-sm ring-1 ring-gray-200/80 dark:bg-dark-850/85 dark:ring-dark-600/60"
-      />
+        maxHeight={heroMaxHeight}
+        className={heroClassName}
+      >
+        {heroChildren}
+      </PageHero>
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className={mainColumnClass}>{children}</div>

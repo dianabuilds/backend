@@ -5,9 +5,11 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from domains.product.site.domain import (
+    GlobalBlockStatus,
     Page,
     PageDraft,
     PageReviewStatus,
@@ -21,6 +23,8 @@ from domains.product.site.domain import (
 
 from ..tables import (
     SITE_AUDIT_LOG_TABLE,
+    SITE_GLOBAL_BLOCK_USAGE_TABLE,
+    SITE_GLOBAL_BLOCKS_TABLE,
     SITE_PAGE_DRAFTS_TABLE,
     SITE_PAGE_VERSIONS_TABLE,
     SITE_PAGES_TABLE,
@@ -29,6 +33,9 @@ from . import helpers
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
+
+
+_UNSET: Any = object()
 
 
 class PageRepositoryMixin:
@@ -50,6 +57,7 @@ class PageRepositoryMixin:
         query: str | None = None,
         has_draft: bool | None = None,
         sort: str = "updated_at_desc",
+        pinned: bool | None = None,
         allowed_statuses: Collection[PageStatus] | None = None,
         owner_whitelist: Collection[str] | None = None,
         allow_owner_override: bool = False,
@@ -83,12 +91,26 @@ class PageRepositoryMixin:
         )
         if visibility_clause is not None:
             filters.append(visibility_clause)
+        if pinned is True:
+            filters.append(SITE_PAGES_TABLE.c.pinned.is_(True))
+        elif pinned is False:
+            filters.append(SITE_PAGES_TABLE.c.pinned.is_(False))
         if filters:
             stmt = stmt.where(sa.and_(*filters))
         if sort == "updated_at_asc":
             stmt = stmt.order_by(SITE_PAGES_TABLE.c.updated_at.asc())
+        elif sort == "title_desc":
+            stmt = stmt.order_by(SITE_PAGES_TABLE.c.title.desc())
         elif sort == "title_asc":
             stmt = stmt.order_by(SITE_PAGES_TABLE.c.title.asc())
+        elif sort == "pinned_desc":
+            stmt = stmt.order_by(
+                SITE_PAGES_TABLE.c.pinned.desc(), SITE_PAGES_TABLE.c.updated_at.desc()
+            )
+        elif sort == "pinned_asc":
+            stmt = stmt.order_by(
+                SITE_PAGES_TABLE.c.pinned.asc(), SITE_PAGES_TABLE.c.updated_at.desc()
+            )
         else:
             stmt = stmt.order_by(SITE_PAGES_TABLE.c.updated_at.desc())
         stmt = stmt.limit(page_size).offset(offset)
@@ -133,6 +155,94 @@ class PageRepositoryMixin:
             return owner_clause
         return status_clause if status_clause is not None else owner_clause
 
+    async def _sync_page_block_usage(
+        self,
+        conn: AsyncConnection,
+        *,
+        page_id: UUID,
+        data: Mapping[str, Any] | None,
+        meta: Mapping[str, Any] | None,
+    ) -> None:
+        refs = helpers.extract_global_block_refs(data, meta)
+        existing_rows = (
+            (
+                await conn.execute(
+                    sa.select(
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
+                    ).where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
+                )
+            )
+            .mappings()
+            .all()
+        )
+        existing_pairs = {
+            (row["block_id"], row["section"]) for row in existing_rows  # type: ignore[var-annotated]
+        }
+
+        keys = {key for key, _ in refs}
+        block_map: dict[str, tuple[UUID, str | None]] = {}
+        if keys:
+            block_rows = (
+                await conn.execute(
+                    sa.select(
+                        SITE_GLOBAL_BLOCKS_TABLE.c.key,
+                        SITE_GLOBAL_BLOCKS_TABLE.c.id,
+                        SITE_GLOBAL_BLOCKS_TABLE.c.section,
+                    ).where(SITE_GLOBAL_BLOCKS_TABLE.c.key.in_(keys))
+                )
+            ).mappings()
+            for row in block_rows:
+                block_map[row["key"]] = (row["id"], row.get("section"))  # type: ignore[index]
+
+        new_pairs: set[tuple[UUID, str]] = set()
+        for key, section_hint in refs:
+            block_entry = block_map.get(key)
+            if not block_entry:
+                continue
+            block_id, block_section = block_entry
+            section_value = section_hint or block_section or "general"
+            section_text = str(section_value).strip() or "general"
+            new_pairs.add((block_id, section_text))
+
+        to_remove = existing_pairs - new_pairs
+        to_add = new_pairs - existing_pairs
+
+        if to_remove:
+            await conn.execute(
+                SITE_GLOBAL_BLOCK_USAGE_TABLE.delete()
+                .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
+                .where(
+                    sa.tuple_(
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
+                    ).in_(list(to_remove))
+                )
+            )
+
+        if to_add:
+            await conn.execute(
+                SITE_GLOBAL_BLOCK_USAGE_TABLE.insert(),
+                [
+                    {"page_id": page_id, "block_id": block_id, "section": section}
+                    for block_id, section in to_add
+                ],
+            )
+
+        affected_block_ids = {block_id for block_id, _ in existing_pairs | new_pairs}
+        usage_subquery = (
+            sa.select(sa.func.count())
+            .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
+            .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == sa.bindparam("block_id"))
+            .scalar_subquery()
+        )
+        for block_id in affected_block_ids:
+            await conn.execute(
+                SITE_GLOBAL_BLOCKS_TABLE.update()
+                .where(SITE_GLOBAL_BLOCKS_TABLE.c.id == block_id)
+                .values(usage_count=usage_subquery.params(block_id=block_id))
+            )
+
     async def create_page(
         self,
         *,
@@ -142,6 +252,7 @@ class PageRepositoryMixin:
         locale: str,
         owner: str | None,
         actor: str | None,
+        pinned: bool = False,
     ) -> Page:
         engine = await self._require_engine()
         new_id = uuid4()
@@ -159,6 +270,7 @@ class PageRepositoryMixin:
                     created_at=now,
                     updated_at=now,
                     draft_version=1,
+                    pinned=pinned,
                 )
             )
             await conn.execute(
@@ -186,6 +298,7 @@ class PageRepositoryMixin:
                         "locale": locale,
                         "owner": owner,
                         "draft_version": 1,
+                        "pinned": pinned,
                     },
                     actor=actor,
                     created_at=now,
@@ -193,11 +306,196 @@ class PageRepositoryMixin:
             )
         return await self.get_page(new_id)
 
+    async def update_page(
+        self,
+        *,
+        page_id: UUID,
+        actor: str | None,
+        slug: str | None = _UNSET,
+        title: str | None = _UNSET,
+        locale: str | None = _UNSET,
+        owner: str | None = _UNSET,
+        pinned: bool | None = _UNSET,
+    ) -> Page:
+        engine = await self._require_engine()
+        now = helpers.utcnow()
+        async with engine.begin() as conn:
+            current_row = (
+                (
+                    await conn.execute(
+                        sa.select(
+                            SITE_PAGES_TABLE.c.slug,
+                            SITE_PAGES_TABLE.c.title,
+                            SITE_PAGES_TABLE.c.locale,
+                            SITE_PAGES_TABLE.c.owner,
+                            SITE_PAGES_TABLE.c.pinned,
+                        )
+                        .where(SITE_PAGES_TABLE.c.id == page_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if not current_row:
+                raise SitePageNotFound(f"page {page_id} not found")
+
+            updates: dict[str, Any] = {}
+            snapshot_before = {
+                "slug": current_row["slug"],
+                "title": current_row["title"],
+                "locale": current_row["locale"],
+                "owner": current_row.get("owner"),
+                "pinned": bool(current_row.get("pinned")),
+            }
+
+            if slug is not _UNSET:
+                if not isinstance(slug, str) or not slug.strip():
+                    raise SiteRepositoryError("site_page_invalid_slug")
+                updates["slug"] = slug.strip()
+
+            if title is not _UNSET:
+                if not isinstance(title, str) or not title.strip():
+                    raise SiteRepositoryError("site_page_invalid_title")
+                updates["title"] = title.strip()
+
+            if locale is not _UNSET:
+                if not isinstance(locale, str) or not locale.strip():
+                    raise SiteRepositoryError("site_page_invalid_locale")
+                updates["locale"] = locale.strip()
+
+            if owner is not _UNSET:
+                if owner is None:
+                    updates["owner"] = None
+                elif not isinstance(owner, str):
+                    raise SiteRepositoryError("site_page_invalid_owner")
+                else:
+                    updates["owner"] = owner.strip()
+
+            if pinned is not _UNSET:
+                if not isinstance(pinned, bool):
+                    raise SiteRepositoryError("site_page_invalid_pinned")
+                updates["pinned"] = pinned
+
+            if not updates:
+                return await self.get_page(page_id)
+
+            updates["updated_at"] = now
+            try:
+                await conn.execute(
+                    SITE_PAGES_TABLE.update()
+                    .where(SITE_PAGES_TABLE.c.id == page_id)
+                    .values(**updates)
+                )
+            except IntegrityError as exc:
+                raise SiteRepositoryError("site_page_update_conflict") from exc
+
+            audit_snapshot = {
+                "changes": {
+                    key: value for key, value in updates.items() if key != "updated_at"
+                },
+                "previous": snapshot_before,
+            }
+            await conn.execute(
+                SITE_AUDIT_LOG_TABLE.insert().values(
+                    id=uuid4(),
+                    entity_type="page",
+                    entity_id=page_id,
+                    action="update",
+                    snapshot=audit_snapshot,
+                    actor=actor,
+                    created_at=now,
+                )
+            )
+
+        return await self.get_page(page_id)
+
+    async def delete_page(self, page_id: UUID, *, actor: str | None = None) -> None:
+        engine = await self._require_engine()
+        now = helpers.utcnow()
+        async with engine.begin() as conn:
+            page_row = (
+                (
+                    await conn.execute(
+                        sa.select(
+                            SITE_PAGES_TABLE.c.id,
+                            SITE_PAGES_TABLE.c.slug,
+                            SITE_PAGES_TABLE.c.pinned,
+                            SITE_PAGES_TABLE.c.title,
+                            SITE_PAGES_TABLE.c.locale,
+                            SITE_PAGES_TABLE.c.owner,
+                        )
+                        .where(SITE_PAGES_TABLE.c.id == page_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if not page_row:
+                raise SitePageNotFound(f"page {page_id} not found")
+
+            slug = str(page_row["slug"] or "")
+            pinned = bool(page_row["pinned"])
+            if pinned or slug in {"/", "main"}:
+                raise SiteRepositoryError("site_page_delete_forbidden")
+
+            usage_rows = (
+                await conn.execute(
+                    sa.select(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id).where(
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id
+                    )
+                )
+            ).mappings()
+            affected_block_ids = {
+                row["block_id"] for row in usage_rows if row.get("block_id") is not None
+            }
+
+            await conn.execute(
+                SITE_AUDIT_LOG_TABLE.insert().values(
+                    id=uuid4(),
+                    entity_type="page",
+                    entity_id=page_id,
+                    action="delete",
+                    snapshot={
+                        "slug": slug,
+                        "title": page_row.get("title"),
+                        "locale": page_row.get("locale"),
+                        "owner": page_row.get("owner"),
+                    },
+                    actor=actor,
+                    created_at=now,
+                )
+            )
+
+            await conn.execute(
+                SITE_PAGES_TABLE.delete().where(SITE_PAGES_TABLE.c.id == page_id)
+            )
+
+            if affected_block_ids:
+                usage_subquery = (
+                    sa.select(sa.func.count())
+                    .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
+                    .where(
+                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id
+                        == sa.bindparam("block_id")
+                    )
+                    .scalar_subquery()
+                )
+                for block_id in affected_block_ids:
+                    await conn.execute(
+                        SITE_GLOBAL_BLOCKS_TABLE.update()
+                        .where(SITE_GLOBAL_BLOCKS_TABLE.c.id == block_id)
+                        .values(usage_count=usage_subquery.params(block_id=block_id))
+                    )
+
     async def get_page(self, page_id: UUID) -> Page:
         engine = await self._require_engine()
         async with engine.connect() as conn:
             result = await conn.execute(
-                sa.select(SITE_PAGES_TABLE).where(SITE_PAGES_TABLE.c.id == page_id).limit(1)
+                sa.select(SITE_PAGES_TABLE)
+                .where(SITE_PAGES_TABLE.c.id == page_id)
+                .limit(1)
             )
             row = result.mappings().first()
         if not row:
@@ -295,6 +593,12 @@ class PageRepositoryMixin:
                     created_at=now,
                 )
             )
+            await self._sync_page_block_usage(
+                conn,
+                page_id=page_id,
+                data=helpers.as_mapping(payload),
+                meta=helpers.as_mapping(meta),
+            )
         return await self.get_page_draft(page_id)
 
     async def publish_page(
@@ -388,6 +692,12 @@ class PageRepositoryMixin:
                     created_at=now,
                 )
             )
+            await self._sync_page_block_usage(
+                conn,
+                page_id=page_id,
+                data=helpers.as_mapping(draft_obj.data),
+                meta=helpers.as_mapping(draft_obj.meta),
+            )
         return await self.get_page_version(page_id, next_version)
 
     async def diff_current_draft(
@@ -445,6 +755,71 @@ class PageRepositoryMixin:
                 published_version_int = None
         return diff, draft_version, published_version_int
 
+    async def list_page_global_blocks(self, page_id: UUID) -> list[dict[str, Any]]:
+        engine = await self._require_engine()
+        async with engine.connect() as conn:
+            stmt = (
+                sa.select(
+                    SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.id.label("block_id"),
+                    SITE_GLOBAL_BLOCKS_TABLE.c.key,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.title,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.status,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.locale,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.requires_publisher,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.published_version,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.draft_version,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.review_status,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.updated_at,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.updated_by,
+                )
+                .join(
+                    SITE_GLOBAL_BLOCKS_TABLE,
+                    SITE_GLOBAL_BLOCKS_TABLE.c.id
+                    == SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
+                )
+                .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
+                .order_by(
+                    SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section.asc(),
+                    SITE_GLOBAL_BLOCKS_TABLE.c.title.asc(),
+                )
+            )
+            result = await conn.execute(stmt)
+            rows = result.mappings().all()
+        blocks: list[dict[str, Any]] = []
+        for row in rows:
+            status_value = row.get("status")
+            review_status_value = row.get("review_status")
+            blocks.append(
+                {
+                    "block_id": str(row["block_id"]),
+                    "key": row.get("key"),
+                    "title": row.get("title"),
+                    "section": row.get("section"),
+                    "status": (
+                        status_value.value
+                        if isinstance(status_value, GlobalBlockStatus)
+                        else str(status_value)
+                    ),
+                    "locale": row.get("locale"),
+                    "requires_publisher": bool(row.get("requires_publisher")),
+                    "published_version": row.get("published_version"),
+                    "draft_version": row.get("draft_version"),
+                    "review_status": (
+                        review_status_value.value
+                        if isinstance(review_status_value, PageReviewStatus)
+                        else (
+                            str(review_status_value)
+                            if review_status_value is not None
+                            else None
+                        )
+                    ),
+                    "updated_at": row.get("updated_at"),
+                    "updated_by": row.get("updated_by"),
+                }
+            )
+        return blocks
+
     async def list_page_history(
         self, page_id: UUID, *, limit: int = 10, offset: int = 0
     ) -> tuple[list[PageVersion], int]:
@@ -483,7 +858,9 @@ class PageRepositoryMixin:
             result = await conn.execute(stmt)
             row = result.mappings().first()
         if not row:
-            raise SitePageVersionNotFound(f"version {version} for page {page_id} not found")
+            raise SitePageVersionNotFound(
+                f"version {version} for page {page_id} not found"
+            )
         return self._row_to_version(row)
 
     async def restore_page_version(

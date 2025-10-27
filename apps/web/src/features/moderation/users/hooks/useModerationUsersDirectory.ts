@@ -57,7 +57,7 @@ function buildFetchParams(
 export function useModerationUsersDirectory({
   filters,
   search,
-  initialPageSize = 25,
+  initialPageSize = 10,
 }: UseModerationUsersDirectoryParams): UseModerationUsersDirectoryResult {
   const debouncedSearch = useDebounce(search.trim());
 

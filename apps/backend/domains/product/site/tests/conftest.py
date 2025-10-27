@@ -26,6 +26,20 @@ async def repository(engine: AsyncEngine) -> SiteRepository:
     return SiteRepository(factory)
 
 
+class NotifyStub:
+    def __init__(self) -> None:
+        self.commands: list = []
+
+    async def create_notification(self, command) -> dict[str, str]:
+        self.commands.append(command)
+        return {"id": str(len(self.commands)), "user_id": command.user_id}
+
+
 @pytest_asyncio.fixture()
-async def service(repository: SiteRepository) -> SiteService:
-    return SiteService(repository)
+def notify_stub() -> NotifyStub:
+    return NotifyStub()
+
+
+@pytest_asyncio.fixture()
+async def service(repository: SiteRepository, notify_stub: NotifyStub) -> SiteService:
+    return SiteService(repository, notify_service=notify_stub)

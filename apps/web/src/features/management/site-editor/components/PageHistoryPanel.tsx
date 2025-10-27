@@ -21,97 +21,117 @@ export function SitePageHistoryPanel({
   onRestore,
   onRefresh,
 }: SitePageHistoryPanelProps): React.ReactElement {
+  const [showAll, setShowAll] = React.useState(false);
+  const DEFAULT_VISIBLE = 3;
+
+  React.useEffect(() => {
+    setShowAll(false);
+  }, [entries]);
+
+  const visibleEntries = showAll ? entries : entries.slice(0, DEFAULT_VISIBLE);
+  const hasMore = entries.length > DEFAULT_VISIBLE;
   const latestVersion = entries.length ? entries[0].version : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-gray-900 dark:text-white">История версий</div>
-          <div className="text-xs text-gray-500 dark:text-dark-300">
-            Разница между публикациями и комментарии
-          </div>
+    <details className="group rounded-2xl border border-gray-200/70 bg-white/95 text-gray-900 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80 dark:text-dark-50 [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
+        <span>История публикаций</span>
+        <span className="text-xs text-primary-500 group-open:hidden">Развернуть</span>
+        <span className="hidden text-xs text-primary-500 group-open:block">Свернуть</span>
+      </summary>
+      <div className="space-y-3 border-t border-gray-100 px-4 py-4 dark:border-dark-700/60">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-500 dark:text-dark-300">
+            Последние публикации и комментарии к релизам.
+          </p>
+          <Button size="xs" variant="ghost" onClick={onRefresh} disabled={loading}>
+            {loading ? 'Обновление…' : 'Обновить'}
+          </Button>
         </div>
-        <Button size="sm" variant="ghost" onClick={onRefresh} disabled={loading}>
-          {loading ? 'Обновление…' : 'Обновить'}
-        </Button>
+
+        {error ? (
+          <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/30 dark:text-rose-200">
+            <AlertTriangle className="mt-0.5 h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        {loading && !entries.length ? (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-200">
+            <Spinner size="sm" />
+            Загружаем историю…
+          </div>
+        ) : null}
+
+        {entries.length ? (
+          <>
+            <ul className="space-y-3">
+              {visibleEntries.map((entry) => {
+                const isLatest = latestVersion != null && entry.version === latestVersion;
+                const isRestoring = restoringVersion === entry.version;
+                return (
+                  <li key={entry.id} className="space-y-2 rounded-2xl border border-gray-200/70 bg-white/90 px-3 py-2 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/70">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 text-xs text-gray-500 dark:text-dark-300">
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900 dark:text-dark-50">
+                          Версия v{entry.version}
+                          {isLatest ? <Badge color="primary">Текущая</Badge> : null}
+                        </div>
+                        <div>
+                          Опубликована:{' '}
+                          {formatDateTime(entry.published_at, { fallback: '—', withSeconds: true })}
+                        </div>
+                        <div>Автор: {entry.published_by || '—'}</div>
+                      </div>
+                      <Button
+                        size="xs"
+                        variant="outlined"
+                        color="neutral"
+                        disabled={isRestoring}
+                        onClick={() => onRestore(entry.version)}
+                      >
+                        {isRestoring ? 'Восстановление…' : 'Восстановить'}
+                      </Button>
+                    </div>
+
+                    <div className="rounded-xl border border-gray-100/70 bg-gray-50/80 px-3 py-2 text-[11px] leading-5 text-gray-600 dark:border-dark-600/40 dark:bg-dark-700/40 dark:text-dark-200">
+                      {entry.comment ? (
+                        <span>«{entry.comment}»</span>
+                      ) : (
+                        <span className="italic text-gray-500 dark:text-dark-300">Комментарий не указан</span>
+                      )}
+                    </div>
+
+                    <HistoryDiff diff={entry.diff} />
+                  </li>
+                );
+              })}
+            </ul>
+            {hasMore ? (
+              <div className="pt-1">
+                <Button size="xs" variant="ghost" onClick={() => setShowAll((prev) => !prev)}>
+                  {showAll ? 'Скрыть дополнительные версии' : `Показать всю историю (${entries.length})`}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          !loading &&
+          !error && (
+            <div className="rounded-xl border border-dashed border-gray-200 px-3 py-2 text-[11px] text-gray-500 dark:border-dark-600 dark:text-dark-300">
+              История появится после первой публикации страницы.
+            </div>
+          )
+        )}
       </div>
-
-      {error ? (
-        <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
-          <AlertTriangle className="mt-0.5 h-4 w-4" />
-          <span>{error}</span>
-        </div>
-      ) : null}
-
-      {loading && !entries.length ? (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-200">
-          <Spinner className="h-4 w-4" />
-          Загрузка истории…
-        </div>
-      ) : null}
-
-      {entries.length ? (
-        <ul className="space-y-3">
-          {entries.map((entry) => {
-            const isLatest = latestVersion != null && entry.version === latestVersion;
-            const isRestoring = restoringVersion === entry.version;
-            return (
-              <li key={entry.id} className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-dark-600">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 text-xs text-gray-500 dark:text-dark-300">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                      Версия v{entry.version}
-                      {isLatest ? <Badge color="primary">Текущая</Badge> : null}
-                    </div>
-                    <div>
-                      Опубликована:{' '}
-                      {formatDateTime(entry.published_at, { fallback: '—', withSeconds: true })}
-                    </div>
-                    <div>Автор: {entry.published_by || '—'}</div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outlined"
-                    color="neutral"
-                    disabled={isRestoring}
-                    onClick={() => onRestore(entry.version)}
-                  >
-                    {isRestoring ? 'Восстановление…' : 'Восстановить'}
-                  </Button>
-                </div>
-
-                <div className="text-sm text-gray-700 dark:text-dark-100">
-                  {entry.comment ? (
-                    <>«{entry.comment}»</>
-                  ) : (
-                    <span className="italic text-gray-500 dark:text-dark-300">
-                      Комментарий не указан
-                    </span>
-                  )}
-                </div>
-
-                <DiffList diff={entry.diff} />
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        !loading &&
-        !error && (
-          <div className="rounded-lg border border-dashed border-gray-200 p-4 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-300">
-            История появится после первой публикации страницы.
-          </div>
-        )
-      )}
-    </div>
+    </details>
   );
 }
 
-function DiffList({ diff }: { diff: SitePageVersion['diff'] }): React.ReactElement {
+function HistoryDiff({ diff }: { diff: SitePageVersion['diff'] }): React.ReactElement {
   if (!diff || !diff.length) {
     return (
-      <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500 dark:bg-dark-700 dark:text-dark-300">
+      <div className="rounded-xl border border-gray-100/70 bg-white/80 px-3 py-2 text-[11px] text-gray-500 dark:border-dark-600/40 dark:bg-dark-700/40 dark:text-dark-200">
         Изменений не зафиксировано.
       </div>
     );
@@ -124,9 +144,9 @@ function DiffList({ diff }: { diff: SitePageVersion['diff'] }): React.ReactEleme
         return (
           <div
             key={key}
-            className="rounded-lg bg-gray-50 p-3 text-xs text-gray-700 dark:bg-dark-700 dark:text-dark-100"
+            className="rounded-xl border border-gray-100/70 bg-white/80 px-3 py-2 text-[11px] text-gray-600 dark:border-dark-600/40 dark:bg-dark-700/40 dark:text-dark-200"
           >
-            <div className="font-semibold text-gray-900 dark:text-white">{describeDiffEntry(entry)}</div>
+            <div className="font-semibold text-gray-900 dark:text-dark-50">{describeDiffEntry(entry)}</div>
             {renderDiffDetails(entry)}
           </div>
         );
@@ -139,24 +159,18 @@ function describeDiffEntry(entry: SitePageDiffEntry): string {
   const verbs: Record<SiteDiffChange, string> = {
     added: 'добавлен',
     removed: 'удален',
-    updated: 'обновлен',
-    moved: 'перемещен',
+    updated: 'обновлён',
+    moved: 'перемещён',
   };
 
   if (entry.type === 'block') {
-    const prefix = `Блок ${entry.blockId}`;
-    if (entry.change === 'moved') {
-      if (entry.from != null && entry.to != null) {
-        return `${prefix} перемещен (${entry.from} → ${entry.to})`;
-      }
-      return `${prefix} перемещен`;
-    }
-    return `${prefix} ${verbs[entry.change] ?? entry.change}`;
+    return `Блок ${entry.blockId} ${verbs[entry.change] ?? entry.change}`;
   }
 
-  const scope = entry.type === 'meta' ? 'Мета-свойство' : 'Поле данных';
-  const change = entry.change === 'removed' ? 'удалено' : entry.change === 'added' ? 'добавлено' : 'обновлено';
-  return `${scope} ${entry.field} ${change}`;
+  const scope = entry.type === 'meta' ? 'Метаданные' : 'Поле';
+  const action =
+    entry.change === 'removed' ? 'удалено' : entry.change === 'added' ? 'добавлено' : 'обновлено';
+  return `${scope} ${entry.field} ${action}`;
 }
 
 function renderDiffDetails(entry: SitePageDiffEntry): React.ReactElement | null {
@@ -164,7 +178,7 @@ function renderDiffDetails(entry: SitePageDiffEntry): React.ReactElement | null 
     const from = entry.from != null ? entry.from : '—';
     const to = entry.to != null ? entry.to : '—';
     return (
-      <div className="mt-2 text-xs text-gray-600 dark:text-dark-300">
+      <div className="mt-1 text-[11px] text-gray-600 dark:text-dark-300">
         Позиция: {from} → {to}
       </div>
     );
@@ -177,7 +191,7 @@ function renderDiffDetails(entry: SitePageDiffEntry): React.ReactElement | null 
   }
 
   return (
-    <div className="mt-2 space-y-1 text-xs text-gray-600 dark:text-dark-300">
+    <div className="mt-1 space-y-1 text-[11px] text-gray-600 dark:text-dark-300">
       {before !== undefined ? (
         <div>
           <span className="font-semibold text-gray-700 dark:text-dark-100">До:</span>{' '}
@@ -206,4 +220,3 @@ function formatDiffValue(value: unknown): string {
     return String(value);
   }
 }
-

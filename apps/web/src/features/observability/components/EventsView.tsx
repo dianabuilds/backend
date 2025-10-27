@@ -1,6 +1,5 @@
 ﻿import React from 'react';
 import {
-  ArrowPathIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   InboxIcon,
@@ -17,34 +16,19 @@ import {
   TablePagination,
 } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { fetchEventsSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
+import { formatNumber, formatPercent } from '../utils/format';
 import { EventsSummary } from '@shared/types/observability';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
-
-const numberFormatter = new Intl.NumberFormat('en-US');
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return numberFormatter.format(value);
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return `${(value * 100).toFixed(2)}%`;
-}
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return 'вЂ”';
-  return timeFormatter.format(date);
-}
 
 const EVENTS_POLL_INTERVAL_MS = 30_000;
 
 export function ObservabilityEvents(): React.ReactElement {
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [eventFilter, setEventFilter] = React.useState('');
   const [handlerFilter, setHandlerFilter] = React.useState('');
 
@@ -97,25 +81,14 @@ export function ObservabilityEvents(): React.ReactElement {
 
   const heroActions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-events-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-events-refresh"
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -140,7 +113,7 @@ export function ObservabilityEvents(): React.ReactElement {
         {
           id: 'events-failure',
           label: 'Failure ratio',
-            value: formatPercent(totals.failureRatio),
+          value: formatPercent(totals.failureRatio, { maximumFractionDigits: 2 }),
             helper: `${formatNumber(totals.totalFailure)} failures`,
             icon: <ExclamationTriangleIcon className="size-4" aria-hidden="true" />,
             accent: 'danger',
@@ -150,7 +123,7 @@ export function ObservabilityEvents(): React.ReactElement {
 
   if (error) {
     return (
-      <ObservabilityLayout title="Domain events" actions={heroActions} metrics={heroMetrics}>
+      <ObservabilityLayout title="Domain events" actions={heroActions}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -193,7 +166,9 @@ export function ObservabilityEvents(): React.ReactElement {
         {
           id: 'success-rate',
           label: 'Success rate',
-          value: totals.totalEvents ? formatPercent(totals.totalSuccess / totals.totalEvents) : '—',
+          value: totals.totalEvents
+            ? formatPercent(totals.totalSuccess / totals.totalEvents, { maximumFractionDigits: 2 })
+            : '—',
           description: `${formatNumber(totals.totalSuccess)} successes`,
           tone: 'success' as const,
         },
@@ -212,8 +187,8 @@ export function ObservabilityEvents(): React.ReactElement {
       title="Domain events"
       description="Handler success rates, latencies, and volumes to catch regressions early."
       actions={heroActions}
-      metrics={heroMetrics}
     >
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-events-filters" data-analytics="observability:events:filters">
           <Surface variant="soft" className="space-y-4">
@@ -384,6 +359,9 @@ export function ObservabilityEvents(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+
 
 
 

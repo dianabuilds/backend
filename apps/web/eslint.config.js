@@ -48,6 +48,11 @@ export default tseslint.config(
     },
     settings: {
       react: { version: 'detect' },
+      'import/resolver': {
+        typescript: {
+          project: './tsconfig.json',
+        },
+      },
     },
     rules: {
       ...reactRecommended.rules,

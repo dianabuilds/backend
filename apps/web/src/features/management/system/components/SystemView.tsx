@@ -1,14 +1,9 @@
 import React from 'react';
-import { AlertTriangle, BarChart3, Boxes, ExternalLink, Gauge } from '@icons';
+import { AlertTriangle } from '@icons';
 import { Badge, Button, Collapse, Surface, Switch } from '@ui';
-import type { PageHeaderStat } from '@ui/patterns/PageHeader';
 import { fetchSystemConfig, fetchSystemOverview } from '@shared/api/management';
 import { extractErrorMessage } from '@shared/utils/errors';
-import {
-  PlatformAdminFrame,
-  type PlatformAdminIntegration,
-  type PlatformAdminQuickLink,
-} from '@shared/layouts/management';
+import { PlatformAdminFrame } from '@shared/layouts/management';
 import type {
   SystemIncident,
   SystemIncidents,
@@ -39,28 +34,6 @@ const STATUS_BADGE_MAP: Record<string, { label: string; color: 'success' | 'warn
   critical: { label: 'Critical', color: 'error' },
   unknown: { label: 'Unknown', color: 'neutral' },
 };
-
-const QUICK_LINKS: PlatformAdminQuickLink[] = [
-  {
-    label: 'Health endpoint',
-    href: '/v1/admin/health',
-    description: 'Simple ping for load balancers and automation.',
-    icon: <ExternalLink className="h-4 w-4" />,
-  },
-];
-
-const HELP_TEXT = (
-  <div className="space-y-2 text-sm leading-relaxed text-gray-600 dark:text-dark-100">
-    <p>
-      This dashboard highlights the key infrastructure services that keep the platform online: database, cache, job queue,
-      workers, and LLM providers. Investigate anything that is not healthy before it turns into an incident.
-    </p>
-    <p>
-      If something looks wrong, open the integration detail panel or jump into incidents to see the full context. Use the raw
-      config snapshot to compare staging vs production settings.
-    </p>
-  </div>
-);
 
 const PRIMARY_SIGNAL_DEFS: Array<{
   id: string;
@@ -234,80 +207,14 @@ export default function ManagementSystem(): React.ReactElement {
     }
   }, [lastUpdated]);
 
-  const summaryStats = React.useMemo<PageHeaderStat[]>(() => {
-    const stats: PageHeaderStat[] = [];
-    const summary = overview?.summary;
-    if (!summary) return stats;
-    if (summary.queue_pending != null) {
-      stats.push({
-        label: 'Pending jobs',
-        value: formatCount(summary.queue_pending),
-        hint: `Queue status: ${summary.queue_status ?? 'n/a'}`,
-        icon: <Boxes className="h-5 w-5 text-primary-500" />,
-      });
-    }
-    if (summary.llm_success_rate != null) {
-      stats.push({
-        label: 'LLM success',
-        value: formatPercent(summary.llm_success_rate, 1),
-        hint: 'Aggregated across providers',
-        icon: <BarChart3 className="h-5 w-5 text-primary-500" />,
-      });
-    }
-    if (summary.uptime_percent != null) {
-      stats.push({
-        label: 'Uptime',
-        value: formatPercent(summary.uptime_percent, 2),
-        hint: 'Last 24h measurement',
-        icon: <Gauge className="h-5 w-5 text-primary-500" />,
-      });
-    }
-    if (summary.worker_failure_rate != null) {
-      stats.push({
-        label: 'Worker failures',
-        value: formatPercent(summary.worker_failure_rate, 2),
-        hint: 'Last hour failure ratio',
-        icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
-      });
-    }
-    return stats;
-  }, [overview?.summary]);
-
   const primarySignals = React.useMemo(() => buildPrimarySignals(overview?.signals), [overview?.signals]);
-  const incidentIntegrations = overview?.incidents?.integrations ?? [];
   const configEmpty = configSummary.length === 0;
-
-  const quickLinks = React.useMemo<PlatformAdminQuickLink[]>(() => {
-    const links = [...QUICK_LINKS];
-    const apiLinks = overview?.links || {};
-    if (apiLinks.docs) {
-      links.push({
-        label: 'Platform monitoring guide',
-        href: String(apiLinks.docs),
-        description: 'Runbooks, escalation paths, and triage checklists.',
-        icon: <ExternalLink className="h-4 w-4" />,
-      });
-    }
-    if (apiLinks.status) {
-      links.push({
-        label: 'Status page',
-        href: String(apiLinks.status),
-        description: 'Public incident feed and historical uptime.',
-        icon: <ExternalLink className="h-4 w-4" />,
-      });
-    }
-    return links;
-  }, [overview?.links]);
 
   return (
     <PlatformAdminFrame
       title="System overview"
       description="Heartbeat of databases, queues, workers, and LLM providers for quick triage."
       breadcrumbs={[{ label: 'Platform Admin', to: '/platform/system' }, { label: 'System' }]}
-      stats={summaryStats}
-      quickLinks={quickLinks}
-      helpText={HELP_TEXT}
-      integrations={incidentIntegrations as PlatformAdminIntegration[]}
       changelog={overview?.changelog ?? []}
     >
       <div className="space-y-6">

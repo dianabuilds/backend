@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from threading import Lock
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.pool import NullPool
 
 from packages.core.db import get_async_engine
 
@@ -29,11 +30,22 @@ class SQLTagCatalog:
         *,
         cache_ttl: float = 30.0,
     ) -> None:
-        self._engine: AsyncEngine = (
-            engine
-            if isinstance(engine, AsyncEngine)
-            else get_async_engine("tags", url=engine)
-        )
+        self._engine: AsyncEngine | None
+        self._engine_factory: Callable[[], AsyncEngine] | None
+        if isinstance(engine, AsyncEngine):
+            self._engine = engine
+            self._engine_factory = None
+        else:
+            dsn = str(engine)
+            self._engine = None
+            self._engine_factory = lambda: get_async_engine(
+                "tags.catalog",
+                url=dsn,
+                cache=False,
+                pool_pre_ping=False,
+                poolclass=NullPool,
+            )
+        self._engine_lock = Lock()
         self._cache_ttl = max(float(cache_ttl), 0.0)
         self._lock = Lock()
         self._aliases: dict[str, str] = {}
@@ -87,10 +99,9 @@ class SQLTagCatalog:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            try:
-                asyncio.run(runner())
-            except Exception as exc:  # pragma: no cover
-                log.warning("tag_catalog_refresh_failed", exc_info=exc)
+            with self._lock:
+                self._refreshing = False
+            log.debug("tag_catalog_refresh_skipped_no_loop")
         else:
             task = loop.create_task(runner())
 
@@ -104,6 +115,10 @@ class SQLTagCatalog:
 
             task.add_done_callback(_log_refresh_failure)
 
+    async def refresh_now(self) -> None:
+        """Perform a synchronous refresh using the current event loop."""
+        await self._refresh()
+
     async def _refresh(self) -> None:
         aliases: dict[str, str] = {}
         blacklist: set[str] = set()
@@ -115,7 +130,7 @@ class SQLTagCatalog:
             """
         )
         sql_blacklist = text("SELECT LOWER(slug) AS slug FROM tag_blacklist")
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             alias_rows = (await conn.execute(sql_aliases)).mappings().all()
             for row in alias_rows:
                 alias = str(row.get("alias") or "").strip()
@@ -131,6 +146,18 @@ class SQLTagCatalog:
             self._aliases = aliases
             self._blacklist = blacklist
             self._loaded_at = time.monotonic()
+
+    def _get_engine(self) -> AsyncEngine:
+        existing = self._engine
+        if existing is not None:
+            return existing
+        factory = self._engine_factory
+        if factory is None:
+            raise RuntimeError("tag catalog engine is not configured")
+        with self._engine_lock:
+            if self._engine is None:
+                self._engine = factory()
+            return self._engine
 
 
 __all__ = ["SQLTagCatalog"]

@@ -6,6 +6,9 @@ import { ChevronRightIcon, PencilSquareIcon } from '@heroicons/react/24/outline'
 import {
   formatDateTime,
   formatRelativeTime,
+  formatUserIdentifier,
+  getUserDisplayName,
+  getUserSecondaryEmail,
   resolveRiskLevel,
   riskBadgeProps,
   statusToBadgeTone,
@@ -71,6 +74,10 @@ export function UsersTable({ items, loading, sort, onSort, onOpenUser }: UsersTa
               : items.map((user) => {
                   const risk = resolveRiskLevel(user);
                   const riskProps = riskBadgeProps(risk);
+                  const displayName = getUserDisplayName(user);
+                  const secondaryEmail = getUserSecondaryEmail(user);
+                  const showIdHint = !user.username?.trim();
+                  const formattedId = showIdHint ? formatUserIdentifier(user.id) : null;
                   return (
                     <Table.TR
                       key={user.id}
@@ -81,9 +88,15 @@ export function UsersTable({ items, loading, sort, onSort, onOpenUser }: UsersTa
                     >
                       <Table.TD className="px-5 py-4">
                         <div className="space-y-1">
-                          <div className="font-medium text-gray-900 dark:text-white">{user.username}</div>
-                          <div className="text-xs text-gray-500 dark:text-dark-300">{user.email ?? 'N/A'}</div>
-                          <div className="text-[11px] text-gray-400 dark:text-dark-400">ID: {user.id}</div>
+                          <div className="font-medium text-gray-900 dark:text-white">{displayName}</div>
+                          {secondaryEmail ? (
+                            <div className="text-xs text-gray-500 dark:text-dark-300">{secondaryEmail}</div>
+                          ) : null}
+                          {formattedId ? (
+                            <div className="text-[11px] text-gray-400 dark:text-dark-400" title={user.id}>
+                              ID: {formattedId}
+                            </div>
+                          ) : null}
                         </div>
                       </Table.TD>
                       <Table.TD className="px-5 py-4">

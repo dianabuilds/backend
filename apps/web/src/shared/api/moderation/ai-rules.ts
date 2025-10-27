@@ -63,7 +63,7 @@ function normalizeRule(raw: unknown, index: number): ModerationAIRule | null {
 
 function buildListPath({ limit, offset, search, enabled }: FetchModerationAIRulesParams): string {
   const params = new URLSearchParams();
-  params.set('limit', String(limit ?? 20));
+  params.set('limit', String(limit ?? 10));
   params.set('offset', String(offset ?? 0));
   if (search && search.trim()) {
     params.set('q', search.trim());
@@ -105,7 +105,7 @@ function mapRulePayload(payload: UpdateModerationAIRulePayload | CreateModeratio
 export async function fetchModerationAIRules(
   params: FetchModerationAIRulesParams = {},
 ): Promise<ModerationAIRulesList> {
-  const { limit = 20, offset = 0, signal } = params;
+  const { limit = 10, offset = 0, signal } = params;
   const path = buildListPath({ ...params, limit, offset });
   const payload = await apiGet<unknown>(path, { signal });
   const source = isObjectRecord(payload) ? payload : {};

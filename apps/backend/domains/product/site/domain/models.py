@@ -63,6 +63,7 @@ class Page:
     published_version: int | None = None
     draft_version: int | None = None
     has_pending_review: bool = False
+    pinned: bool = False
 
 
 @dataclass(slots=True)
@@ -152,6 +153,7 @@ class GlobalBlockUsage:
     locale: str | None = None
     has_draft: bool | None = None
     last_published_at: datetime | None = None
+    owner: str | None = None
 
 
 @dataclass(slots=True)

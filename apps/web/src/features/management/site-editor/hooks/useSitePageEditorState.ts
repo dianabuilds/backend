@@ -9,10 +9,10 @@ import type {
   SitePageVersion,
   SiteDraftValidationResult,
   SitePageDraftDiffResponse,
-  SitePagePreviewResponse,
   SitePageMetricsResponse,
   SiteMetricsPeriod,
 } from '@shared/types/management';
+import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/types';
 import {
   validateHomeDraft,
   type ValidationSummary,
@@ -213,6 +213,10 @@ function mapHistoryToHomeEntries(
 export type SitePageEditorState = {
   page: SitePageSummary | null;
   loading: boolean;
+  pageInfoSaving: boolean;
+  pageInfoError: string | null;
+  updatePageInfo: (payload: UpdateSitePagePayload) => Promise<void>;
+  clearPageInfoError: () => void;
   data: HomeDraftData;
   setData: (updater: (prev: HomeDraftData) => HomeDraftData) => void;
   setBlocks: (blocks: HomeBlock[]) => void;
@@ -244,13 +248,6 @@ export type SitePageEditorState = {
   diffLoading: boolean;
   diffError: string | null;
   refreshDiff: () => Promise<void>;
-  preview: SitePagePreviewResponse | null;
-  previewLayouts: string[];
-  previewLayout: string;
-  selectPreviewLayout: (layout: string) => void;
-  previewLoading: boolean;
-  previewError: string | null;
-  refreshPreview: (options?: { layouts?: string[] }) => Promise<void>;
   publishing: boolean;
   publishDraft: (options?: { comment?: string }) => Promise<void>;
   restoringVersion: number | null;
@@ -272,6 +269,8 @@ export function useSitePageEditorState(
   const { pageId, autosaveMs = DEFAULT_AUTOSAVE_MS } = options;
 
   const [page, setPage] = React.useState<SitePageSummary | null>(null);
+  const [pageInfoSaving, setPageInfoSaving] = React.useState(false);
+  const [pageInfoError, setPageInfoError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [dataState, setDataState] = React.useState<HomeDraftData>(DEFAULT_DATA);
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
@@ -305,16 +304,6 @@ export function useSitePageEditorState(
   const [diffLoading, setDiffLoading] = React.useState(false);
   const [diffError, setDiffError] = React.useState<string | null>(null);
 
-  const [preview, setPreview] = React.useState<SitePagePreviewResponse | null>(null);
-  const [previewLoading, setPreviewLoading] = React.useState(false);
-  const [previewError, setPreviewError] = React.useState<string | null>(null);
-  const [previewLayout, setPreviewLayout] = React.useState<string>('desktop');
-
-  const previewLayouts = React.useMemo(
-    () => (preview ? Object.keys(preview.layouts) : []),
-    [preview],
-  );
-
   const dataRef = React.useRef<HomeDraftData>(DEFAULT_DATA);
   const draftVersionRef = React.useRef<number>(0);
   const reviewStatusRef = React.useRef<SitePageDraft['review_status']>('none');
@@ -322,6 +311,7 @@ export function useSitePageEditorState(
   const publishingRef = React.useRef(false);
   const metricsLocaleRef = React.useRef<string>('ru');
   const metricsAbortRef = React.useRef<AbortController | null>(null);
+  const loadAbortRef = React.useRef<AbortController | null>(null);
   const autosaveTimer = React.useRef<number | null>(null);
 
   const clearAutosaveTimer = React.useCallback(() => {
@@ -330,19 +320,6 @@ export function useSitePageEditorState(
       autosaveTimer.current = null;
     }
   }, []);
-
-  React.useEffect(() => {
-    if (!preview) {
-      return;
-    }
-    const layouts = Object.keys(preview.layouts);
-    if (layouts.length === 0) {
-      return;
-    }
-    if (!layouts.includes(previewLayout)) {
-      setPreviewLayout(layouts[0]);
-    }
-  }, [preview, previewLayout]);
 
   const runServerValidation = React.useCallback(async (): Promise<SiteDraftValidationResult> => {
     setServerValidationLoading(true);
@@ -377,38 +354,6 @@ export function useSitePageEditorState(
     }
   }, [pageId]);
 
-  const refreshPreview = React.useCallback(
-    async ({ layouts }: { layouts?: string[] } = {}) => {
-      setPreviewLoading(true);
-      setPreviewError(null);
-      try {
-        const payload = buildDraftPayload(dataRef.current);
-        const response = await managementSiteEditorApi.previewSitePage(pageId, {
-          data: payload.data,
-          meta: payload.meta,
-          layouts,
-          version: draftVersionRef.current || undefined,
-        });
-        setPreview(response);
-      } catch (error) {
-        setPreviewError(extractErrorMessage(error, 'Не удалось получить предпросмотр.'));
-      } finally {
-        setPreviewLoading(false);
-      }
-    },
-    [pageId],
-  );
-
-  const selectPreviewLayout = React.useCallback(
-    (layout: string) => {
-      setPreviewLayout(layout);
-      if (preview && preview.layouts[layout]) {
-        return;
-      }
-      refreshPreview({ layouts: [layout] }).catch(() => undefined);
-    },
-    [preview, refreshPreview],
-  );
 
   const refreshHistory = React.useCallback(async () => {
     setSiteHistoryLoading(true);
@@ -487,7 +432,9 @@ export function useSitePageEditorState(
   );
 
   const loadDraft = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    loadAbortRef.current?.abort();
     const controller = new AbortController();
+    loadAbortRef.current = controller;
     if (!silent) {
       setLoading(true);
     }
@@ -499,6 +446,9 @@ export function useSitePageEditorState(
       ]);
       if (!pageSummary) {
         throw new Error('site_page_not_found');
+      }
+      if (controller.signal.aborted || loadAbortRef.current !== controller) {
+        return;
       }
       metricsLocaleRef.current = pageSummary.locale || 'ru';
       setPageMetrics(null);
@@ -519,23 +469,25 @@ export function useSitePageEditorState(
       setServerValidationError(null);
       setDraftDiff(null);
       setDiffError(null);
-      setPreview(null);
-      setPreviewError(null);
-      setPreviewLayout('desktop');
       void refreshDiff().catch(() => undefined);
-      void refreshPreview().catch(() => undefined);
       void refreshHistory();
       void refreshAudit();
       void fetchMetrics({ silent: true }).catch(() => undefined);
     } catch (error) {
+      if ((error as { name?: string })?.name === 'AbortError' || loadAbortRef.current !== controller) {
+        return;
+      }
       setSavingError(extractErrorMessage(error, 'Не удалось загрузить черновик страницы.'));
       throw error;
     } finally {
-      if (!silent) {
-        setLoading(false);
+      if (loadAbortRef.current === controller) {
+        loadAbortRef.current = null;
+        if (!silent) {
+          setLoading(false);
+        }
       }
     }
-  }, [fetchMetrics, pageId, refreshAudit, refreshDiff, refreshHistory, refreshPreview]);
+  }, [fetchMetrics, pageId, refreshAudit, refreshDiff, refreshHistory]);
 
   const saveDraft = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (savingRef.current) {
@@ -574,7 +526,6 @@ export function useSitePageEditorState(
       setPage((prev) => (prev ? ({ ...prev, draft_version: draft.version }) : prev));
       runServerValidation().catch(() => undefined);
       refreshDiff().catch(() => undefined);
-      refreshPreview().catch(() => undefined);
     } catch (error) {
       const message = extractErrorMessage(error, 'Не удалось сохранить черновик.');
       setSavingError(message);
@@ -583,7 +534,7 @@ export function useSitePageEditorState(
       savingRef.current = false;
       setSaving(false);
     }
-  }, [clearAutosaveTimer, pageId, revalidate, refreshDiff, refreshPreview, runServerValidation]);
+  }, [clearAutosaveTimer, pageId, revalidate, refreshDiff, runServerValidation]);
 
   const scheduleAutosave = React.useCallback(() => {
     if (autosaveMs <= 0) {
@@ -630,6 +581,35 @@ export function useSitePageEditorState(
     fetchMetrics().catch(() => undefined);
   }, [fetchMetrics]);
 
+  const updatePageInfo = React.useCallback(
+    async (payload: UpdateSitePagePayload) => {
+      if (!payload || Object.keys(payload).length === 0 || pageInfoSaving) {
+        return;
+      }
+      try {
+        setPageInfoError(null);
+        setPageInfoSaving(true);
+        const updated = await managementSiteEditorApi.updateSitePage(pageId, payload);
+        if (!updated) {
+          throw new Error('site_page_update_failed');
+        }
+        metricsLocaleRef.current = updated.locale || 'ru';
+        setPage(updated);
+      } catch (error) {
+        const message = extractErrorMessage(error, 'Не удалось обновить параметры страницы.');
+        setPageInfoError(message);
+        throw error;
+      } finally {
+        setPageInfoSaving(false);
+      }
+    },
+    [pageId, pageInfoSaving],
+  );
+
+  const clearPageInfoError = React.useCallback(() => {
+    setPageInfoError(null);
+  }, []);
+
   const setBlocks = React.useCallback((blocks: HomeBlock[]) => {
     setData((prev) => ({
       ...prev,
@@ -668,13 +648,12 @@ export function useSitePageEditorState(
         refreshHistory(),
         refreshAudit(),
         refreshDiff(),
-        refreshPreview(),
       ]);
       runServerValidation().catch(() => undefined);
     } finally {
       setRestoringVersion(null);
     }
-  }, [clearAutosaveTimer, pageId, refreshAudit, refreshDiff, refreshHistory, refreshPreview, runServerValidation]);
+  }, [clearAutosaveTimer, pageId, refreshAudit, refreshDiff, refreshHistory, runServerValidation]);
 
   const publishDraft = React.useCallback(async ({ comment }: { comment?: string } = {}) => {
     if (publishingRef.current) {
@@ -704,7 +683,6 @@ export function useSitePageEditorState(
         refreshHistory(),
         refreshAudit(),
         refreshDiff(),
-        refreshPreview(),
       ]);
       await fetchMetrics({ silent: true }).catch(() => undefined);
     } catch (error) {
@@ -715,7 +693,7 @@ export function useSitePageEditorState(
       publishingRef.current = false;
       setPublishing(false);
     }
-  }, [clearAutosaveTimer, dirty, fetchMetrics, loadDraft, pageId, refreshAudit, refreshDiff, refreshHistory, refreshPreview, revalidate, saveDraft]);
+  }, [clearAutosaveTimer, dirty, fetchMetrics, loadDraft, pageId, refreshAudit, refreshDiff, refreshHistory, revalidate, saveDraft]);
 
   React.useEffect(() => {
     setValidation(validateHomeDraft(dataState));
@@ -728,11 +706,16 @@ export function useSitePageEditorState(
     void loadDraft();
     return () => {
       clearAutosaveTimer();
+      loadAbortRef.current?.abort();
     };
   }, [clearAutosaveTimer, loadDraft, pageId]);
 
   React.useEffect(() => () => {
     metricsAbortRef.current?.abort();
+  }, []);
+
+  React.useEffect(() => () => {
+    loadAbortRef.current?.abort();
   }, []);
 
   React.useEffect(() => () => {
@@ -746,6 +729,10 @@ export function useSitePageEditorState(
   return {
     page,
     loading,
+    pageInfoSaving,
+    pageInfoError,
+    updatePageInfo,
+    clearPageInfoError,
     data: dataState,
     setData,
     setBlocks,
@@ -779,13 +766,6 @@ export function useSitePageEditorState(
     diffLoading,
     diffError,
     refreshDiff,
-    preview,
-    previewLayouts,
-    previewLayout,
-    selectPreviewLayout,
-    previewLoading,
-    previewError,
-    refreshPreview,
     restoringVersion,
     restoreVersion,
     siteHistory,

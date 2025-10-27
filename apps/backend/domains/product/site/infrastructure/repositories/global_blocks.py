@@ -35,8 +35,9 @@ class GlobalBlockRepositoryMixin:
 
         async def _require_engine(self) -> AsyncEngine: ...
         def _row_to_block(self, row: Mapping[str, Any]) -> GlobalBlock: ...
-        def _row_to_block_version(self, row: Mapping[str, Any]) -> GlobalBlockVersion: ...
-
+        def _row_to_block_version(
+            self, row: Mapping[str, Any]
+        ) -> GlobalBlockVersion: ...
     async def list_global_blocks(
         self,
         *,
@@ -47,13 +48,16 @@ class GlobalBlockRepositoryMixin:
         locale: str | None = None,
         query: str | None = None,
         has_draft: bool | None = None,
+        requires_publisher: bool | None = None,
+        review_status: PageReviewStatus | None = None,
         sort: str = "updated_at_desc",
     ) -> tuple[list[GlobalBlock], int]:
         engine = await self._require_engine()
         offset = max(page - 1, 0) * page_size
 
-        draft_gt_published = SITE_GLOBAL_BLOCKS_TABLE.c.draft_version > sa.func.coalesce(
-            SITE_GLOBAL_BLOCKS_TABLE.c.published_version, 0
+        draft_gt_published = (
+            SITE_GLOBAL_BLOCKS_TABLE.c.draft_version
+            > sa.func.coalesce(SITE_GLOBAL_BLOCKS_TABLE.c.published_version, 0)
         )
         has_draft_expr = sa.case(
             (draft_gt_published, True),
@@ -62,7 +66,10 @@ class GlobalBlockRepositoryMixin:
         usage_count_expr = (
             sa.select(sa.func.count())
             .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
-            .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == SITE_GLOBAL_BLOCKS_TABLE.c.id)
+            .where(
+                SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id
+                == SITE_GLOBAL_BLOCKS_TABLE.c.id
+            )
             .correlate(SITE_GLOBAL_BLOCKS_TABLE)
             .scalar_subquery()
         )
@@ -89,6 +96,14 @@ class GlobalBlockRepositoryMixin:
                     else_=False,
                 )
                 == has_draft
+            )
+        if requires_publisher is True:
+            filters.append(SITE_GLOBAL_BLOCKS_TABLE.c.requires_publisher.is_(True))
+        elif requires_publisher is False:
+            filters.append(SITE_GLOBAL_BLOCKS_TABLE.c.requires_publisher.is_(False))
+        if review_status:
+            filters.append(
+                SITE_GLOBAL_BLOCKS_TABLE.c.review_status == review_status.value
             )
 
         stmt = sa.select(
@@ -156,7 +171,11 @@ class GlobalBlockRepositoryMixin:
             current_version = result.scalar_one_or_none()
             if current_version is None:
                 raise SiteRepositoryError("site_global_block_not_found")
-            if current_version is not None and version is not None and current_version != version:
+            if (
+                current_version is not None
+                and version is not None
+                and current_version != version
+            ):
                 raise SiteRepositoryError("site_global_block_version_conflict")
             draft_version = (current_version or 0) + 1
             await conn.execute(
@@ -275,7 +294,8 @@ class GlobalBlockRepositoryMixin:
                     .where(
                         sa.and_(
                             SITE_GLOBAL_BLOCK_VERSIONS_TABLE.c.block_id == block_id,
-                            SITE_GLOBAL_BLOCK_VERSIONS_TABLE.c.version == block.published_version,
+                            SITE_GLOBAL_BLOCK_VERSIONS_TABLE.c.version
+                            == block.published_version,
                         )
                     )
                     .limit(1)
@@ -319,13 +339,29 @@ class GlobalBlockRepositoryMixin:
                     review_status=PageReviewStatus.NONE.value,
                 )
             )
+            usage_rows = await self._fetch_block_usage_rows(conn, block_id)
             await conn.execute(
                 SITE_AUDIT_LOG_TABLE.insert().values(
                     id=audit_id,
                     entity_type="global_block",
                     entity_id=block_id,
                     action="publish",
-                    snapshot={"version": next_version, "comment": comment, "diff": diff_to_store},
+                    snapshot={
+                        "version": next_version,
+                        "comment": comment,
+                        "diff": diff_to_store,
+                        "usage": [
+                            {
+                                "page_id": str(row["page_id"]),
+                                "slug": row["slug"],
+                                "title": row["title"],
+                                "owner": row.get("owner"),
+                                "status": row.get("status"),
+                                "section": row["section"],
+                            }
+                            for row in usage_rows
+                        ],
+                    },
                     actor=actor,
                     created_at=now,
                 )
@@ -338,7 +374,10 @@ class GlobalBlockRepositoryMixin:
         usage_subquery = (
             sa.select(sa.func.count())
             .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
-            .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == SITE_GLOBAL_BLOCKS_TABLE.c.id)
+            .where(
+                SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id
+                == SITE_GLOBAL_BLOCKS_TABLE.c.id
+            )
             .scalar_subquery()
         )
         async with engine.begin() as conn:
@@ -374,7 +413,9 @@ class GlobalBlockRepositoryMixin:
             total = int(total_result.scalar_one())
         return [self._row_to_block_version(row) for row in rows], total
 
-    async def get_global_block_version(self, block_id: UUID, version: int) -> GlobalBlockVersion:
+    async def get_global_block_version(
+        self, block_id: UUID, version: int
+    ) -> GlobalBlockVersion:
         engine = await self._require_engine()
         async with engine.connect() as conn:
             stmt = (
@@ -429,34 +470,7 @@ class GlobalBlockRepositoryMixin:
     ) -> list[GlobalBlockUsage]:
         engine = await self._require_engine()
         async with engine.connect() as conn:
-            versions_alias = sa.alias(SITE_PAGE_VERSIONS_TABLE, name="pv")
-            stmt = (
-                sa.select(
-                    SITE_GLOBAL_BLOCK_USAGE_TABLE,
-                    SITE_PAGES_TABLE.c.slug,
-                    SITE_PAGES_TABLE.c.title,
-                    SITE_PAGES_TABLE.c.status,
-                    SITE_PAGES_TABLE.c.locale,
-                    SITE_PAGES_TABLE.c.draft_version,
-                    SITE_PAGES_TABLE.c.published_version,
-                    versions_alias.c.published_at.label("last_published_at"),
-                )
-                .join(
-                    SITE_PAGES_TABLE,
-                    SITE_PAGES_TABLE.c.id == SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id,
-                )
-                .outerjoin(
-                    versions_alias,
-                    sa.and_(
-                        versions_alias.c.page_id == SITE_PAGES_TABLE.c.id,
-                        versions_alias.c.version == SITE_PAGES_TABLE.c.published_version,
-                    ),
-                )
-            )
-            stmt = stmt.where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == block_id)
-            if section:
-                stmt = stmt.where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section == section)
-            result = await conn.execute(stmt)
+            rows = await self._fetch_block_usage_rows(conn, block_id, section=section)
             return [
                 GlobalBlockUsage(
                     block_id=row["block_id"],
@@ -466,11 +480,51 @@ class GlobalBlockRepositoryMixin:
                     title=row["title"],
                     status=PageStatus(row["status"]),
                     locale=row["locale"],
-                    has_draft=(row.get("draft_version") or 0) > (row.get("published_version") or 0),
+                    has_draft=(row.get("draft_version") or 0)
+                    > (row.get("published_version") or 0),
                     last_published_at=row.get("last_published_at"),
+                    owner=row.get("owner"),
                 )
-                for row in result.mappings().all()
+                for row in rows
             ]
+
+    async def _fetch_block_usage_rows(
+        self,
+        conn: Any,
+        block_id: UUID,
+        *,
+        section: str | None = None,
+    ) -> list[Mapping[str, Any]]:
+        versions_alias = sa.alias(SITE_PAGE_VERSIONS_TABLE, name="pv")
+        stmt = (
+            sa.select(
+                SITE_GLOBAL_BLOCK_USAGE_TABLE,
+                SITE_PAGES_TABLE.c.slug,
+                SITE_PAGES_TABLE.c.title,
+                SITE_PAGES_TABLE.c.status,
+                SITE_PAGES_TABLE.c.locale,
+                SITE_PAGES_TABLE.c.owner,
+                SITE_PAGES_TABLE.c.draft_version,
+                SITE_PAGES_TABLE.c.published_version,
+                versions_alias.c.published_at.label("last_published_at"),
+            )
+            .join(
+                SITE_PAGES_TABLE,
+                SITE_PAGES_TABLE.c.id == SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id,
+            )
+            .outerjoin(
+                versions_alias,
+                sa.and_(
+                    versions_alias.c.page_id == SITE_PAGES_TABLE.c.id,
+                    versions_alias.c.version == SITE_PAGES_TABLE.c.published_version,
+                ),
+            )
+            .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == block_id)
+        )
+        if section:
+            stmt = stmt.where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section == section)
+        result = await conn.execute(stmt)
+        return result.mappings().all()
 
 
 __all__ = ["GlobalBlockRepositoryMixin"]

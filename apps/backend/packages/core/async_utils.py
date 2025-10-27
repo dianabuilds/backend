@@ -6,11 +6,39 @@ from collections.abc import Coroutine
 from concurrent.futures import Future
 from typing import Any, TypeVar
 
+try:
+    import anyio
+except ImportError:  # pragma: no cover - optional dependency
+    anyio = None  # type: ignore[assignment]
+
 _T = TypeVar("_T")
 
 _LOOP_LOCK = threading.Lock()
 _BACKGROUND_LOOP: asyncio.AbstractEventLoop | None = None
 _BACKGROUND_THREAD: threading.Thread | None = None
+_THREAD_STATE = threading.local()
+
+
+async def _probe_anyio_worker() -> bool:
+    return True
+
+
+def _in_anyio_worker() -> bool:
+    if anyio is None:
+        return False
+    cached = getattr(_THREAD_STATE, "anyio_worker", None)
+    if cached is not None:
+        return bool(cached)
+    try:
+        anyio.from_thread.run(_probe_anyio_worker)
+    except RuntimeError as exc:
+        if str(exc) != "This function can only be run from an AnyIO worker thread":
+            raise
+        cached = False
+    else:
+        cached = True
+    _THREAD_STATE.anyio_worker = cached
+    return bool(cached)
 
 
 def _ensure_background_loop() -> asyncio.AbstractEventLoop:
@@ -41,6 +69,13 @@ def run_sync(
 ) -> _T:
     """Execute an async coroutine on a background event loop synchronously."""
 
+    if loop is None and _in_anyio_worker():
+
+        async def _runner() -> _T:
+            return await coro
+
+        return anyio.from_thread.run(_runner)
+
     target_loop = loop or _ensure_background_loop()
     try:
         running_loop = asyncio.get_running_loop()
@@ -56,6 +91,14 @@ def submit_async(
     coro: Coroutine[Any, Any, Any], *, loop: asyncio.AbstractEventLoop | None = None
 ) -> None:
     """Schedule a coroutine on the background loop without waiting for completion."""
+
+    if loop is None and _in_anyio_worker():
+
+        def _schedule() -> None:
+            asyncio.get_running_loop().create_task(coro)
+
+        anyio.from_thread.run_sync(_schedule)
+        return
 
     target_loop = loop or _ensure_background_loop()
     asyncio.run_coroutine_threadsafe(coro, target_loop)

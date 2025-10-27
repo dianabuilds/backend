@@ -149,13 +149,15 @@ class InMemoryNotificationRepository(INotificationRepository):
         placement: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], int, int]:
         filtered = [
             rec
             for rec in self._receipts.values()
             if rec["user_id"] == str(user_id)
             and (placement is None or rec["placement"] == placement)
         ]
+        total = len(filtered)
+        unread_total = sum(1 for rec in filtered if not rec.get("read_at"))
         priority_order = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
         filtered.sort(
             key=lambda rec: (
@@ -167,7 +169,8 @@ class InMemoryNotificationRepository(INotificationRepository):
         filtered.sort(key=lambda rec: rec.get("created_at", _now()), reverse=True)
         slice_start = max(0, int(offset))
         slice_end = slice_start + max(0, int(limit))
-        return [dict(rec) for rec in filtered[slice_start:slice_end]]
+        items = [dict(rec) for rec in filtered[slice_start:slice_end]]
+        return items, total, unread_total
 
     async def mark_read(self, user_id: str, notif_id: str) -> dict[str, Any] | None:
         record = self._receipts.get(str(notif_id))
@@ -176,6 +179,33 @@ class InMemoryNotificationRepository(INotificationRepository):
         if record.get("read_at") is None:
             record["read_at"] = _now()
             record["updated_at"] = record["read_at"]
+        return dict(record)
+
+
+class InMemoryNotificationConfigRepository:
+    def __init__(self) -> None:
+        self._store: dict[str, dict[str, Any]] = {}
+
+    async def get_retention(self) -> dict[str, Any] | None:
+        record = self._store.get("retention")
+        if record is None:
+            return None
+        return dict(record)
+
+    async def upsert_retention(
+        self,
+        *,
+        retention_days: int | None,
+        max_per_user: int | None,
+        actor_id: str | None,
+    ) -> dict[str, Any]:
+        record = {
+            "retention_days": retention_days,
+            "max_per_user": max_per_user,
+            "updated_at": _now().isoformat(),
+            "updated_by": actor_id,
+        }
+        self._store["retention"] = record
         return dict(record)
 
 

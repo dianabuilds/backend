@@ -21,14 +21,15 @@ if (container) {
     </React.StrictMode>
   );
 
-  if (container.hasChildNodes()) {
+  const hasSSRMarkup = container.childElementCount > 0;
+  if (hasSSRMarkup) {
     hydrateRoot(container, app);
   } else {
     createRoot(container).render(app);
   }
 }
 
-if (typeof window !== "undefined" && window.__INITIAL_DATA__) {
+if (typeof window !== 'undefined' && window.__INITIAL_DATA__) {
   delete window.__INITIAL_DATA__;
 }
 

@@ -186,7 +186,7 @@ export function ContentNodesList(): React.ReactElement {
     setError,
     refresh,
   } = usePaginatedQuery<NodeItem, NodesListResult>({
-    initialPageSize: 20,
+    initialPageSize: 10,
     dependencies: [q, slugQuery, status, sort, order, authorId, devBlogOnly, enrichAuthorNames],
     debounceMs: 250,
     fetcher: async ({ page: currentPage, pageSize: size, signal }) => {

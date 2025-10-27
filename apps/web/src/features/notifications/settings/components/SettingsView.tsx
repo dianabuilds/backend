@@ -1,463 +1,307 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Switch, Input, Select, Badge, Spinner } from '@ui';
+import { Badge, Button, Card, Select, Spinner, Switch } from '@ui';
 import { SettingsLayout } from '@shared/settings/SettingsLayout';
-import { WalletConnectionCard } from '@shared/settings/WalletConnectionCard';
 import { useSettingsIdempotencyHeader } from '@shared/settings';
+import { WalletConnectionCard } from '@shared/settings/WalletConnectionCard';
 import { extractErrorMessage } from '@shared/utils/errors';
 import { makeIdempotencyKey } from '@shared/utils/idempotency';
 import { fetchNotificationPreferences, updateNotificationPreferences } from '@shared/api/notifications';
-import type { NotificationPreferenceValue } from '@shared/types/notifications';
+import type { NotificationPreferences } from '@shared/types/notifications';
 
-type PreferenceValue = NotificationPreferenceValue;
-type PreferenceState = Record<string, PreferenceValue>;
+type PreferencesMap = NotificationPreferences;
 
-type ChannelConfigInput = {
-  type: 'input';
-  field: string;
-  label: string;
-  placeholder?: string;
-  helper?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
-  pattern?: string;
+type TopicMeta = {
+  category?: string;
+  display_name?: string;
+  description?: string | null;
+  position?: number;
 };
 
-type ChannelConfigSelect = {
-  type: 'select';
-  field: string;
-  label: string;
-  options: Array<{ value: string; label: string }>;
+type ChannelMeta = {
+  category?: string;
+  display_name?: string;
+  description?: string | null;
+  supports_digest?: boolean;
+  requires_consent?: boolean;
+  position?: number;
 };
 
-type ChannelConfig = ChannelConfigInput | ChannelConfigSelect;
+type ChannelState = {
+  opt_in: boolean;
+  digest?: string | null;
+  locked?: boolean;
+  delivery?: string;
+  supports_digest?: boolean;
+  requires_consent?: boolean;
+};
 
-type ChannelDefinition = {
+type TopicView = {
   key: string;
   label: string;
-  icon: string;
-  description: string;
-  helper?: string;
-  recommended?: boolean;
-  locked?: boolean;
-  beta?: boolean;
-  soon?: boolean;
-  defaultEnabled?: boolean;
-  defaultConfig?: Record<string, any>;
-  config?: ChannelConfig;
-  testable?: boolean;
+  description?: string | null;
+  channels: ChannelView[];
 };
 
-type ChannelGroup = {
-  title: string;
-  description: string;
-  channels: ChannelDefinition[];
+type ChannelView = {
+  topicKey: string;
+  key: string;
+  label: string;
+  description?: string | null;
+  optIn: boolean;
+  locked: boolean;
+  delivery: string;
+  supportsDigest: boolean;
+  requiresConsent: boolean;
+  digest?: string | null;
 };
 
-const digestOptions = [
-  { value: 'instant', label: 'Instant' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-];
-
-const CHANNEL_GROUPS: ChannelGroup[] = [
-  {
-    title: 'In-app notifications',
-    description: 'Keep important updates visible inside Caves.',
-    channels: [
-      {
-        key: 'inbox.critical',
-        label: 'In-app critical alerts',
-        icon: 'IN',
-        description: 'Security, billing and availability incidents delivered in the product.',
-        helper: 'Required for audit trails and access recovery.',
-        locked: true,
-        defaultEnabled: true,
-      },
-      {
-        key: 'inbox.activity',
-        label: 'In-app activity',
-        icon: 'IA',
-        description: 'Mentions, comments and collaboration updates from your spaces.',
-        defaultEnabled: true,
-      },
-      {
-        key: 'inbox.product',
-        label: 'Product highlights',
-        icon: 'PR',
-        description: 'Product tips, release notes and feature announcements.',
-        defaultEnabled: false,
-      },
-    ],
-  },
-  {
-    title: 'Email notifications',
-    description: 'Messages sent to your inbox when you are away from Caves.',
-    channels: [
-      {
-        key: 'email.security',
-        label: 'Security alerts',
-        icon: 'EM',
-        description: 'Sign-in attempts, billing failures and policy actions.',
-        recommended: true,
-        defaultEnabled: true,
-      },
-      {
-        key: 'email.digest',
-        label: 'Digest summary',
-        icon: 'DG',
-        description: 'A digest of site news and content updates.',
-        helper: 'Choose how often you receive round-ups.',
-        recommended: true,
-        defaultEnabled: true,
-        defaultConfig: { frequency: 'daily' },
-        config: {
-          type: 'select',
-          field: 'frequency',
-          label: 'Digest frequency',
-          options: digestOptions,
-        },
-        testable: true,
-      },
-      {
-        key: 'email.news',
-        label: 'Product announcements',
-        icon: 'PN',
-        description: 'Occasional product updates, roadmap notes and change logs.',
-        defaultEnabled: false,
-      },
-      {
-        key: 'email.content',
-        label: 'Content updates',
-        icon: 'CU',
-        description: 'New quests, community drops and publishing milestones.',
-        defaultEnabled: false,
-      },
-    ],
-  },
-  {
-    title: 'Integrations (coming soon)',
-    description: 'We are preparing ChatOps and automation hooks.',
-    channels: [
-      {
-        key: 'slack.channel',
-        label: 'Slack channel',
-        icon: 'SL',
-        description: 'Send alerts to Slack workspaces once the integration opens.',
-        helper: 'We will share setup instructions with beta testers first.',
-        beta: true,
-        soon: true,
-      },
-      {
-        key: 'telegram.direct',
-        label: 'Telegram direct',
-        icon: 'TG',
-        description: 'Receive direct messages from our Telegram bot when the beta launches.',
-        helper: 'Request access in the operator chat to join the pilot.',
-        beta: true,
-        soon: true,
-      },
-      {
-        key: 'webhook.automation',
-        label: 'Custom webhook',
-        icon: 'WB',
-        description: 'Signed JSON payloads for automation workflows.',
-        helper: 'Will launch for system actions before we roll it out widely.',
-        beta: true,
-        soon: true,
-      },
-    ],
-  },
-];
-
-const ALL_CHANNELS = CHANNEL_GROUPS.flatMap((group) => group.channels);
-const ACTIVE_CHANNELS = ALL_CHANNELS.filter((channel) => !channel.soon);
-const LOCKED_CHANNEL_KEYS = new Set(
-  ACTIVE_CHANNELS.filter((channel) => channel.locked).map((channel) => channel.key),
-);
-const TOTAL_KNOWN_CHANNELS = ACTIVE_CHANNELS.length;
-
-function clonePreferenceValue(value: PreferenceValue | undefined): PreferenceValue {
-  return {
-    enabled: value?.enabled ?? false,
-    config: value?.config ? { ...value.config } : undefined,
-  };
+function deepClone<T>(value: T): T {
+  if (value == null) return value;
+  return JSON.parse(JSON.stringify(value));
 }
 
-function clonePreferences(source: PreferenceState): PreferenceState {
-  const next: PreferenceState = {};
-  for (const [key, value] of Object.entries(source)) {
-    next[key] = clonePreferenceValue(value);
-  }
-  return next;
-}
-
-function sanitizeConfig(config: Record<string, any> | undefined): Record<string, any> {
-  if (!config) return {};
-  const entries = Object.entries(config)
-    .map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v])
-    .filter(([, v]) => v !== undefined && v !== null && `${v}`.trim().length);
-  return Object.fromEntries(entries);
-}
-
-function parsePreferenceValue(raw: unknown, key: string): PreferenceValue {
-  if (raw && typeof raw === 'object') {
-    const cast = raw as Record<string, any>;
-    if (typeof cast.enabled === 'boolean') {
-      const { enabled, config, ...rest } = cast;
-      const mergedConfig = typeof config === 'object' && config ? { ...config } : { ...rest };
-      const sanitized = sanitizeConfig(mergedConfig);
-      const normalized: PreferenceValue = { enabled, config: Object.keys(sanitized).length ? sanitized : undefined };
-      if (LOCKED_CHANNEL_KEYS.has(key)) normalized.enabled = true;
-      return normalized;
+function buildPayload(preferences: PreferencesMap): PreferencesMap {
+  const payload: PreferencesMap = {};
+  for (const [topicKey, topicValue] of Object.entries(preferences)) {
+    if (topicKey.startsWith('__')) continue;
+    if (!topicValue || typeof topicValue !== 'object') continue;
+    const topicPayload: Record<string, any> = {};
+    for (const [channelKey, raw] of Object.entries(topicValue as Record<string, any>)) {
+      if (!raw || typeof raw !== 'object') continue;
+      const entry: Record<string, any> = {};
+      if ('opt_in' in raw) entry.opt_in = Boolean((raw as ChannelState).opt_in);
+      if ('digest' in raw && (raw as ChannelState).digest) entry.digest = (raw as ChannelState).digest;
+      if ('quiet_hours' in raw) entry.quiet_hours = (raw as any).quiet_hours;
+      topicPayload[channelKey] = entry;
     }
-    if ('value' in cast && typeof cast.value === 'boolean') {
-      return { enabled: Boolean(cast.value) };
-    }
-  }
-  const fallback: PreferenceValue = { enabled: Boolean(raw) };
-  if (LOCKED_CHANNEL_KEYS.has(key)) fallback.enabled = true;
-  return fallback;
-}
-
-function mergePreferences(base: PreferenceState, incoming?: Record<string, any>): PreferenceState {
-  const merged = clonePreferences(base);
-  if (incoming && typeof incoming === 'object') {
-    for (const [key, raw] of Object.entries(incoming)) {
-      merged[key] = parsePreferenceValue(raw, key);
-    }
-  }
-  return merged;
-}
-
-function buildPayload(state: PreferenceState): Record<string, any> {
-  const payload: Record<string, any> = {};
-  for (const [key, value] of Object.entries(state)) {
-    const config = sanitizeConfig(value.config as Record<string, any> | undefined);
-    if (Object.keys(config).length) {
-      payload[key] = { enabled: value.enabled, ...config };
-    } else {
-      payload[key] = value.enabled;
+    if (Object.keys(topicPayload).length) {
+      payload[topicKey] = topicPayload;
     }
   }
   return payload;
 }
 
-function preferenceEqual(a: PreferenceValue, b: PreferenceValue): boolean {
-  if (a.enabled !== b.enabled) return false;
-  const aConfig = sanitizeConfig(a.config as Record<string, any> | undefined);
-  const bConfig = sanitizeConfig(b.config as Record<string, any> | undefined);
-  const keys = new Set([...Object.keys(aConfig), ...Object.keys(bConfig)]);
-  for (const key of keys) {
-    if ((aConfig[key] ?? '') !== (bConfig[key] ?? '')) return false;
-  }
-  return true;
+function useRetentionConfig(): { days: number; maxPerUser: number } {
+  const daysRaw = (import.meta as any).env?.VITE_NOTIFICATIONS_RETENTION_DAYS;
+  const maxRaw = (import.meta as any).env?.VITE_NOTIFICATIONS_MAX_PER_USER;
+  const days = Number.parseInt(daysRaw ?? '', 10);
+  const maxPerUser = Number.parseInt(maxRaw ?? '', 10);
+  return {
+    days: Number.isFinite(days) && days > 0 ? days : 90,
+    maxPerUser: Number.isFinite(maxPerUser) && maxPerUser > 0 ? maxPerUser : 200,
+  };
 }
 
-const DEFAULT_PREFERENCES: PreferenceState = (() => {
-  const initial: PreferenceState = {};
-  for (const group of CHANNEL_GROUPS) {
-    for (const channel of group.channels) {
-      initial[channel.key] = {
-        enabled: channel.locked ? true : channel.defaultEnabled ?? false,
-        config: channel.defaultConfig ? { ...channel.defaultConfig } : undefined,
+const DELIVERY_BADGES: Record<string, { color: 'info' | 'primary' | 'neutral'; label: string }> = {
+  mandatory: { color: 'info', label: 'Required' },
+  default_on: { color: 'primary', label: 'Default on' },
+  opt_in: { color: 'neutral', label: 'Opt-in' },
+};
+
+const DIGEST_OPTIONS = [
+  { value: 'instant', label: 'Instant' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'none', label: 'Disabled' },
+];
+
+function deriveTopics(preferences: PreferencesMap | null): TopicView[] {
+  if (!preferences) return [];
+  const topicsMeta = (preferences['__topics'] ?? {}) as Record<string, TopicMeta>;
+  const channelsMeta = (preferences['__channels'] ?? {}) as Record<string, ChannelMeta>;
+  return Object.keys(topicsMeta)
+    .sort((a, b) => {
+      const left = topicsMeta[a]?.position ?? 0;
+      const right = topicsMeta[b]?.position ?? 0;
+      return left - right;
+    })
+    .map((topicKey) => {
+      const topicEntry = topicsMeta[topicKey] ?? {};
+      const rawChannels = (preferences[topicKey] as Record<string, any>) ?? {};
+      const channels = Object.keys(rawChannels)
+        .sort((a, b) => {
+          const left = channelsMeta[a]?.position ?? 0;
+          const right = channelsMeta[b]?.position ?? 0;
+          return left - right;
+        })
+        .map((channelKey) => {
+          const meta = channelsMeta[channelKey] ?? {};
+          const raw = (rawChannels[channelKey] ?? {}) as ChannelState;
+          return {
+            topicKey,
+            key: channelKey,
+            label: meta.display_name ?? channelKey,
+            description: meta.description,
+            optIn: !!raw.opt_in,
+            locked: !!raw.locked,
+            delivery: raw.delivery ?? 'opt_in',
+            supportsDigest: Boolean(raw.supports_digest),
+            requiresConsent: Boolean(raw.requires_consent ?? meta.requires_consent),
+            digest: raw.digest ?? null,
+          };
+        });
+      return {
+        key: topicKey,
+        label: topicEntry.display_name ?? topicKey,
+        description: topicEntry.description,
+        channels,
       };
-    }
-  }
-  return initial;
-})();
+    })
+    .filter((topic) => topic.channels.length > 0);
+}
 
 export default function NotificationSettingsView(): React.ReactElement {
-  const idempotencyHeader = useSettingsIdempotencyHeader();
   const navigate = useNavigate();
+  const idempotencyHeader = useSettingsIdempotencyHeader();
+  const { days, maxPerUser } = useRetentionConfig();
 
-  const [preferences, setPreferences] = React.useState<PreferenceState>(() => clonePreferences(DEFAULT_PREFERENCES));
+  const [preferences, setPreferences] = React.useState<PreferencesMap | null>(null);
+  const [baseline, setBaseline] = React.useState<PreferencesMap | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
-  const [etag, setEtag] = React.useState<string | null>(null);
   const [flash, setFlash] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [etag, setEtag] = React.useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
-
-  const channelMap = React.useMemo(() => {
-    const map: Record<string, ChannelDefinition> = {};
-    CHANNEL_GROUPS.forEach((group) => {
-      group.channels.forEach((channel) => {
-        map[channel.key] = channel;
-      });
-    });
-    return map;
-  }, []);
 
   const loadPreferences = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const { preferences: fetched, etag: nextEtag } = await fetchNotificationPreferences();
-      const merged = mergePreferences(DEFAULT_PREFERENCES, fetched);
-      setPreferences(merged);
+      const next = deepClone(fetched);
+      setPreferences(next);
+      setBaseline(deepClone(next));
       setDirty(false);
       setEtag(nextEtag);
     } catch (err) {
       const message = extractErrorMessage(err, 'Failed to load notification preferences');
-      const friendly = message?.startsWith('Request failed')
-        ? 'Notification preferences are temporarily unavailable.'
-        : message;
-      setError(friendly);
+      setError(
+        message?.startsWith('Request failed')
+          ? 'Notification preferences are temporarily unavailable.'
+          : message,
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    loadPreferences();
+    void loadPreferences();
   }, [loadPreferences]);
 
   React.useEffect(() => {
     if (!flash) return;
-    const id = window.setTimeout(() => setFlash(null), 3500);
-    return () => window.clearTimeout(id);
+    const timer = window.setTimeout(() => setFlash(null), 3500);
+    return () => window.clearTimeout(timer);
   }, [flash]);
 
-  const enabledCount = React.useMemo(() => {
-    return ACTIVE_CHANNELS.reduce((total, channel) => (preferences[channel.key]?.enabled ? total + 1 : total), 0);
-  }, [preferences]);
-
+  const topics = React.useMemo(() => deriveTopics(preferences), [preferences]);
+  const totalChannels = React.useMemo(
+    () => topics.reduce((total, topic) => total + topic.channels.length, 0),
+    [topics],
+  );
+  const activeChannels = React.useMemo(
+    () => topics.reduce((total, topic) => total + topic.channels.filter((c) => c.optIn).length, 0),
+    [topics],
+  );
   const digestFrequency = React.useMemo(() => {
-    const digestPref = preferences['email.digest'];
-    if (!digestPref?.enabled) return 'Disabled';
-    const value = digestPref.config?.frequency as string | undefined;
-    return digestOptions.find((opt) => opt.value === value)?.label || 'Daily';
-  }, [preferences]);
+    for (const topic of topics) {
+      for (const channel of topic.channels) {
+        if (channel.supportsDigest && channel.optIn) {
+          const entry = DIGEST_OPTIONS.find((option) => option.value === channel.digest);
+          return entry?.label ?? 'Daily';
+        }
+      }
+    }
+    return 'Disabled';
+  }, [topics]);
 
   const lastSavedLabel = React.useMemo(() => {
     if (!lastSavedAt) return 'Not yet saved';
     return new Date(lastSavedAt).toLocaleString();
   }, [lastSavedAt]);
 
-  const handleToggle = React.useCallback(
-    (key: string, nextEnabled: boolean) => {
-      const channel = channelMap[key];
-      if (channel?.locked) return;
-      let changed = false;
+  const updateChannel = React.useCallback(
+    (topicKey: string, channelKey: string, updater: (channel: ChannelState) => ChannelState) => {
       setPreferences((prev) => {
-        const current = clonePreferenceValue(prev[key]);
-        if (current.enabled === nextEnabled) return prev;
-        changed = true;
-        return { ...prev, [key]: { ...current, enabled: nextEnabled } };
+        if (!prev) return prev;
+        const next = deepClone(prev);
+        const topic = (next[topicKey] as Record<string, any>) ?? {};
+        const current = (topic[channelKey] as ChannelState) ?? {};
+        topic[channelKey] = updater({ ...current });
+        next[topicKey] = topic;
+        return next;
       });
-      if (changed) {
-        setDirty(true);
-        setFlash(null);
-      }
-    },
-    [channelMap],
-  );
-
-  const handleConfigChange = React.useCallback((key: string, field: string, value: string) => {
-    let changed = false;
-    setPreferences((prev) => {
-      const current = clonePreferenceValue(prev[key]);
-      const nextConfig = { ...(current.config || {}), [field]: value };
-      const next: PreferenceValue = { enabled: current.enabled, config: nextConfig };
-      if (preferenceEqual(current, next)) return prev;
-      changed = true;
-      return { ...prev, [key]: next };
-    });
-    if (changed) {
       setDirty(true);
       setFlash(null);
-    }
-  }, []);
+    },
+    [],
+  );
+
+  const handleToggle = React.useCallback(
+    (topicKey: string, channelKey: string, locked: boolean, enabled: boolean) => {
+      if (locked) return;
+      updateChannel(topicKey, channelKey, (channel) => ({
+        ...channel,
+        opt_in: enabled,
+      }));
+    },
+    [updateChannel],
+  );
+
+  const handleDigestChange = React.useCallback(
+    (topicKey: string, channelKey: string, value: string) => {
+      updateChannel(topicKey, channelKey, (channel) => ({
+        ...channel,
+        digest: value,
+        opt_in: channel.locked ? true : channel.opt_in ?? true,
+      }));
+    },
+    [updateChannel],
+  );
 
   const savePreferences = React.useCallback(async () => {
-    if (saving || !dirty) return;
+    if (saving || !dirty || !preferences) return;
     setSaving(true);
     setError(null);
     try {
+      const payload = buildPayload(preferences);
       const headers: Record<string, string> = { [idempotencyHeader]: makeIdempotencyKey() };
       if (etag) headers['If-Match'] = etag;
-      const payload = buildPayload(preferences);
-      const { preferences: updated, etag: nextEtag } = await updateNotificationPreferences(payload, { headers });
-      const merged = mergePreferences(preferences, updated);
-      setPreferences(merged);
-      setEtag(nextEtag);
+      const { preferences: updated, etag: nextEtag } = await updateNotificationPreferences(payload, {
+        headers,
+      });
+      const next = deepClone(updated);
+      setPreferences(next);
+      setBaseline(deepClone(next));
       setDirty(false);
+      setEtag(nextEtag);
       setLastSavedAt(Date.now());
       setFlash('Preferences saved.');
     } catch (err) {
-      const message = extractErrorMessage(err, 'Failed to save preferences');
-      const friendly = message?.startsWith('Request failed') ? 'Unable to save preferences right now.' : message;
-      setError(friendly);
+      const message = extractErrorMessage(err, 'Failed to save notification preferences');
+      setError(
+        message?.startsWith('Request failed')
+          ? 'Unable to save preferences right now.'
+          : message,
+      );
     } finally {
       setSaving(false);
     }
   }, [dirty, etag, idempotencyHeader, preferences, saving]);
 
-  const resetToDefaults = React.useCallback(() => {
-    setPreferences((prev) => {
-      const base = clonePreferences(DEFAULT_PREFERENCES);
-      for (const [key, value] of Object.entries(prev)) {
-        if (!(key in base)) {
-          base[key] = clonePreferenceValue(value);
-        }
-      }
-      return base;
-    });
-    setDirty(true);
-    setFlash('Restored recommended defaults. Remember to save.');
+  const resetChanges = React.useCallback(() => {
+    setPreferences(baseline ? deepClone(baseline) : baseline);
+    setDirty(false);
+    setFlash(null);
+  }, [baseline]);
+
+  const handleSendTest = React.useCallback((label: string) => {
+    setFlash(`Queued a test notification via ${label}.`);
   }, []);
-
-  const handleSendTest = React.useCallback(
-    (key: string) => {
-      const label = channelMap[key]?.label || key;
-      setFlash('Queued a test notification via ' + label + '.');
-    },
-    [channelMap],
-  );
-
-  const renderChannelConfig = React.useCallback(
-    (channel: ChannelDefinition, pref: PreferenceValue, isEnabled: boolean) => {
-      const config = channel.config;
-      if (!config) return null;
-      const disabled = channel.locked ? false : !isEnabled;
-      if (config.type === 'select') {
-        const selectValue = (pref.config?.[config.field] as string | undefined) ?? config.options[0]?.value ?? '';
-        return (
-          <div className="mt-3 max-w-sm">
-            <Select
-              label={config.label}
-              value={selectValue}
-              onChange={(event) => handleConfigChange(channel.key, config.field, event.target.value)}
-              disabled={disabled}
-            >
-              {config.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-        );
-      }
-      const inputValue = (pref.config?.[config.field] as string | undefined) ?? '';
-      return (
-        <div className="mt-3 max-w-sm space-y-2">
-          <Input
-            label={config.label}
-            value={inputValue}
-            onChange={(event) => handleConfigChange(channel.key, config.field, event.target.value)}
-            placeholder={config.placeholder}
-            inputMode={config.inputMode}
-            pattern={config.pattern}
-            disabled={disabled}
-          />
-          {config.helper && <p className="text-[11px] text-gray-400">{config.helper}</p>}
-        </div>
-      );
-    },
-    [handleConfigChange],
-  );
 
   const errorBanner = error ? (
     <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
@@ -472,12 +316,16 @@ export default function NotificationSettingsView(): React.ReactElement {
       <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
         <div className="flex items-start justify-between">
           <h2 className="text-sm font-semibold text-gray-700">Snapshot</h2>
-          <Badge color="neutral" variant="soft">Overview</Badge>
+          <Badge color="neutral" variant="soft">
+            Overview
+          </Badge>
         </div>
         <div className="space-y-3 text-sm text-gray-600">
           <div className="flex items-center justify-between">
             <span>Active channels</span>
-            <span className="font-semibold text-gray-900">{enabledCount}/{TOTAL_KNOWN_CHANNELS}</span>
+            <span className="font-semibold text-gray-900">
+              {activeChannels}/{totalChannels}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span>Email digest</span>
@@ -493,7 +341,9 @@ export default function NotificationSettingsView(): React.ReactElement {
       <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-gray-700">More settings</h2>
-          <p className="text-xs text-gray-500">Quickly switch between profile, security and billing without leaving notifications.</p>
+          <p className="text-xs text-gray-500">
+            Jump between profile, security and billing without leaving notifications.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" size="sm" variant="ghost" color="neutral" onClick={() => navigate('/profile')}>
@@ -513,11 +363,11 @@ export default function NotificationSettingsView(): React.ReactElement {
   return (
     <SettingsLayout
       title="Personal delivery settings"
-      description="Tune how we reach you across in-app and email channels."
+      description={`Tune how and where we reach you. Inbox keeps notifications for ${days} days (latest ${maxPerUser} entries).`}
       error={errorBanner}
       side={sidePanel}
     >
-      {loading ? (
+      {loading || !preferences ? (
         <Card className="flex flex-1 items-center gap-3 p-6 text-sm text-gray-500">
           <Spinner size="sm" /> Loading notification preferences...
         </Card>
@@ -529,21 +379,29 @@ export default function NotificationSettingsView(): React.ReactElement {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-gray-900">Notification channels</h2>
-              <p className="text-sm text-gray-500">Enable the touchpoints that work best for your team.</p>
+              <p className="text-sm text-gray-500">
+                Enable the touchpoints that work best for your team. Required channels are always on.
+              </p>
             </div>
             <div className="flex flex-col items-end gap-2 sm:flex-row">
               <div>
                 {saving ? (
-                  <Badge color="primary" variant="soft">Saving...</Badge>
+                  <Badge color="primary" variant="soft">
+                    Saving...
+                  </Badge>
                 ) : dirty ? (
-                  <Badge color="warning" variant="soft">Unsaved changes</Badge>
+                  <Badge color="warning" variant="soft">
+                    Unsaved changes
+                  </Badge>
                 ) : (
-                  <Badge color="success" variant="soft">Up to date</Badge>
+                  <Badge color="success" variant="soft">
+                    Up to date
+                  </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" color="neutral" onClick={resetToDefaults} disabled={saving}>
-                  Restore recommended
+                <Button type="button" variant="ghost" color="neutral" onClick={resetChanges} disabled={saving || !dirty}>
+                  Reset changes
                 </Button>
                 <Button type="button" color="primary" onClick={savePreferences} disabled={!dirty || saving}>
                   {saving ? 'Saving...' : 'Save preferences'}
@@ -559,59 +417,85 @@ export default function NotificationSettingsView(): React.ReactElement {
           )}
 
           <div className="mt-6 space-y-6">
-            {CHANNEL_GROUPS.map((group) => (
-              <div key={group.title} className="space-y-4">
+            {topics.map((topic) => (
+              <div key={topic.key} className="space-y-4">
                 <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-gray-700">{group.title}</h3>
-                  <p className="text-xs text-gray-500">{group.description}</p>
+                  <h3 className="text-sm font-semibold text-gray-700">{topic.label}</h3>
+                  {topic.description ? <p className="text-xs text-gray-500">{topic.description}</p> : null}
                 </div>
                 <div className="space-y-3">
-                  {group.channels.map((channel) => {
-                    const stored = clonePreferenceValue(preferences[channel.key] ?? DEFAULT_PREFERENCES[channel.key]);
-                    const forcedEnabled = channel.locked ? true : stored.enabled;
+                  {topic.channels.map((channel) => {
+                    const deliveryBadge = DELIVERY_BADGES[channel.delivery] ?? DELIVERY_BADGES.opt_in;
                     return (
                       <div
-                        key={channel.key}
-                        className={
-                          channel.soon
-                            ? 'rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition opacity-60'
-                            : 'rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition'
-                        }
+                        key={`${topic.key}:${channel.key}`}
+                        className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 text-lg">{channel.icon}</span>
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-semibold text-gray-900">{channel.label}</span>
-                              {channel.recommended && <Badge color="primary" variant="soft">Recommended</Badge>}
-                              {channel.locked && <Badge color="info" variant="soft">Required</Badge>}
-                              {channel.beta && <Badge color="info" variant="soft">Beta</Badge>}
-                              {channel.soon && <Badge color="neutral" variant="soft">Soon</Badge>}
+                              <Badge color={deliveryBadge.color} variant="soft">
+                                {deliveryBadge.label}
+                              </Badge>
+                              {channel.locked ? (
+                                <Badge color="info" variant="soft">
+                                  Required
+                                </Badge>
+                              ) : null}
+                              {channel.requiresConsent ? (
+                                <Badge color="warning" variant="soft">
+                                  Consent
+                                </Badge>
+                              ) : null}
                             </div>
-                            <p className="text-xs text-gray-500">{channel.description}</p>
-                            {channel.helper && <p className="text-[11px] text-gray-400">{channel.helper}</p>}
+                            {channel.description ? (
+                              <p className="text-xs text-gray-500">{channel.description}</p>
+                            ) : null}
                           </div>
                           <Switch
-                            checked={forcedEnabled}
-                            disabled={channel.locked || channel.soon}
-                            onChange={(event) => handleToggle(channel.key, event.currentTarget.checked)}
-                            aria-label={'Toggle ' + channel.label}
+                            checked={channel.locked ? true : channel.optIn}
+                            disabled={channel.locked}
+                            onChange={(event) =>
+                              handleToggle(channel.topicKey, channel.key, channel.locked, event.currentTarget.checked)
+                            }
+                            aria-label={`Toggle ${channel.label}`}
                           />
                         </div>
-                        {renderChannelConfig(channel, stored, forcedEnabled)}
-                        {channel.testable && forcedEnabled && (
-                          <div className="mt-3">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              color="neutral"
-                              onClick={() => handleSendTest(channel.key)}
+                        {channel.supportsDigest ? (
+                          <div className="mt-3 max-w-sm">
+                            <Select
+                              label="Digest frequency"
+                              value={channel.digest ?? 'instant'}
+                              onChange={(event) =>
+                                handleDigestChange(channel.topicKey, channel.key, event.target.value)
+                              }
+                              disabled={channel.locked ? false : !channel.optIn}
                             >
-                              Send test
-                            </Button>
+                              {DIGEST_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </Select>
                           </div>
-                        )}
+                        ) : null}
+                        {!channel.supportsDigest && !channel.optIn && !channel.locked ? (
+                          <div className="mt-3 text-[11px] text-gray-400">
+                            Disable to stop delivery for this topic. You can re-enable at any time.
+                          </div>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
+                          <span>{channel.locked ? 'Always on' : 'Personal preference'}</span>
+                          <span aria-hidden="true">•</span>
+                          <button
+                            type="button"
+                            className="font-medium text-primary-600 hover:text-primary-500"
+                            onClick={() => handleSendTest(channel.label)}
+                          >
+                            Send test
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -624,5 +508,3 @@ export default function NotificationSettingsView(): React.ReactElement {
     </SettingsLayout>
   );
 }
-
-

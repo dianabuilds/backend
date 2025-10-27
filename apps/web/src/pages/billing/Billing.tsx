@@ -67,7 +67,7 @@ export default function BillingPage() {
       setError(extractErrorMessage(err, 'Billing service is temporarily unavailable.'));
     }
     try {
-      const h = await apiGet<HistoryResponse>('/v1/billing/me/history?limit=20');
+      const h = await apiGet<HistoryResponse>('/v1/billing/me/history?limit=10');
       setHistory(h);
     } catch {
       setHistory(null);

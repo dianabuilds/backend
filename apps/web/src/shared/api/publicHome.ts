@@ -84,7 +84,7 @@ function normalizeFallback(raw: unknown): HomeFallbackEntry {
   return { ...(raw as Record<string, unknown>) };
 }
 
-function normalizeHomeResponse(raw: unknown): HomeResponse {
+export function normalizeHomeResponse(raw: unknown): HomeResponse {
   const blocksRaw = Array.isArray((raw as any)?.blocks) ? (raw as any).blocks : [];
   const fallbacksRaw = Array.isArray((raw as any)?.fallbacks) ? (raw as any).fallbacks : [];
   const blocks = blocksRaw

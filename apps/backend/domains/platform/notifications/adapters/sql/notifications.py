@@ -211,7 +211,7 @@ class NotificationRepository(INotificationRepository):
         placement: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], int, int]:
         priority_expr = "COALESCE(r.priority, 'normal')"
         where_clauses = ["r.user_id = CAST(:uid AS uuid)"]
         params: dict[str, Any] = {
@@ -224,15 +224,30 @@ class NotificationRepository(INotificationRepository):
                 "r.placement = CAST(:placement AS notificationplacement)"
             )
             params["placement"] = placement
+        where_sql = " AND ".join(where_clauses)
+        count_sql = text(
+            "SELECT COUNT(*) AS total, "
+            "COUNT(*) FILTER (WHERE read_at IS NULL) AS unread "
+            "FROM notification_receipts r "
+            f"WHERE {where_sql}"
+        )
         sql = text(
             _BASE_SELECT
             + "\nWHERE "
-            + " AND ".join(where_clauses)
+            + where_sql
             + f"\nORDER BY\n    CASE\n        WHEN {priority_expr} IN ('urgent', 'high') THEN 0\n        WHEN {priority_expr} = 'normal' THEN 1\n        ELSE 2\n    END,\n    r.created_at DESC\nLIMIT :limit OFFSET :offset"
         )
         async with self._engine.begin() as conn:
+            counts = (await conn.execute(count_sql, params)).mappings().first()
             rows = (await conn.execute(sql, params)).mappings().all()
-        return [self._normalize_row(row) for row in rows]
+        total = (
+            int(counts["total"]) if counts and counts.get("total") is not None else 0
+        )
+        unread = (
+            int(counts["unread"]) if counts and counts.get("unread") is not None else 0
+        )
+        items = [self._normalize_row(row) for row in rows]
+        return items, total, unread
 
     async def mark_read(self, user_id: str, notif_id: str) -> dict[str, Any] | None:
         sql = text(
@@ -276,6 +291,99 @@ class NotificationRepository(INotificationRepository):
         if not row:
             return None
         return self._normalize_row(row)
+
+    async def prune(
+        self,
+        *,
+        retention_days: int | None = None,
+        max_per_user: int | None = None,
+        batch_size: int = 1000,
+    ) -> dict[str, Any]:
+        retention_days = int(retention_days) if retention_days is not None else None
+        if retention_days is not None and retention_days < 1:
+            retention_days = 1
+        max_per_user = int(max_per_user) if max_per_user is not None else None
+        if max_per_user is not None and max_per_user < 1:
+            max_per_user = 1
+        batch_size = max(int(batch_size or 0), 100)
+
+        removed_by_age = 0
+        removed_by_limit = 0
+        orphan_messages = 0
+
+        async with self._engine.begin() as conn:
+            if retention_days is not None:
+                result = await conn.execute(
+                    text(
+                        """
+                        WITH deleted AS (
+                            DELETE FROM notification_receipts
+                            WHERE created_at < now() - (:days || ' days')::interval
+                            RETURNING message_id
+                        )
+                        SELECT COALESCE(COUNT(*), 0) AS removed
+                        FROM deleted
+                        """
+                    ),
+                    {"days": retention_days},
+                )
+                removed_by_age = int(result.scalar() or 0)
+
+            if max_per_user is not None:
+                result = await conn.execute(
+                    text(
+                        """
+                        WITH ranked AS (
+                            SELECT id
+                            FROM (
+                                SELECT id,
+                                       ROW_NUMBER() OVER (
+                                           PARTITION BY user_id
+                                           ORDER BY created_at DESC
+                                       ) AS rn
+                                FROM notification_receipts
+                            ) q
+                            WHERE q.rn > :max_per_user
+                            LIMIT :limit
+                        ),
+                        deleted AS (
+                            DELETE FROM notification_receipts
+                            WHERE id IN (SELECT id FROM ranked)
+                            RETURNING message_id
+                        )
+                        SELECT COALESCE(COUNT(*), 0) AS removed
+                        FROM deleted
+                        """
+                    ),
+                    {"max_per_user": max_per_user, "limit": batch_size},
+                )
+                removed_by_limit = int(result.scalar() or 0)
+
+            orphan_result = await conn.execute(
+                text(
+                    """
+                    WITH orphaned AS (
+                        SELECT id
+                        FROM notification_messages m
+                        WHERE NOT EXISTS (
+                            SELECT 1 FROM notification_receipts r WHERE r.message_id = m.id
+                        )
+                        LIMIT :limit
+                    )
+                    DELETE FROM notification_messages
+                    WHERE id IN (SELECT id FROM orphaned)
+                    RETURNING 1
+                    """
+                ),
+                {"limit": batch_size},
+            )
+            orphan_messages = orphan_result.rowcount or 0
+
+        return {
+            "removed_by_age": removed_by_age,
+            "removed_by_limit": removed_by_limit,
+            "removed_messages": orphan_messages,
+        }
 
     @staticmethod
     def _normalize_optional(value: Any) -> str | None:

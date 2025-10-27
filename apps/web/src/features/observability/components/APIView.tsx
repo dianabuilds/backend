@@ -1,7 +1,5 @@
 ﻿import React from 'react';
-import { Link } from 'react-router-dom';
 import {
-  ArrowPathIcon,
   ArrowTrendingUpIcon,
   ChartBarIcon,
   ExclamationTriangleIcon,
@@ -21,33 +19,13 @@ import {
   TablePagination,
 } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { fetchHttpSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
+import { formatLatency, formatNumber, formatPercent } from '../utils/format';
 import { HttpPathStats, HttpSummary } from '@shared/types/observability';
 import type { PageHeroMetric } from '@ui/patterns/PageHero';
-
-const numberFormatter = new Intl.NumberFormat('en-US');
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return 'вЂ”';
-  return timeFormatter.format(date);
-}
-
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return numberFormatter.format(value);
-}
-
-function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return `${Math.round(value)} ms`;
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return `${(value * 100).toFixed(2)}%`;
-}
 
 type SummarySnapshot = {
   totalEndpoints: number;
@@ -97,7 +75,7 @@ function computeExtremes(rows: HttpPathStats[]): ExtremesSnapshot {
 
 export function ObservabilityAPI(): React.ReactElement {
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [search, setSearch] = React.useState('');
   const [methodFilter, setMethodFilter] = React.useState('ALL');
 
@@ -152,35 +130,21 @@ export function ObservabilityAPI(): React.ReactElement {
 
   const heroActions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-api-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-        <Button
-          as={Link}
-          to="/observability/rum"
-          variant="filled"
-          size="sm"
-          className="rounded-full shadow-[0_16px_36px_-22px_rgba(79,70,229,0.55)]"
-        >
-          <ChartBarIcon className="size-4" aria-hidden="true" />
-          Realtime RUM
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-api-refresh"
+        cta={{
+          to: '/observability/rum',
+          label: 'Realtime RUM',
+          icon: <ChartBarIcon className="size-4" aria-hidden="true" />,
+          analyticsId: 'observability:cta:rum',
+          testId: 'observability-header-cta',
+        }}
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -205,8 +169,10 @@ export function ObservabilityAPI(): React.ReactElement {
         {
           id: 'api-errors',
           label: 'Average 5xx ratio',
-          value: formatPercent(summary.averageErrorRatio),
-          helper: extremes.highestError ? `Max ${formatPercent(extremes.highestError.error5xx_ratio)}` : 'Awaiting data',
+          value: formatPercent(summary.averageErrorRatio, { maximumFractionDigits: 2 }),
+          helper: extremes.highestError
+            ? `Max ${formatPercent(extremes.highestError.error5xx_ratio, { maximumFractionDigits: 2 })}`
+            : 'Awaiting data',
           icon: <ShieldExclamationIcon className="size-4" aria-hidden="true" />,
           accent: 'danger',
         },]
@@ -214,7 +180,7 @@ export function ObservabilityAPI(): React.ReactElement {
 
   if (error) {
     return (
-      <ObservabilityLayout title="HTTP API telemetry" actions={heroActions} metrics={heroMetrics}>
+      <ObservabilityLayout title="HTTP API telemetry" actions={heroActions}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -250,7 +216,9 @@ export function ObservabilityAPI(): React.ReactElement {
         {
           id: 'highest-error',
           label: 'Highest 5xx ratio',
-          value: extremes.highestError ? formatPercent(extremes.highestError.error5xx_ratio) : '—',
+          value: extremes.highestError
+            ? formatPercent(extremes.highestError.error5xx_ratio, { maximumFractionDigits: 2 })
+            : '—',
           description: extremes.highestError
             ? `${extremes.highestError.method} ${extremes.highestError.path}`
             : 'Awaiting traffic',
@@ -273,8 +241,8 @@ export function ObservabilityAPI(): React.ReactElement {
       title="HTTP API telemetry"
       description="Latency, error ratio, and request volume for critical endpoints."
       actions={heroActions}
-      metrics={heroMetrics}
     >
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-api-filters" data-analytics="observability:api:filters">
           <Surface variant="soft" className="space-y-4">
@@ -430,7 +398,7 @@ export function ObservabilityAPI(): React.ReactElement {
                           <Table.TD>{row.method}</Table.TD>
                           <Table.TD className="font-mono text-xs">{row.path}</Table.TD>
                           <Table.TD>{Math.round(row.avg_duration_ms || 0)}</Table.TD>
-                          <Table.TD>{formatPercent(row.error5xx_ratio)}</Table.TD>
+                          <Table.TD>{formatPercent(row.error5xx_ratio, { maximumFractionDigits: 2 })}</Table.TD>
                           <Table.TD>{formatNumber(row.requests_total)}</Table.TD>
                         </Table.TR>
                       ))}
@@ -449,7 +417,9 @@ export function ObservabilityAPI(): React.ReactElement {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <Badge color="primary" variant="soft">{row.method}</Badge>
-                      <span className="text-xs text-gray-500 dark:text-dark-200/70">{formatPercent(row.error5xx_ratio)} 5xx</span>
+                      <span className="text-xs text-gray-500 dark:text-dark-200/70">
+                        {formatPercent(row.error5xx_ratio, { maximumFractionDigits: 2 })} 5xx
+                      </span>
                     </div>
                     <div className="mt-3 font-mono text-xs text-gray-800 dark:text-dark-50">{row.path}</div>
                     <dl className="mt-3 grid grid-cols-2 gap-3 text-xs text-gray-600 dark:text-dark-200/80">
@@ -486,9 +456,3 @@ export function ObservabilityAPI(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
-
-
-
-
-
-

@@ -51,7 +51,7 @@ export function usePaginatedQuery<TItem, TResponse>(
     mapResponse,
     dependencies = [],
     initialPage = 1,
-    initialPageSize = 20,
+    initialPageSize = 10,
     debounceMs = 200,
     onError,
   } = options;

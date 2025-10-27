@@ -34,7 +34,12 @@ type AppPublicProps = {
 export default function AppPublic({ initialData, helmetContext }: AppPublicProps = {}): React.ReactElement {
   return (
     <AppShell initialData={initialData} helmetContext={helmetContext}>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <RumRouteTracker />
         <AppPublicRoutes />
       </BrowserRouter>

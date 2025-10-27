@@ -9,6 +9,8 @@
   - `DATABASE_URL=postgresql://app:app@localhost:5432/app`
   - `APP_DATABASE_SSL_CA=apps/backend/infra/certs/rootCA.pem` (при необходимости доверенного сертификата)
   - `REDIS_URL=redis://localhost:6379/0`
+  - `NOTIFICATIONS_RETENTION_DAYS=90` (хранение инбокса, по умолчанию 90 дней)
+  - `NOTIFICATIONS_MAX_PER_USER=200` (максимум записей на пользователя, по умолчанию 200)
 
 События:
 - Публикация в Redis Streams (`events:<topic>`), см. `packages/core/redis_outbox.py`.

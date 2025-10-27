@@ -3,11 +3,7 @@ import { Badge, Button, Card, Input, Select, Spinner, Textarea } from '@ui';
 import { fetchIntegrationsOverview, fetchManagementConfig, sendNotificationTest } from '@shared/api/management';
 import type { IntegrationItem as IntegrationItemModel, IntegrationOverview as IntegrationOverviewModel, ManagementConfig, NotificationTestChannel } from '@shared/types/management';
 import { extractErrorMessage } from '@shared/utils/errors';
-import {
-  PlatformAdminFrame,
-  type PlatformAdminIntegration,
-  type PlatformAdminQuickLink,
-} from '@shared/layouts/management';
+import { PlatformAdminFrame } from '@shared/layouts/management';
 
 type ChannelOption = NotificationTestChannel;
 
@@ -41,35 +37,6 @@ type ChannelCardModel = {
 };
 
 type ConfigResponse = ManagementConfig;
-
-const QUICK_LINKS: PlatformAdminQuickLink[] = [
-  {
-    label: 'Notifications docs',
-    href: 'https://docs.caves.dev/platform-admin/notifications',
-    description: 'Payload formats, webhook configuration, and SMTP setup.',
-  },
-  {
-    label: 'Webhook payload examples',
-    href: 'https://docs.caves.dev/platform-admin/notifications#payloads',
-  },
-  {
-    label: 'Incident runbooks',
-    href: 'https://confluence.caves.dev/display/OPS/Platform+Runbooks',
-  },
-];
-
-const HELP_TEXT = (
-  <div className="space-y-2 text-sm leading-relaxed text-gray-600 dark:text-dark-100">
-    <p>
-      External integrations mirror the most important platform signals into Slack, custom webhooks, and SMTP.
-      Use this page to verify that these channels are healthy before incident traffic depends on them.
-    </p>
-    <p>
-      Environment variables <code>APP_NOTIFY_*</code> control webhook delivery. SMTP credentials are defined with
-      <code> APP_SMTP_*</code>. Restart the platform API after changing these values so the new configuration is loaded.
-    </p>
-  </div>
-);
 
 const INITIAL_WEBHOOK_FIELDS: WebhookField[] = [
   { id: 1, key: 'event', value: 'demo.notification' },
@@ -217,11 +184,6 @@ export default function ManagementIntegrations(): JSX.Element {
   const channelCards = React.useMemo(() => buildChannelCards(integrationMap), [integrationMap]);
   const collectedAt = React.useMemo(() => formatTimestamp(overview?.collected_at), [overview?.collected_at]);
 
-  const asideIntegrations = React.useMemo<PlatformAdminIntegration[]>(
-    () => channelCards.map((card) => ({ id: card.id, label: card.label, status: card.statusLabel, hint: card.hint })),
-    [channelCards],
-  );
-
   const stats = React.useMemo(() => {
     const total = channelCards.length;
     const healthy = channelCards.filter((card) => card.statusColor === 'success').length;
@@ -352,11 +314,9 @@ export default function ManagementIntegrations(): JSX.Element {
       title="Integrations"
       description="Monitor external notification channels and run manual checks before incidents escalate."
       breadcrumbs={[{ label: 'Platform', to: '/platform/system' }, { label: 'Integrations' }]}
-      quickLinks={QUICK_LINKS}
-      helpText={HELP_TEXT}
-      slackUrl="https://slack.com/app_redirect?channel=platform-admin"
-      integrations={asideIntegrations}
       stats={stats}
+      heroVariant="compact"
+      heroClassName="sm:px-6 sm:py-6"
     >
       <div className="space-y-6">
         <Card className="space-y-4 p-6 bg-white shadow-sm dark:bg-dark-800">
@@ -397,7 +357,7 @@ export default function ManagementIntegrations(): JSX.Element {
               No integrations reported yet. Configure webhook or SMTP credentials and refresh the page.
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {channelCards.map((card) => (
                 <ChannelCard key={card.id} channel={card} />
               ))}
@@ -405,33 +365,52 @@ export default function ManagementIntegrations(): JSX.Element {
           )}
         </Card>
 
-        <Card className="space-y-5 p-6 bg-white shadow-sm dark:bg-dark-800">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Manual channel test</h2>
-            <p className="text-sm text-gray-600 dark:text-dark-100">
-              Send a sample message to validate a channel before relying on it during incidents.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Channel</label>
-              <Select value={channel} onChange={(event) => setChannel(event.currentTarget.value as ChannelOption)}>
-                <option value="webhook">Webhook</option>
-                <option value="email">Email</option>
-              </Select>
-              <p className="text-xs text-gray-500 dark:text-dark-200">
-                {channel === 'webhook'
-                  ? 'Send JSON payloads to every registered webhook URL.'
-                  : 'Queue a transactional email via the SMTP configuration or mock logger.'}
-              </p>
-              {selectedCard?.statusDescription ? (
-                <p className="text-xs text-gray-500 dark:text-dark-300">Status: {selectedCard.statusDescription}</p>
-              ) : null}
+        <Card className="space-y-4 p-5 bg-white shadow-sm dark:bg-dark-800">
+          <div className="grid gap-4 lg:grid-cols-[1.8fr,1fr]">
+            <div className="space-y-3">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">Manual channel test</h2>
+                <p className="text-sm text-gray-600 dark:text-dark-100">
+                  Send a sample message to validate a channel before relying on it during incidents.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200/70 bg-gray-50/80 p-3 text-xs text-gray-600 dark:border-dark-700 dark:bg-dark-800/60 dark:text-dark-200">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Channel</span>
+                  <Select
+                    value={channel}
+                    onChange={(event) => setChannel(event.currentTarget.value as ChannelOption)}
+                    className="h-9 w-44"
+                  >
+                    <option value="webhook">Webhook</option>
+                    <option value="email">Email</option>
+                  </Select>
+                </div>
+                <div className="flex min-w-[200px] flex-1 flex-col gap-1 text-xs leading-relaxed">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedCard ? (
+                      <Badge color={selectedCard.statusColor} variant="soft">
+                        {selectedCard.statusLabel}
+                      </Badge>
+                    ) : null}
+                    <span>
+                      {channel === 'webhook'
+                        ? 'JSON payload will be delivered to subscribed webhooks.'
+                        : 'Email will be queued via SMTP or mock logger.'}
+                    </span>
+                  </div>
+                  {selectedCard?.statusDescription ? (
+                    <span className="text-gray-500 dark:text-dark-300">Status: {selectedCard.statusDescription}</span>
+                  ) : null}
+                </div>
+              </div>
             </div>
-            <div className="flex items-end justify-end gap-2">
-              <Button type="button" variant="ghost" color="neutral" onClick={resetForms}>
+            <div className="flex flex-col items-start justify-between gap-2 lg:items-end">
+              <Button type="button" variant="ghost" color="neutral" size="sm" onClick={resetForms}>
                 Reset
+              </Button>
+              <Button type="button" color="primary" onClick={sendNotification} disabled={!canSend || sending}>
+                {sending ? 'Sending...' : 'Send test'}
               </Button>
             </div>
           </div>
@@ -448,40 +427,45 @@ export default function ManagementIntegrations(): JSX.Element {
           ) : null}
 
           {channel === 'webhook' ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="text-sm font-medium text-gray-800 dark:text-dark-50">Webhook payload</div>
-                <Button type="button" variant="ghost" onClick={addWebhookField}>
+                <Button type="button" variant="ghost" size="sm" onClick={addWebhookField}>
                   Add field
                 </Button>
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {webhookFields.map((field) => (
-                  <div key={field.id} className="grid gap-2 sm:grid-cols-5">
-                    <Input
-                      className="sm:col-span-2"
-                      placeholder="Key"
-                      value={field.key}
-                      onChange={(event) => updateWebhookField(field.id, { key: event.target.value })}
-                    />
-                    <Textarea
-                      className="sm:col-span-3"
-                      placeholder="Value"
-                      rows={2}
-                      value={field.value}
-                      onChange={(event) => updateWebhookField(field.id, { value: event.target.value })}
-                    />
-                    <div className="sm:col-span-5 flex justify-end">
+                  <div key={field.id} className="rounded-xl border border-gray-200/60 bg-white/80 p-3 dark:border-dark-600 dark:bg-dark-800/60">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Key</span>
                       <Button
                         type="button"
                         variant="ghost"
                         color="neutral"
+                        size="sm"
                         onClick={() => removeWebhookField(field.id)}
                         disabled={webhookFields.length === 1}
+                        className="!px-2 !py-1"
                       >
                         Remove
                       </Button>
                     </div>
+                    <Input
+                      className="mt-1"
+                      placeholder="event"
+                      value={field.key}
+                      onChange={(event) => updateWebhookField(field.id, { key: event.target.value })}
+                    />
+                    <span className="mt-3 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">
+                      Value
+                    </span>
+                    <Textarea
+                      rows={2}
+                      placeholder="Value"
+                      value={field.value}
+                      onChange={(event) => updateWebhookField(field.id, { value: event.target.value })}
+                    />
                   </div>
                 ))}
               </div>
@@ -518,7 +502,7 @@ export default function ManagementIntegrations(): JSX.Element {
                 <div className="sm:col-span-2 space-y-1">
                   <label className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">HTML (optional)</label>
                   <Textarea
-                    rows={4}
+                    rows={3}
                     placeholder="<p>Hello</p>"
                     value={emailForm.html}
                     onChange={(event) => setEmailForm((prev) => ({ ...prev, html: event.target.value }))}
@@ -528,15 +512,9 @@ export default function ManagementIntegrations(): JSX.Element {
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-dark-300">Payload preview</div>
             <pre className="rounded bg-gray-50 p-3 text-xs text-gray-700 dark:bg-dark-800 dark:text-dark-50">{JSON.stringify(payloadPreview, null, 2)}</pre>
-          </div>
-
-          <div className="flex justify-end">
-            <Button type="button" color="primary" onClick={sendNotification} disabled={!canSend || sending}>
-              {sending ? 'Sending...' : 'Send test'}
-            </Button>
           </div>
         </Card>
       </div>
@@ -550,7 +528,7 @@ type ChannelCardProps = {
 
 function ChannelCard({ channel }: ChannelCardProps) {
   return (
-    <Card className="space-y-3 p-5 bg-white/90 shadow-sm backdrop-blur-sm dark:bg-dark-800/90">
+    <Card className="flex h-full flex-col gap-3 p-4 bg-white/90 shadow-sm backdrop-blur-sm dark:bg-dark-800/90">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <div className="text-sm font-semibold text-gray-900 dark:text-white">{channel.label}</div>
@@ -563,8 +541,8 @@ function ChannelCard({ channel }: ChannelCardProps) {
       {channel.statusDescription ? (
         <p className="text-xs text-gray-500 dark:text-dark-200">{channel.statusDescription}</p>
       ) : null}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
           <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Use cases</div>
           <ul className="space-y-1 text-xs text-gray-600 dark:text-dark-100">
             {channel.usage.map((item) => (
@@ -573,7 +551,7 @@ function ChannelCard({ channel }: ChannelCardProps) {
           </ul>
         </div>
         {channel.details.length ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">Technical details</div>
             <dl className="space-y-1 text-xs text-gray-600 dark:text-dark-100">
               {channel.details.map((detail) => (
@@ -691,5 +669,3 @@ function buildChannelCards(items: Map<string, IntegrationItem>): ChannelCardMode
 
   return [slackCard, webhookCard, emailCard];
 }
-
-

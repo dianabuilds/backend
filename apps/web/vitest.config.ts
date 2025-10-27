@@ -9,6 +9,7 @@ export default defineConfig({
       { find: '@ui', replacement: path.resolve(__dirname, 'src/shared/ui') },
       { find: '@icons', replacement: path.resolve(__dirname, 'src/shared/icons') },
       { find: '@shared', replacement: path.resolve(__dirname, 'src/shared') },
+      { find: '@features', replacement: path.resolve(__dirname, 'src/features') },
     ],
   },
   test: {

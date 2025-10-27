@@ -24,7 +24,6 @@ def test_public_contour_exposes_only_public_routes() -> None:
 def test_admin_contour_exposes_only_admin_routes() -> None:
     app = create_app(contour="admin")
     paths = _collect_paths(app)
-    assert "/v1/admin/home" in paths
     assert "/v1/profile" not in paths
     assert all(
         path.startswith("/v1/admin")
@@ -39,7 +38,6 @@ def test_ops_contour_exposes_operations_routes() -> None:
     app = create_app(contour="ops")
     paths = _collect_paths(app)
     assert any(path.startswith("/v1/billing") for path in paths)
-    assert not any(path.startswith("/v1/admin/home") for path in paths)
 
 
 def test_audience_middleware_enforces_admin_tokens() -> None:

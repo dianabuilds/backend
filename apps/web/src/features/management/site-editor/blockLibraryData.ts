@@ -62,6 +62,16 @@ type SharedMetadata = {
   keywords?: string[];
   preview: BlockPreviewKind;
   statusNote?: string;
+  globalTemplate?: {
+    section: string;
+    keyPrefix?: string;
+    title?: string;
+    defaultLocale?: BlockLocale;
+    requiresPublisher?: boolean;
+    data?: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+    note?: string;
+  };
 };
 
 type AvailableBlockMetadata = SharedMetadata & {
@@ -213,6 +223,58 @@ export const SITE_BLOCK_LIBRARY: SiteBlockLibraryEntry[] = [
     keywords: ['навигация', 'header'],
     preview: 'header',
     statusNote: 'Дизайн и API в разработке',
+    globalTemplate: {
+      section: 'header',
+      keyPrefix: 'header',
+      title: 'Глобальный хедер',
+      defaultLocale: 'ru',
+      requiresPublisher: true,
+      data: {
+        branding: {
+          title: 'Caves World',
+          subtitle: 'Играй и создавай',
+          href: '/',
+          logo: {
+            light: '/assets/branding/logo-light.svg',
+            dark: '/assets/branding/logo-dark.svg',
+            alt: 'Caves World',
+          },
+        },
+        navigation: {
+          primary: [
+            { id: 'home', label: 'Главная', href: '/' },
+            { id: 'quests', label: 'Квесты', href: '/quests' },
+            { id: 'dev-blog', label: 'Dev Blog', href: '/dev-blog' },
+            { id: 'pricing', label: 'Тарифы', href: '/pricing' },
+          ],
+          utility: [
+            { id: 'help', label: 'Помощь', href: '/help' },
+            { id: 'blog', label: 'Блог', href: '/dev-blog' },
+          ],
+          cta: { id: 'signup', label: 'Присоединиться', href: '/auth/signup', style: 'primary' },
+          mobile: {
+            menu: [
+              { id: 'home', label: 'Главная', href: '/' },
+              { id: 'quests', label: 'Квесты', href: '/quests' },
+              { id: 'dev-blog', label: 'Dev Blog', href: '/dev-blog' },
+              { id: 'pricing', label: 'Тарифы', href: '/pricing' },
+              { id: 'help', label: 'Помощь', href: '/help' },
+            ],
+            cta: { id: 'signup', label: 'Присоединиться', href: '/auth/signup', style: 'primary' },
+          },
+        },
+        layout: { variant: 'default', sticky: true },
+        features: { language_switcher: true },
+        localization: { fallbackLocale: 'ru', available: ['ru', 'en'] },
+      },
+      meta: {
+        owner: 'team_public_site',
+        documentation: `${DOC_LIBRARY_URL}#global_header`,
+        template_id: 'global_header',
+        created_from_template: true,
+      },
+      note: 'Проверьте локализацию ссылок и договоритесь с владельцем перед публикацией.',
+    },
   },
   {
     id: 'global_footer',
@@ -328,4 +390,3 @@ export const STATUS_LABELS: Record<BlockStatus, { label: string; color: 'success
   design: { label: 'В дизайне', color: 'warning' },
   research: { label: 'Исследуем', color: 'info' },
 };
-

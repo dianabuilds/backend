@@ -4,37 +4,9 @@ import { Badge, Button, Card, Drawer, Input, Select, Spinner, Table } from '@ui'
 import type { PageHeaderStat } from '@ui/patterns/PageHeader';
 import { extractErrorMessage } from '@shared/utils/errors';
 import { useConfirmDialog } from '@shared/hooks/useConfirmDialog';
-import {
-  PlatformAdminFrame,
-  type PlatformAdminQuickLink,
-} from '@shared/layouts/management';
+import { PlatformAdminFrame } from '@shared/layouts/management';
 import { useManagementFlags } from '../hooks';
 import type { FeatureFlag, FeatureFlagStatus, FeatureFlagUpsertPayload } from '@shared/types/management';
-
-const QUICK_LINKS: PlatformAdminQuickLink[] = [
-  {
-    label: 'Runbook: Feature toggles',
-    href: 'https://docs.caves.dev/platform-admin/feature-flags',
-    description: 'Operational checklist for shipping with kill switches.',
-  },
-  {
-    label: 'Audit trail',
-    href: '/management/audit?module=flags',
-    description: 'Inspect recent flag mutations and actors.',
-  },
-];
-
-const ROLE_HINT = (
-  <div className="space-y-2">
-    <p>
-      Only platform administrators can create or modify feature flags. Product owners and QA can view rollout status but
-      changes require elevated access.
-    </p>
-    <p className="text-xs text-gray-500 dark:text-dark-200">
-      Every upsert and delete is captured in <code>/management/audit</code> with before/after payloads.
-    </p>
-  </div>
-);
 
 type FlagFormState = {
   slug: string;
@@ -247,8 +219,6 @@ export default function ManagementFlags(): React.ReactElement {
           </div>
         )}
         stats={stats}
-        roleHint={ROLE_HINT}
-        quickLinks={QUICK_LINKS}
       >
         <Card className="space-y-5 p-6">
           {error ? (

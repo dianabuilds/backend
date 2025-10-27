@@ -9,7 +9,7 @@ import { resolveSiteOrigin, buildCanonicalUrl, pickLocalizedString, pickString, 
 import { rumEvent } from '@shared/rum';
 import { reportFeatureError } from '@shared/utils/sentry';
 import { HomeUnavailable, HOME_FALLBACK_DEFAULT_MESSAGE } from './components/HomeUnavailable';
-import { HomeBlocks } from './components/HomeBlocks';
+import { HomeBlocks } from '@features/public/home';
 import { HomeBlocksBoundary } from './components/HomeBlocksBoundary';
 import { HOME_DEFAULT_SLUG, buildHomeCacheKey } from './HomePage.shared';
 

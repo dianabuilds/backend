@@ -5,9 +5,24 @@ import { pushGlobalToast } from '@shared/ui/toastBus';
 
 const isDev = (import.meta as any)?.env?.DEV;
 const apiBase = (import.meta as any)?.env?.VITE_API_BASE as string | undefined;
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
+function resolveServerApiBase(): string {
+  const explicit = apiBase?.trim();
+  if (explicit) return explicit.replace(/\/+$/u, '');
+  const envBase =
+    typeof process !== 'undefined' && process.env
+      ? (process.env.SSR_API_BASE ?? process.env.API_BASE ?? process.env.VITE_API_BASE ?? '').trim()
+      : '';
+  if (envBase) return envBase.replace(/\/+$/u, '');
+  return 'http://127.0.0.1:8000';
+}
 
 function buildUrl(path: string): string {
   if (path.startsWith('http')) return path;
+  if (!isBrowser) {
+    return `${resolveServerApiBase()}${path}`;
+  }
   return (isDev ? '' : apiBase || '') + path;
 }
 

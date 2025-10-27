@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 """Async database engine helpers and FastAPI dependency utilities."""
+import asyncio
 import logging
 import re
 import ssl
+import traceback
 from collections.abc import AsyncIterator, Callable, Mapping
 from pathlib import Path
 from threading import Lock
@@ -36,6 +38,7 @@ class EngineRegistry:
         with self._lock:
             engine = self._alias_cache.get(alias)
             if engine is not None:
+                logger.debug("engine_registry_hit alias=%s", alias)
                 return engine
             engine = self._canonical_cache.get(canonical_key)
             if engine is None:
@@ -317,12 +320,28 @@ def get_async_engine(
     kwargs_key = _stable_kwargs(effective_kwargs)
     canonical_key: EngineKey = (str(sanitized), connect_key, kwargs_key)
 
-    if not cache:
+    effective_cache = bool(cache)
+    loop_marker: str | None = None
+    if effective_cache:
+        try:
+            loop_marker = f"loop:{id(asyncio.get_running_loop())}"
+        except RuntimeError:
+            effective_cache = False
+
+    if not effective_cache:
         return create_async_engine(sanitized, **effective_kwargs)
 
-    alias_key = f"{name}:{repr(canonical_key)}"
+    alias_key = f"{name}:{loop_marker}:{repr(canonical_key)}"
 
     def _factory() -> AsyncEngine:
+        stack = "".join(traceback.format_stack(limit=8))
+        logger.debug(
+            "creating_async_engine name=%s loop=%s cache=%s\n%s",
+            name,
+            loop_marker,
+            effective_cache,
+            stack,
+        )
         return create_async_engine(sanitized, **effective_kwargs)
 
     return _ENGINE_REGISTRY.get_or_create(alias_key, canonical_key, _factory)

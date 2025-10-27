@@ -4,21 +4,20 @@ import hashlib
 import inspect
 import logging
 import time
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+import sqlalchemy as sa
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from apps.backend.app.api_gateway.routers import get_container
 from apps.backend.infra.security.rate_limits import PUBLIC_RATE_LIMITS
-from domains.platform.iam.application.facade import csrf_protect, get_current_user
 from domains.product.content.application import (
     DevBlogDataService,
     HomeComposer,
@@ -29,20 +28,19 @@ from domains.product.content.application import (
 )
 from domains.product.content.domain import (
     HomeConfig,
-    HomeConfigDraftNotFound,
-    HomeConfigDuplicateBlockError,
-    HomeConfigHistoryEntry,
-    HomeConfigNotFound,
     HomeConfigRepositoryError,
-    HomeConfigSchemaError,
     HomeConfigStatus,
-    HomeConfigValidationError,
 )
 from domains.product.content.infrastructure import RedisHomeCache
 from domains.product.content.infrastructure.home_config_repository import (
     HomeConfigRepository,
 )
 from domains.product.nodes.application.use_cases.catalog import build_dev_blog_service
+from domains.product.site.infrastructure.repositories import helpers as site_helpers
+from domains.product.site.infrastructure.tables import (
+    SITE_PAGE_VERSIONS_TABLE,
+    SITE_PAGES_TABLE,
+)
 from packages.core.config import to_async_dsn
 from packages.core.db import get_async_engine
 
@@ -77,60 +75,6 @@ _CACHE_CONTROL = "public, max-age=300"
 _SQL_DATETIME_FMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
 
 
-class HomeConfigPayload(BaseModel):
-    slug: str = Field(default=_DEFAULT_SLUG, min_length=1, max_length=128)
-    data: dict[str, Any] | None = Field(default=None)
-    comment: str | None = Field(default=None, max_length=500)
-
-
-class HomeConfigSnapshot(BaseModel):
-    id: UUID
-    slug: str
-    version: int
-    status: str
-    data: dict[str, Any]
-    created_at: str
-    updated_at: str
-    published_at: str | None = None
-    created_by: str | None = None
-    updated_by: str | None = None
-    draft_of: UUID | None = None
-
-
-class AdminHomeResponse(BaseModel):
-    slug: str
-    draft: HomeConfigSnapshot | None = None
-    published: HomeConfigSnapshot | None = None
-    history: list[HomeHistoryEntry] = Field(default_factory=list)
-
-
-class PublishResponse(BaseModel):
-    slug: str
-    published: HomeConfigSnapshot
-
-
-class PreviewResponse(BaseModel):
-    slug: str
-    payload: dict[str, Any]
-
-
-class RestoreResponse(BaseModel):
-    slug: str
-    draft: HomeConfigSnapshot
-
-
-class HomeHistoryEntry(BaseModel):
-    config_id: UUID
-    version: int
-    action: str
-    actor: str | None = None
-    actor_team: str | None = None
-    comment: str | None = None
-    created_at: str
-    published_at: str | None = None
-    is_current: bool = False
-
-
 class PublicHomeResponse(BaseModel):
     slug: str
     version: int
@@ -145,30 +89,33 @@ class PublicHomeResponse(BaseModel):
 def make_public_router() -> APIRouter:
     router = APIRouter(prefix="/v1/public", tags=["public-home"])
 
-    CONTENT_PUBLIC_RATE_LIMIT = PUBLIC_RATE_LIMITS["content"].as_dependencies()
+    content_rate_limit = PUBLIC_RATE_LIMITS["content"].as_dependencies()
 
     @router.get(
         "/home",
         response_model=PublicHomeResponse,
         summary="Get published home configuration",
-        dependencies=CONTENT_PUBLIC_RATE_LIMIT,
+        dependencies=content_rate_limit,
     )
     async def get_public_home(
         request: Request,
         slug: str = Query(default=_DEFAULT_SLUG, min_length=1, max_length=128),
         container=Depends(get_container),
     ) -> Response:
-        service = _get_home_config_service(container)
         composer = _get_home_composer(container)
-        try:
-            config = await service.get_active(slug)
-        except HomeConfigRepositoryError as exc:  # pragma: no cover - defensive
-            logger.error("home.config_repository_error", exc_info=exc)
-            raise HTTPException(
-                status_code=503, detail="home_storage_unavailable"
-            ) from exc
+        config = await _load_site_home_config(container, slug)
+        if config is None:
+            service = _get_home_config_service(container)
+            try:
+                config = await service.get_active(slug)
+            except HomeConfigRepositoryError as exc:  # pragma: no cover - defensive
+                logger.error("home.config_repository_error", exc_info=exc)
+                raise HTTPException(
+                    status_code=503, detail="home_storage_unavailable"
+                ) from exc
         if config is None:
             raise HTTPException(status_code=404, detail="home_config_not_found")
+
         start_time = time.perf_counter()
         payload = await composer.compose(config)
         etag = _compute_etag(config)
@@ -178,6 +125,7 @@ def make_public_router() -> APIRouter:
             response: Response = Response(status_code=304, headers=headers)
         else:
             response = JSONResponse(content=payload, headers=headers)
+
         if PUBLIC_HOME_LATENCY is not None:
             PUBLIC_HOME_LATENCY.observe(time.perf_counter() - start_time)
         return response
@@ -185,390 +133,87 @@ def make_public_router() -> APIRouter:
     return router
 
 
-def make_admin_router() -> APIRouter:
-    router = APIRouter(prefix="/v1/admin/home", tags=["admin-home"])
-
-    @router.get(
-        "",
-        response_model=AdminHomeResponse,
-        summary="Get home draft and published versions",
-    )
-    async def get_home_configuration(
-        request: Request,
-        slug: str = Query(default=_DEFAULT_SLUG, min_length=1, max_length=128),
-        _auth: None = Depends(_require_home_scope("content.home:read")),
-        container=Depends(get_container),
-    ) -> AdminHomeResponse:
-        service = _get_home_config_service(container)
-        try:
-            draft = await service.get_draft(slug)
-            published = await service.get_active(slug)
-            history = await service.get_history(slug, limit=20)
-        except HomeConfigRepositoryError as exc:
-            logger.error("home.config_repository_error", exc_info=exc)
-            raise HTTPException(
-                status_code=503, detail="home_storage_unavailable"
-            ) from exc
-        if draft is None and published is None:
-            raise HTTPException(status_code=404, detail="home_config_not_found")
-        current_version = published.version if published else None
-        history_payload = [
-            _serialize_history_entry(item, current_version=current_version)
-            for item in history
-        ]
-        return AdminHomeResponse(
-            slug=slug,
-            draft=_serialize_config(draft) if draft else None,
-            published=_serialize_config(published) if published else None,
-            history=history_payload,
-        )
-
-    @router.put("", response_model=HomeConfigSnapshot, summary="Save home draft")
-    async def put_home_configuration(
-        request: Request,
-        payload: HomeConfigPayload = Body(...),
-        _auth: None = Depends(_require_home_scope("content.home:write")),
-        container=Depends(get_container),
-        _csrf: None = Depends(csrf_protect),
-    ) -> HomeConfigSnapshot:
-        service = _get_home_config_service(container)
-        actor = _resolve_actor(request)
-        try:
-            draft = await service.save_draft(payload.slug, payload.data, actor=actor)
-        except HomeConfigSchemaError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigDuplicateBlockError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigValidationError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigRepositoryError as exc:
-            logger.error("home.config_repository_error", exc_info=exc)
-            raise HTTPException(
-                status_code=503, detail="home_storage_unavailable"
-            ) from exc
-        logger.info(
-            "home.admin.save",
-            extra={"slug": payload.slug, "actor": actor or "unknown"},
-        )
-        return _serialize_config(draft)
-
-    @router.post(
-        "/publish", response_model=PublishResponse, summary="Publish current draft"
-    )
-    async def publish_home_configuration(
-        request: Request,
-        payload: HomeConfigPayload = Body(default=HomeConfigPayload()),
-        _auth: None = Depends(_require_home_scope("content.home:write")),
-        container=Depends(get_container),
-        _csrf: None = Depends(csrf_protect),
-    ) -> PublishResponse:
-        service = _get_home_config_service(container)
-        composer = _get_home_composer(container)
-        actor, actor_team = _resolve_actor_context(request)
-        try:
-            published = await service.publish(
-                payload.slug,
-                actor=actor,
-                actor_team=actor_team,
-                comment=payload.comment,
-            )
-            await composer.invalidate_slug(payload.slug)
-            await composer.compose(published, force_refresh=True)
-        except HomeConfigDraftNotFound as exc:
-            raise HTTPException(
-                status_code=404, detail="home_config_draft_not_found"
-            ) from exc
-        except HomeConfigSchemaError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigValidationError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigRepositoryError as exc:
-            logger.error("home.config_repository_error", exc_info=exc)
-            raise HTTPException(
-                status_code=503, detail="home_storage_unavailable"
-            ) from exc
-        logger.info(
-            "home.admin.publish",
-            extra={
-                "slug": payload.slug,
-                "actor": actor or "unknown",
-                "version": published.version,
-            },
-        )
-        return PublishResponse(
-            slug=payload.slug, published=_serialize_config(published)
-        )
-
-    @router.post(
-        "/preview",
-        response_model=PreviewResponse,
-        summary="Preview home payload without persisting",
-    )
-    async def preview_home_configuration(
-        request: Request,
-        payload: HomeConfigPayload = Body(...),
-        _auth: None = Depends(_require_home_scope("content.home:read")),
-        container=Depends(get_container),
-        _csrf: None = Depends(csrf_protect),
-    ) -> PreviewResponse:
-        service = _get_home_config_service(container)
-        composer = _get_home_composer(container)
-        actor = _resolve_actor(request)
-        try:
-            normalized = service.validate_payload(payload.data)
-        except HomeConfigSchemaError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigDuplicateBlockError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        except HomeConfigValidationError as exc:
-            raise HTTPException(
-                status_code=422, detail={"code": exc.code, "details": exc.details}
-            ) from exc
-        preview_config = _make_preview_config(payload.slug, normalized, actor=actor)
-        rendered = await composer.compose(preview_config, use_cache=False)
-        return PreviewResponse(slug=payload.slug, payload=rendered)
-
-    @router.post(
-        "/restore/{version}",
-        response_model=RestoreResponse,
-        summary="Restore draft from published version",
-    )
-    async def restore_home_configuration(
-        request: Request,
-        version: int,
-        payload: HomeConfigPayload = Body(default=HomeConfigPayload()),
-        _auth: None = Depends(_require_home_scope("content.home:write")),
-        container=Depends(get_container),
-        _csrf: None = Depends(csrf_protect),
-    ) -> RestoreResponse:
-        service = _get_home_config_service(container)
-        composer = _get_home_composer(container)
-        actor, actor_team = _resolve_actor_context(request)
-        try:
-            draft = await service.restore_version(
-                payload.slug,
-                version,
-                actor=actor,
-                actor_team=actor_team,
-                comment=payload.comment,
-            )
-            await composer.invalidate_slug(payload.slug)
-        except HomeConfigNotFound as exc:
-            raise HTTPException(
-                status_code=404, detail="home_config_version_not_found"
-            ) from exc
-        except HomeConfigRepositoryError as exc:
-            logger.error("home.config_repository_error", exc_info=exc)
-            raise HTTPException(
-                status_code=503, detail="home_storage_unavailable"
-            ) from exc
-        logger.info(
-            "home.admin.restore",
-            extra={
-                "slug": payload.slug,
-                "actor": actor or "unknown",
-                "version": version,
-            },
-        )
-        return RestoreResponse(slug=payload.slug, draft=_serialize_config(draft))
-
-    return router
+def get_home_composer(container) -> HomeComposer:
+    return _get_home_composer(container)
 
 
-def _require_home_scope(scope: str):
-    async def _dependency(request: Request) -> None:
-        container = getattr(request.app.state, "container", None)
-        settings = getattr(container, "settings", None)
-        header_roles = _parse_header_roles(request.headers.get("X-Roles"))
-        admin_key = request.headers.get("X-Admin-Key") or request.headers.get(
-            "x-admin-key"
-        )
-        configured_key = getattr(settings, "admin_api_key", None)
-        if admin_key and configured_key and admin_key == str(configured_key):
-            request.state.home_claims = {"auth_via": "admin-key"}  # type: ignore[attr-defined]
-            return None
-        if _scope_satisfied(scope, header_roles):
-            request.state.home_claims = {"roles": header_roles}  # type: ignore[attr-defined]
-            return None
-        try:
-            claims = await get_current_user(request)
-        except HTTPException as exc:
-            raise exc
-        roles = _collect_roles(claims)
-        permissions = _collect_permissions(claims)
-        if _scope_satisfied(scope, roles) or _scope_satisfied(scope, permissions):
-            request.state.home_claims = claims  # type: ignore[attr-defined]
-            return None
-        raise HTTPException(status_code=403, detail="insufficient_permissions")
-
-    return _dependency
-
-
-def _collect_roles(claims: Mapping[str, Any]) -> set[str]:
-    values: set[str] = set()
-    role = claims.get("role")
-    if isinstance(role, str):
-        values.add(role)
-    roles = claims.get("roles")
-    if isinstance(roles, Iterable) and not isinstance(roles, (str, bytes)):
-        for value in roles:
-            if isinstance(value, str):
-                values.add(value)
-    return {item.strip().lower() for item in values}
-
-
-def _collect_permissions(claims: Mapping[str, Any]) -> set[str]:
-    values: set[str] = set()
-    for key in ("permissions", "scopes"):
-        raw = claims.get(key)
-        if isinstance(raw, Iterable) and not isinstance(raw, (str, bytes)):
-            for value in raw:
-                if isinstance(value, str):
-                    values.add(value)
-    return {item.strip().lower() for item in values}
-
-
-def _parse_header_roles(header: str | None) -> set[str]:
-    if not header:
-        return set()
-    parts = [item.strip().lower() for item in header.split(",") if item.strip()]
-    return set(parts)
-
-
-def _scope_satisfied(required: str, provided: set[str]) -> bool:
-    required = required.lower()
-    if not provided:
-        return False
-    if "admin" in provided:
-        return True
-    if required in provided:
-        return True
-    if required.endswith(":read"):
-        write_scope = required.replace(":read", ":write")
-        if write_scope in provided:
-            return True
-    return False
-
-
-def _resolve_actor(request: Request) -> str | None:
-    actor, _ = _resolve_actor_context(request)
-    return actor
-
-
-def _resolve_actor_context(request: Request) -> tuple[str | None, str | None]:
-    claims = getattr(request.state, "home_claims", None)
-    actor: str | None = None
-    team: str | None = None
-    if isinstance(claims, Mapping):
-        subject = claims.get("sub")
-        if isinstance(subject, str) and subject.strip():
-            actor = subject.strip()
-        else:
-            actor_claim = claims.get("actor")
-            if isinstance(actor_claim, str) and actor_claim.strip():
-                actor = actor_claim.strip()
-        team = _resolve_actor_team(claims)
-    admin_key = request.headers.get("X-Admin-Key") or request.headers.get("x-admin-key")
-    if actor is None and admin_key:
-        actor = "admin-key"
-    return actor, team
-
-
-def _resolve_actor_team(claims: Mapping[str, Any]) -> str | None:
-    team = claims.get("team") or claims.get("team_id")
-    if isinstance(team, str) and team.strip():
-        return team.strip()
-    teams = claims.get("teams") or claims.get("team_codes")
-    if isinstance(teams, Iterable) and not isinstance(teams, (str, bytes)):
-        for value in teams:
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-    return None
-
-
-def _serialize_history_entry(
-    entry: HomeConfigHistoryEntry,
-    *,
-    current_version: int | None,
-) -> HomeHistoryEntry:
-    config = entry.config
-    created_at = (
-        _iso(entry.created_at)
-        or _iso(config.published_at)
-        or _iso(config.updated_at)
-        or _iso(config.created_at)
-        or _iso(datetime.now(UTC))
-    )
-    return HomeHistoryEntry(
-        config_id=config.id,
-        version=config.version,
-        action="publish",
-        actor=entry.actor,
-        actor_team=entry.actor_team,
-        comment=entry.comment,
-        created_at=created_at or "",
-        published_at=_iso(config.published_at),
-        is_current=current_version == config.version,
-    )
-
-
-def _serialize_config(config: HomeConfig) -> HomeConfigSnapshot:
-    return HomeConfigSnapshot(
-        id=config.id,
-        slug=config.slug,
-        version=config.version,
-        status=(
-            config.status.value
-            if isinstance(config.status, HomeConfigStatus)
-            else str(config.status)
-        ),
-        data=dict(config.data),
-        created_at=_iso(config.created_at),
-        updated_at=_iso(config.updated_at),
-        published_at=_iso(config.published_at),
-        created_by=config.created_by,
-        updated_by=config.updated_by,
-        draft_of=config.draft_of,
-    )
-
-
-def _iso(value: datetime | None) -> str | None:
-    if value is None:
+async def _load_site_home_config(container, slug: str) -> HomeConfig | None:
+    normalized = slug.strip() or _DEFAULT_SLUG
+    if normalized.startswith("/"):
+        normalized = normalized.removeprefix("/")
+    candidates: list[str] = [normalized]
+    if normalized == "main":
+        candidates.append("/")
+    elif normalized == "":
+        candidates = ["main", "/"]
+    engine = await _ensure_home_engine(container)
+    if engine is None:
         return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=UTC)
-    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
-
-
-def _make_preview_config(
-    slug: str, data: Mapping[str, Any], *, actor: str | None
-) -> HomeConfig:
-    now = datetime.now(UTC)
+    async with engine.connect() as conn:
+        page_stmt = (
+            sa.select(
+                SITE_PAGES_TABLE.c.id,
+                SITE_PAGES_TABLE.c.slug,
+                SITE_PAGES_TABLE.c.title,
+                SITE_PAGES_TABLE.c.locale,
+                SITE_PAGES_TABLE.c.created_at,
+                SITE_PAGES_TABLE.c.updated_at,
+                SITE_PAGES_TABLE.c.published_version,
+                SITE_PAGES_TABLE.c.type,
+            )
+            .where(SITE_PAGES_TABLE.c.slug.in_(candidates))
+            .limit(1)
+        )
+        page_row = (await conn.execute(page_stmt)).mappings().first()
+        if not page_row:
+            return None
+        published_version = page_row.get("published_version")
+        if published_version is None:
+            return None
+        try:
+            published_version_int = int(published_version)
+        except (TypeError, ValueError):
+            return None
+        version_stmt = (
+            sa.select(
+                SITE_PAGE_VERSIONS_TABLE.c.data,
+                SITE_PAGE_VERSIONS_TABLE.c.meta,
+                SITE_PAGE_VERSIONS_TABLE.c.published_at,
+                SITE_PAGE_VERSIONS_TABLE.c.published_by,
+            )
+            .where(
+                sa.and_(
+                    SITE_PAGE_VERSIONS_TABLE.c.page_id == page_row["id"],
+                    SITE_PAGE_VERSIONS_TABLE.c.version == published_version_int,
+                )
+            )
+            .limit(1)
+        )
+        version_row = (await conn.execute(version_stmt)).mappings().first()
+        if not version_row:
+            return None
+    data = site_helpers.as_mapping(version_row.get("data"))
+    meta = site_helpers.as_mapping(version_row.get("meta"))
+    payload = dict(data)
+    if meta and not isinstance(data.get("meta"), dict):
+        payload["meta"] = meta
+    else:
+        payload["meta"] = site_helpers.as_mapping(payload.get("meta"))
+    published_at = version_row.get("published_at")
+    updated_at = page_row.get("updated_at") or published_at or datetime.now(UTC)
+    created_at = page_row.get("created_at") or datetime.now(UTC)
+    status = HomeConfigStatus.PUBLISHED
     return HomeConfig(
-        id=uuid4(),
-        slug=slug,
-        version=0,
-        status=HomeConfigStatus.DRAFT,
-        data=data,
-        created_by=actor,
-        updated_by=actor,
-        created_at=now,
-        updated_at=now,
-        published_at=None,
+        id=page_row["id"],
+        slug=page_row.get("slug") or normalized or "main",
+        version=published_version_int,
+        status=status,
+        data=payload,
+        created_by=None,
+        updated_by=version_row.get("published_by"),
+        created_at=created_at,
+        updated_at=updated_at,
+        published_at=published_at,
         draft_of=None,
     )
 
@@ -578,6 +223,14 @@ def _compute_etag(config: HomeConfig) -> str:
     base = f"{config.slug}:{config.version}:{updated}"
     digest = hashlib.sha256(base.encode("utf-8")).hexdigest()
     return f'"{digest}"'
+
+
+def _iso(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _get_home_config_service(container) -> HomeConfigService:
@@ -715,7 +368,7 @@ def _build_node_data_service(container) -> NodeDataService:
         if tag:
             query.append("   AND t.slug = :tag")
         query.append(
-            " GROUP BY n.id, n.slug, n.title, n.author_id, n.is_public, n.status, n.publish_at, n.updated_at, n.cover_url, n.views_count, n.reactions_like_count"
+            " GROUP BY n.id, n.slug, n.title, n.author_id, n.is_public, n.status, n.publish_at, n.updated_at, n.cover_url, n.views_count, n.reactions_like_count",
         )
         query.append(f" ORDER BY {order_clause}{' DESC' if not asc else ' ASC'}")
         query.append(" LIMIT :limit")
@@ -767,6 +420,7 @@ def _build_quest_data_service(container) -> QuestDataService:
         return ordered
 
     async def fetch_filtered(*, tag: str | None, limit: int, order: str | None):
+        del order  # unused
         engine = await _ensure_home_engine(container)
         if engine is None:
             return []
@@ -828,6 +482,7 @@ def _build_dev_blog_data_service(
         return await node_service.fetch_by_ids(items)
 
     async def fetch_filtered(*, tag: str | None, limit: int, order: str | None):
+        del tag, order  # unused
         limit_value = max(1, int(limit))
         posts = await dev_blog_use_case.list_latest_for_home(limit=limit_value)
         cards: list[dict[str, Any]] = []
@@ -1020,7 +675,4 @@ async def _ensure_home_engine(container) -> AsyncEngine | None:
     return engine
 
 
-__all__ = [
-    "make_admin_router",
-    "make_public_router",
-]
+__all__ = ["make_public_router", "get_home_composer"]

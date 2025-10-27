@@ -21,9 +21,14 @@ class NotificationPayload(TypedDict, total=False):
     is_read: bool
 
 
-class NotificationsListResponse(TypedDict):
+class NotificationsListResponse(TypedDict, total=False):
     items: list[NotificationPayload]
     unread: int
+    unread_total: int
+    total: int
+    has_more: bool
+    limit: int
+    offset: int
 
 
 class NotificationResponse(TypedDict):
@@ -54,9 +59,29 @@ def notification_to_dict(row: Mapping[str, Any]) -> NotificationPayload:
     return cast(NotificationPayload, data)
 
 
-def build_list_response(items: list[NotificationPayload]) -> NotificationsListResponse:
-    unread = sum(1 for item in items if not item.get("is_read"))
-    return NotificationsListResponse(items=list(items), unread=unread)
+def build_list_response(
+    items: list[NotificationPayload],
+    *,
+    total: int,
+    unread_total: int,
+    limit: int,
+    offset: int,
+) -> NotificationsListResponse:
+    effective_limit = max(int(limit), 0)
+    effective_offset = max(int(offset), 0)
+    effective_unread = max(int(unread_total), 0)
+    effective_total = max(int(total), 0)
+    page_count = len(items)
+    has_more = effective_offset + page_count < effective_total
+    return NotificationsListResponse(
+        items=list(items),
+        unread=effective_unread,
+        unread_total=effective_unread,
+        total=effective_total,
+        has_more=has_more,
+        limit=effective_limit,
+        offset=effective_offset,
+    )
 
 
 def build_single_response(notification: Mapping[str, Any]) -> NotificationResponse:

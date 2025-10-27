@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection, Mapping
 from typing import Any
 from uuid import UUID
 
+from domains.platform.notifications.application.interactors.commands import (
+    NotificationCreateCommand,
+)
 from domains.platform.worker.application.service import (
     JobCreateCommand,
     WorkerQueueService,
@@ -27,6 +31,9 @@ from domains.product.site.infrastructure import SiteRepository
 
 from .validation import PageDraftValidator, ValidatedDraft
 
+logger = logging.getLogger(__name__)
+_UNSET: Any = object()
+
 
 class SiteService:
     """Application facade for site editor use cases."""
@@ -36,10 +43,12 @@ class SiteService:
         repository: SiteRepository,
         validator: PageDraftValidator | None = None,
         worker_queue: WorkerQueueService | None = None,
+        notify_service: Any | None = None,
     ) -> None:
         self._repo = repository
         self._validator = validator or PageDraftValidator()
         self._worker_queue = worker_queue
+        self._notify_service = notify_service
 
     async def list_pages(
         self,
@@ -52,6 +61,7 @@ class SiteService:
         query: str | None = None,
         has_draft: bool | None = None,
         sort: str = "updated_at_desc",
+        pinned: bool | None = None,
         viewer_roles: Collection[str] | None = None,
         viewer_team: str | None = None,
         viewer_id: str | None = None,
@@ -91,6 +101,7 @@ class SiteService:
             query=query,
             has_draft=has_draft,
             sort=sort,
+            pinned=pinned,
             allowed_statuses=allowed_statuses,
             owner_whitelist=owner_whitelist,
             allow_owner_override=allow_owner_override,
@@ -105,6 +116,7 @@ class SiteService:
         locale: str,
         owner: str | None,
         actor: str | None = None,
+        pinned: bool = False,
     ) -> Page:
         return await self._repo.create_page(
             slug=slug,
@@ -113,6 +125,40 @@ class SiteService:
             locale=locale,
             owner=owner,
             actor=actor,
+            pinned=pinned,
+        )
+
+    async def delete_page(self, page_id: UUID, *, actor: str | None = None) -> None:
+        await self._repo.delete_page(page_id=page_id, actor=actor)
+
+    async def update_page(
+        self,
+        page_id: UUID,
+        *,
+        slug: str | None = _UNSET,
+        title: str | None = _UNSET,
+        locale: str | None = _UNSET,
+        owner: str | None = _UNSET,
+        pinned: bool | None = _UNSET,
+        actor: str | None = None,
+    ) -> Page:
+        updates: dict[str, Any] = {}
+        if slug is not _UNSET:
+            updates["slug"] = slug
+        if title is not _UNSET:
+            updates["title"] = title
+        if locale is not _UNSET:
+            updates["locale"] = locale
+        if owner is not _UNSET:
+            updates["owner"] = owner
+        if pinned is not _UNSET:
+            updates["pinned"] = pinned
+        if not updates:
+            return await self.get_page(page_id)
+        return await self._repo.update_page(
+            page_id=page_id,
+            actor=actor,
+            **updates,
         )
 
     async def get_page(self, page_id: UUID) -> Page:
@@ -179,6 +225,9 @@ class SiteService:
     ) -> PageDraft:
         return await self._repo.restore_page_version(page_id, version, actor=actor)
 
+    async def list_page_global_blocks(self, page_id: UUID) -> list[Mapping[str, Any]]:
+        return await self._repo.list_page_global_blocks(page_id)
+
     async def get_page_metrics(
         self, page_id: UUID, *, period: str = "7d", locale: str = "ru"
     ) -> PageMetrics | None:
@@ -202,6 +251,8 @@ class SiteService:
         locale: str | None = None,
         query: str | None = None,
         has_draft: bool | None = None,
+        requires_publisher: bool | None = None,
+        review_status: PageReviewStatus | None = None,
         sort: str = "updated_at_desc",
     ) -> tuple[list[GlobalBlock], int]:
         return await self._repo.list_global_blocks(
@@ -212,6 +263,8 @@ class SiteService:
             locale=locale,
             query=query,
             has_draft=has_draft,
+            requires_publisher=requires_publisher,
+            review_status=review_status,
             sort=sort,
         )
 
@@ -257,6 +310,9 @@ class SiteService:
         usage = await self._repo.list_block_usage(block_id)
         jobs = await self._enqueue_page_republish_jobs(block_id, usage)
         refreshed_block = await self._repo.get_global_block(block_id)
+        await self._notify_global_block_publish(
+            refreshed_block, usage, audit_id=audit_id, actor=actor
+        )
         return refreshed_block, audit_id, usage, jobs
 
     async def create_global_block(
@@ -290,20 +346,28 @@ class SiteService:
     async def get_global_block_metrics(
         self, block_id: UUID, *, period: str = "7d", locale: str = "ru"
     ) -> GlobalBlockMetrics | None:
-        return await self._repo.get_global_block_metrics(block_id, period=period, locale=locale)
+        return await self._repo.get_global_block_metrics(
+            block_id, period=period, locale=locale
+        )
 
     async def list_global_block_history(
         self, block_id: UUID, *, limit: int = 10, offset: int = 0
     ) -> tuple[list[GlobalBlockVersion], int]:
-        return await self._repo.list_global_block_history(block_id, limit=limit, offset=offset)
+        return await self._repo.list_global_block_history(
+            block_id, limit=limit, offset=offset
+        )
 
-    async def get_global_block_version(self, block_id: UUID, version: int) -> GlobalBlockVersion:
+    async def get_global_block_version(
+        self, block_id: UUID, version: int
+    ) -> GlobalBlockVersion:
         return await self._repo.get_global_block_version(block_id, version)
 
     async def restore_global_block_version(
         self, block_id: UUID, version: int, *, actor: str | None
     ) -> GlobalBlock:
-        return await self._repo.restore_global_block_version(block_id, version, actor=actor)
+        return await self._repo.restore_global_block_version(
+            block_id, version, actor=actor
+        )
 
     async def list_audit(
         self,
@@ -321,6 +385,70 @@ class SiteService:
             limit=limit,
             offset=offset,
         )
+
+    async def _notify_global_block_publish(
+        self,
+        block: GlobalBlock,
+        usage: list[GlobalBlockUsage],
+        *,
+        audit_id: UUID,
+        actor: str | None,
+    ) -> None:
+        if not self._notify_service:
+            return
+        owners: dict[str, list[GlobalBlockUsage]] = {}
+        for item in usage:
+            owner = (item.owner or "").strip() if item.owner else ""
+            if not owner:
+                continue
+            owners.setdefault(owner, []).append(item)
+        if not owners:
+            return
+        block_title = block.title or block.key
+        for owner, entries in owners.items():
+            pages_sorted = sorted(entries, key=lambda page: page.slug)
+            summary_pages = pages_sorted[:5]
+            page_list_text = ", ".join(page.slug for page in summary_pages)
+            remaining = len(pages_sorted) - len(summary_pages)
+            if remaining > 0:
+                page_list_text += f" и ещё {remaining}"
+            message = (
+                f"Опубликована новая версия глобального блока «{block_title}». "
+                f"Затронутые страницы: {page_list_text}."
+            )
+            command = NotificationCreateCommand(
+                user_id=owner,
+                title=f"Глобальный блок «{block_title}» обновлён",
+                message=message,
+                type_="global_block_publish",
+                placement="inbox",
+                topic_key="site-editor.global-blocks",
+                meta={
+                    "block_id": str(block.id),
+                    "block_key": block.key,
+                    "block_title": block.title,
+                    "pages": [
+                        {
+                            "page_id": str(page.page_id),
+                            "slug": page.slug,
+                            "title": page.title,
+                            "status": page.status.value,
+                            "section": page.section,
+                        }
+                        for page in pages_sorted
+                    ],
+                    "audit_id": str(audit_id),
+                    "actor": actor,
+                },
+            )
+            try:
+                await self._notify_service.create_notification(command)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                logger.warning(
+                    "Failed to send global block publish notification",
+                    exc_info=exc,
+                    extra={"owner": owner, "block_id": str(block.id)},
+                )
 
     async def _enqueue_page_republish_jobs(
         self, block_id: UUID, usage: list[GlobalBlockUsage]

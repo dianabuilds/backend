@@ -1,6 +1,5 @@
 ﻿import React from 'react';
 import {
-  ArrowPathIcon,
   BanknotesIcon,
   BoltIcon,
   ChartBarIcon,
@@ -22,8 +21,11 @@ import {
   TablePagination,
 } from '@ui';
 import { ObservabilityLayout } from './ObservabilityLayout';
+import { ObservabilityHeroActions } from './ObservabilityHeroActions';
+import { ObservabilitySummaryMetrics } from './ObservabilitySummaryMetrics';
 import { fetchLLMSummary } from '@shared/api/observability';
 import { useTelemetryQuery } from '../hooks/useTelemetryQuery';
+import { formatCurrency, formatLatency, formatNumber } from '../utils/format';
 import {
   LLMCallMetric,
   LLMCostMetric,
@@ -46,36 +48,7 @@ type StageMetrics = {
   costUsd: number;
 };
 
-const numberFormatter = new Intl.NumberFormat('en-US');
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-});
-const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-function formatNumber(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return numberFormatter.format(value);
-}
-
-function formatUpdated(date: Date | null): string {
-  if (!date) return 'вЂ”';
-  return timeFormatter.format(date);
-}
-
-function formatLatency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return `${Math.round(value)} ms`;
-}
-
 const LLM_POLL_INTERVAL_MS = 30_000;
-
-function formatCurrency(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 'вЂ”';
-  return currencyFormatter.format(value);
-}
-
 function makeStageKey(provider: string, model: string, stage: string | null | undefined) {
   const normalizedStage = stage && stage.trim().length ? stage.trim() : 'default';
   return `${provider}::${model}::${normalizedStage}`;
@@ -179,7 +152,7 @@ function findExtremes(metrics: StageMetrics[]) {
 
 export function ObservabilityLLM(): React.ReactElement {
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [providerFilter, setProviderFilter] = React.useState('ALL');
   const [search, setSearch] = React.useState('');
 
@@ -242,25 +215,14 @@ export function ObservabilityLLM(): React.ReactElement {
 
   const heroActions = React.useMemo(
     () => (
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-gray-500 dark:text-dark-200/80">
-          Updated {formatUpdated(lastUpdated)}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          onClick={() => {
-            void refresh();
-          }}
-          disabled={loading}
-          data-testid="observability-llm-refresh"
-        >
-          <ArrowPathIcon className="size-4" aria-hidden="true" />
-          Refresh
-        </Button>
-      </div>
+      <ObservabilityHeroActions
+        lastUpdated={lastUpdated}
+        onRefresh={() => {
+          void refresh();
+        }}
+        refreshing={loading}
+        refreshTestId="observability-llm-refresh"
+      />
     ),
     [lastUpdated, loading, refresh],
   );
@@ -287,7 +249,7 @@ export function ObservabilityLLM(): React.ReactElement {
         {
           id: 'llm-spend',
           label: 'Total spend',
-          value: formatCurrency(totals.totalCostUsd),
+          value: formatCurrency(totals.totalCostUsd, 'USD'),
           helper: `${formatNumber(totals.totalPromptTokens + totals.totalCompletionTokens)} tokens`,
           icon: <BanknotesIcon className="size-4" aria-hidden="true" />,
           accent: 'danger',
@@ -297,7 +259,7 @@ export function ObservabilityLLM(): React.ReactElement {
 
   if (error) {
     return (
-      <ObservabilityLayout title="LLM telemetry" actions={heroActions} metrics={heroMetrics}>
+      <ObservabilityLayout title="LLM telemetry" actions={heroActions}>
         <Surface
           variant="soft"
           className="border border-rose-200/60 bg-rose-50/60 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-200"
@@ -346,7 +308,7 @@ export function ObservabilityLLM(): React.ReactElement {
         {
           id: 'top-cost',
           label: 'Most expensive stage',
-          value: extremes.topCost ? formatCurrency(extremes.topCost.costUsd) : '—',
+          value: extremes.topCost ? formatCurrency(extremes.topCost.costUsd, 'USD') : '—',
           description: extremes.topCost
             ? `${extremes.topCost.provider}:${extremes.topCost.model}@${extremes.topCost.stage}`
             : 'Awaiting data',
@@ -369,8 +331,8 @@ export function ObservabilityLLM(): React.ReactElement {
       title="LLM telemetry"
       description="Provider, model, and stage level performance, spend, and reliability."
       actions={heroActions}
-      metrics={heroMetrics}
     >
+      <ObservabilitySummaryMetrics metrics={heroMetrics} />
       <div className="grid gap-6 xl:grid-cols-12">
         <div className="xl:col-span-12" data-testid="observability-llm-filters" data-analytics="observability:llm:filters">
           <Surface variant="soft" className="space-y-4">
@@ -610,7 +572,7 @@ export function ObservabilityLLM(): React.ReactElement {
                           <Table.TD>{Math.round(row.avgLatencyMs || 0)}</Table.TD>
                           <Table.TD>{formatNumber(row.promptTokens)}</Table.TD>
                           <Table.TD>{formatNumber(row.completionTokens)}</Table.TD>
-                          <Table.TD>{formatCurrency(row.costUsd)}</Table.TD>
+                          <Table.TD>{formatCurrency(row.costUsd, 'USD')}</Table.TD>
                         </Table.TR>
                       ))}
                     </Table.TBody>
@@ -628,7 +590,9 @@ export function ObservabilityLLM(): React.ReactElement {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <Badge color="primary" variant="soft">{row.provider}</Badge>
-                      <span className="text-xs text-gray-500 dark:text-dark-200/70">{formatCurrency(row.costUsd)}</span>
+                      <span className="text-xs text-gray-500 dark:text-dark-200/70">
+                        {formatCurrency(row.costUsd, 'USD')}
+                      </span>
                     </div>
                     <div className="mt-3 text-sm font-semibold text-gray-900 dark:text-white">{row.model}</div>
                     <div className="text-xs text-gray-500 dark:text-dark-200/70">Stage: {row.stage}</div>
@@ -676,6 +640,9 @@ export function ObservabilityLLM(): React.ReactElement {
     </ObservabilityLayout>
   );
 }
+
+
+
 
 
 

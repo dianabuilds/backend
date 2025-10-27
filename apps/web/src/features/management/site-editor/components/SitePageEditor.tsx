@@ -1,22 +1,35 @@
 ﻿import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Badge, Button, Card, Dialog, Select, Spinner, Textarea, useToast } from '@ui';
+import { Button, Card, Dialog, Spinner, Tabs, Textarea, useToast } from '@ui';
 import { useAuth } from '@shared/auth';
-import { formatDateTime } from '@shared/utils/format';
-import type { SitePageReviewStatus } from '@shared/types/management';
+import { managementSiteEditorApi } from '@shared/api/management';
+import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/types';
+import { getLocale } from '@shared/i18n/locale';
+import { reportFeatureError } from '@shared/utils/sentry';
+import type { SitePagePreviewResponse, SitePageReviewStatus } from '@shared/types/management';
 import { HomeEditorContext } from '../../home/HomeEditorContext';
-import type { HomeEditorContextValue } from '../../home/types';
+import type { HomeEditorContextValue, HomeDraftData } from '../../home/types';
 import { BlockCanvas } from '../../home/components/BlockCanvas';
 import { BlockInspector } from '../../home/components/BlockInspector';
-import { SitePageHistoryPanel } from './PageHistoryPanel';
+import { BlockLibraryPanel } from '../../home/components/BlockLibrary';
+import {
+  BlockPreviewPanel,
+  extractRenderDataFromPayload,
+  normalizePreviewPayload,
+  type PreviewFetchResult,
+  type PreviewErrorContext,
+} from '../../editor-shared';
 import { SitePageAuditPanel } from './PageAuditPanel';
 import { useSitePageEditorState } from '../hooks/useSitePageEditorState';
 import { statusAppearance, typeLabel } from '../utils/pageHelpers';
-import { SitePageValidationPanel } from './SitePageValidationPanel';
-import { SitePagePreviewPanel } from './SitePagePreviewPanel';
 import { SitePageDiffPanel } from './SitePageDiffPanel';
-import { SiteBlockLibraryPanel } from './SiteBlockLibraryPanel';
 import { SitePageMetricsPanel } from './SitePageMetricsPanel';
+import { SitePageHeader } from './SitePageHeader';
+import { SitePageReviewPanel } from './SitePageReviewPanel';
+import { SitePageInfoPanel } from './SitePageInfoPanel';
+import { SitePageGlobalBlocksPanel, type SitePageGlobalBlockOption } from './SitePageGlobalBlocksPanel';
+import { applyGlobalBlockAssignments, extractGlobalBlockAssignments } from '../utils/globalBlocks';
+import { SitePageHistoryPanel } from './PageHistoryPanel';
 
 const REVIEW_STATUS_OPTIONS: Array<{ value: SitePageReviewStatus; label: string }> = [
   { value: 'none', label: 'Ревью не требуется' },
@@ -41,6 +54,69 @@ function ErrorState({ message }: { message: string | null }): React.ReactElement
   );
 }
 
+function buildSiteDraftPayload(data: HomeDraftData): {
+  data: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+} {
+  const normalizedData: Record<string, unknown> = {
+    blocks: Array.isArray(data.blocks) ? data.blocks : [],
+  };
+  const payload: { data: Record<string, unknown>; meta?: Record<string, unknown> } = {
+    data: normalizedData,
+  };
+  if (data.meta && typeof data.meta === 'object' && data.meta !== null) {
+    payload.meta = { ...data.meta };
+  }
+  return payload;
+}
+
+function mapPreviewResponseToResult(response: SitePagePreviewResponse): PreviewFetchResult {
+  const layouts: PreviewFetchResult['layouts'] = {};
+  const entries = Object.entries(response.layouts ?? {});
+
+  for (const [layoutKey, layoutValue] of entries) {
+    if (!layoutValue) {
+      continue;
+    }
+    const rawPayload =
+      layoutValue.payload && typeof layoutValue.payload === 'object'
+        ? (layoutValue.payload as Record<string, unknown>)
+        : null;
+    const summarySource: Record<string, unknown> = rawPayload ? { ...rawPayload } : {};
+    const rawData = layoutValue.data && typeof layoutValue.data === 'object' ? (layoutValue.data as Record<string, unknown>) : null;
+    if (!rawPayload && rawData) {
+      Object.assign(summarySource, rawData);
+    }
+    if (layoutValue.meta && typeof layoutValue.meta === 'object' && layoutValue.meta !== null) {
+      summarySource.meta = layoutValue.meta;
+    }
+    if (layoutValue.generated_at) {
+      summarySource.generated_at = layoutValue.generated_at;
+    }
+    if (response.draft_version != null) {
+      summarySource.version = response.draft_version;
+    }
+    const summary = extractRenderDataFromPayload(summarySource);
+    const normalizedPayload = rawPayload ? normalizePreviewPayload(rawPayload) : undefined;
+    layouts[layoutKey] = {
+      summary,
+      payload: normalizedPayload,
+    };
+  }
+
+  const defaultLayoutKey = entries[0]?.[0];
+  const defaultGeneratedAt = entries[0]?.[1]?.generated_at ?? null;
+
+  return {
+    layouts,
+    defaultLayout: defaultLayoutKey,
+    meta: {
+      version: response.draft_version ?? null,
+      generatedAt: defaultGeneratedAt,
+    },
+  };
+}
+
 type SitePageEditorProps = {
   pageId: string;
 };
@@ -50,6 +126,10 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
   const {
     page,
     loading,
+    pageInfoSaving,
+    pageInfoError,
+    updatePageInfo,
+    clearPageInfoError,
     data,
     setData,
     setBlocks,
@@ -75,21 +155,10 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
     slug,
     validation,
     revalidate,
-    serverValidation,
-    serverValidationLoading,
-    serverValidationError,
-    runServerValidation,
     draftDiff,
     diffLoading,
     diffError,
     refreshDiff,
-    preview,
-    previewLayouts,
-    previewLayout,
-    selectPreviewLayout,
-    previewLoading,
-    previewError,
-    refreshPreview,
     restoringVersion,
     restoreVersion,
     siteHistory,
@@ -105,20 +174,96 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
   const { user } = useAuth();
   const [publishDialogOpen, setPublishDialogOpen] = React.useState(false);
   const [publishComment, setPublishComment] = React.useState('');
+  const [workspaceTab, setWorkspaceTab] = React.useState<'layout' | 'preview'>('layout');
 
-  const handleServerValidation = React.useCallback(() => {
-    runServerValidation().catch(() => undefined);
-  }, [runServerValidation]);
+  const previewLocale = React.useMemo(() => page?.locale ?? getLocale(), [page?.locale]);
 
-  const handlePreviewRefresh = React.useCallback(() => {
-    refreshPreview().catch(() => undefined);
-  }, [refreshPreview]);
+  const globalBlockAssignments = React.useMemo(
+    () => extractGlobalBlockAssignments(data.meta ?? null),
+    [data.meta],
+  );
 
-  const handleDiffRefresh = React.useCallback(() => {
-    refreshDiff().catch(() => undefined);
-  }, [refreshDiff]);
+  const handleGlobalBlockSelection = React.useCallback(
+    (section: string, block: SitePageGlobalBlockOption | null) => {
+      const normalizedSection = section.trim() || 'other';
+      setData((prev) => {
+        const currentAssignments = { ...extractGlobalBlockAssignments(prev.meta ?? null) };
+        if (block) {
+          currentAssignments[normalizedSection] = {
+            key: block.key,
+            section: normalizedSection,
+          };
+        } else {
+          delete currentAssignments[normalizedSection];
+        }
+        const nextMeta = applyGlobalBlockAssignments(prev.meta ?? null, currentAssignments);
+        return {
+          ...prev,
+          meta: nextMeta,
+        };
+      });
+    },
+    [setData],
+  );
 
-  const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
+  const fetchSitePreview = React.useCallback(
+    async ({ layout, signal }: { layout?: string; signal: AbortSignal }): Promise<PreviewFetchResult> => {
+      const payload = buildSiteDraftPayload(data);
+      const response = await managementSiteEditorApi.previewSitePage(
+        pageId,
+        {
+          data: payload.data,
+          meta: payload.meta,
+          layouts: layout ? [layout] : undefined,
+          version: snapshot.version ?? undefined,
+        },
+        { signal },
+      );
+      return mapPreviewResponseToResult(response);
+    },
+    [data, pageId, snapshot.version],
+  );
+
+  const handlePreviewError = React.useCallback(
+    (error: unknown, context: PreviewErrorContext) => {
+      const blockErrors = Object.values(context.summary.blocks).reduce(
+        (acc, issues) => acc + issues.length,
+        0,
+      );
+      reportFeatureError(error, 'site-page-preview', {
+        pageId,
+        slug,
+        dirty: context.dirty,
+        saving: context.saving,
+        lastSavedAt: context.lastSavedAt,
+        validationErrors: context.summary.general.length,
+        blockErrors,
+        layout: context.layout,
+      });
+    },
+    [pageId, slug],
+  );
+
+const handleDiffRefresh = React.useCallback(() => {
+  refreshDiff().catch(() => undefined);
+}, [refreshDiff]);
+
+const handleUpdatePageInfo = React.useCallback(
+  async (changes: UpdateSitePagePayload) => {
+    if (!Object.keys(changes).length) {
+      return;
+    }
+    try {
+      await updatePageInfo(changes);
+      pushToast({ intent: 'success', description: 'Основные параметры страницы обновлены' });
+    } catch {
+      // Ошибка отображается в панели параметров
+    }
+  },
+  [pushToast, updatePageInfo],
+);
+
+const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
     loading,
     data,
     setData,
@@ -208,12 +353,24 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
     ? 'Сохраните черновик, чтобы зафиксировать новый статус.'
     : 'Изменения статуса сохраняются вместе с черновиком.';
 
-  const handleReviewStatusChange = React.useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    setReviewStatus(event.target.value as SitePageReviewStatus);
-  }, [setReviewStatus]);
+  const blocksCount = data.blocks.length;
+
+  const workspaceTabs = React.useMemo(() => ([
+    {
+      key: 'layout',
+      label: `Текущая раскладка${blocksCount > 0 ? ` (${blocksCount})` : ''}`,
+    },
+    {
+      key: 'preview',
+      label: 'Предпросмотр',
+    },
+  ]), [blocksCount]);
+
+  const handleWorkspaceTabChange = React.useCallback((key: string) => {
+    setWorkspaceTab(key === 'preview' ? 'preview' : 'layout');
+  }, []);
 
   const reviewStatusBadgeColor = REVIEW_STATUS_BADGE_COLOR[reviewStatus] ?? 'neutral';
-  const publishButtonDisabled = loading || publishing;
 
   const handleManualSave = React.useCallback(async () => {
     if (saving || publishing) {
@@ -258,158 +415,136 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
     pushToast({ intent: 'success', description: `Версия v${version} восстановлена в черновик` });
   }, [pushToast, restoreVersion]);
 
-  const headerStats = React.useMemo(() => {
-    const stats: Array<{ label: string; value: React.ReactNode; hint?: string }> = [
-      {
-        label: 'Slug',
-        value: <span className="font-mono text-xs text-gray-700 dark:text-dark-100">{slug || '—'}</span>,
-      },
-      {
-        label: 'Черновик',
-        value: snapshot.version != null ? `v${snapshot.version}` : '—',
-        hint: lastSavedAt ? `обновлён ${formatDateTime(lastSavedAt, { fallback: '—', withSeconds: true })}` : undefined,
-      },
-      {
-        label: 'Публикация',
-        value: page?.published_version != null ? `v${page.published_version}` : '—',
-        hint: page?.updated_at ? `обновлена ${formatDateTime(page.updated_at, { fallback: '—', withSeconds: true })}` : undefined,
-      },
-    ];
-    return stats;
-  }, [lastSavedAt, page?.published_version, page?.updated_at, slug, snapshot.version]);
-
   const status = page ? statusAppearance(page.status) : null;
 
   return (
     <HomeEditorContext.Provider value={contextValue}>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Link to="/management/site-editor" className="inline-flex items-center gap-1 text-primary-500 hover:text-primary-600">
-                Назад к списку страниц
-              </Link>
-              {status ? <Badge color={status.color}>{status.label}</Badge> : null}
-              {page?.type ? <Badge variant="outline">{typeLabel(page.type)}</Badge> : null}
-            </div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{page?.title ?? 'Страница'}</h1>
-            <p className="text-sm text-gray-500 dark:text-dark-200">
-              Настройте блоки и сохраните черновик. Автосохранение срабатывает при изменениях.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outlined"
-              color="neutral"
-              onClick={() => void loadDraft({ silent: false })}
-              disabled={loading || saving || publishing}
-            >
-              Обновить данные
-            </Button>
-            <Button onClick={handleManualSave} disabled={!dirty || saving || publishing}>
-              {saving ? 'Сохранение…' : dirty ? 'Сохранить черновик' : 'Сохранено'}
-            </Button>
-            {canPublish ? (
-              <Button onClick={handleOpenPublish} disabled={publishButtonDisabled}>
-                {publishing ? 'Публикация…' : 'Опубликовать'}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {headerStats.map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-gray-200/80 bg-white/90 px-3 py-2 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/60">
-              <div className="text-2xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200/70">{stat.label}</div>
-              <div className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{stat.value}</div>
-              {stat.hint ? <div className="mt-0.5 text-2xs text-gray-500 dark:text-dark-200/60">{stat.hint}</div> : null}
-            </div>
-          ))}
-        </div>
-
-        <SitePageMetricsPanel
-          metrics={pageMetrics}
-          loading={metricsLoading || loading}
-          error={metricsError}
-          period={metricsPeriod}
-          onChangePeriod={setMetricsPeriod}
-          onRefresh={refreshMetrics}
+      <div className="space-y-6 pb-12">
+        <SitePageHeader
+          pageTitle={page?.title ?? 'Страница'}
+          pageSlug={slug}
+          pageStatusBadge={status ? { label: status.label, color: status.color } : null}
+          pageTypeLabel={page?.type ? typeLabel(page.type) : null}
+          snapshot={snapshot}
+          publishedVersion={page?.published_version ?? null}
+          lastSavedAt={lastSavedAt}
+          dirty={dirty}
+          saving={saving}
+          publishing={publishing}
+          loading={loading}
+          canPublish={canPublish}
+          onRefresh={() => void loadDraft({ silent: false })}
+          onSaveDraft={handleManualSave}
+          onOpenPublish={handleOpenPublish}
         />
-
-        <Card className="flex flex-col gap-3 p-4 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
-            <div className="text-xs uppercase tracking-wide text-gray-500 dark:text-dark-200/70">Статус ревью</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge color={reviewStatusBadgeColor}>{reviewStatusLabel}</Badge>
-              {canPublish ? <Badge variant="outline" color="success">Самопубликация</Badge> : null}
-            </div>
-            <p className="max-w-2xl text-xs text-gray-500 dark:text-dark-200">{reviewStatusMessage}</p>
-          </div>
-          <div className="flex w-full flex-col gap-2 md:w-56">
-            <Select value={reviewStatus} onChange={handleReviewStatusChange} disabled={publishing || saving || loading}>
-              {REVIEW_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <span className="text-[11px] text-gray-400 dark:text-dark-300">{reviewStatusHint}</span>
-          </div>
-        </Card>
 
         <ErrorState message={savingError} />
-
-        <SitePageValidationPanel
-          clientValidation={validation}
-          serverValidation={serverValidation}
-          serverValidationLoading={serverValidationLoading}
-          serverValidationError={serverValidationError}
-          onRunServerValidation={handleServerValidation}
-        />
 
         {loading ? (
           <Card padding="sm" className="flex items-center justify-center py-32">
             <Spinner />
           </Card>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
-            <div className="order-2 lg:order-1 space-y-4">
-              <SiteBlockLibraryPanel />
-            </div>
-            <div className="order-1 lg:order-2 min-w-0 space-y-4">
-              <BlockCanvas />
-            </div>
-            <div className="order-3 space-y-4">
-              <BlockInspector />
-              <SitePagePreviewPanel
-                preview={preview}
-                previewLayout={previewLayout}
-                previewLayouts={previewLayouts}
-                onSelectLayout={selectPreviewLayout}
-                loading={previewLoading}
-                error={previewError}
-                onRefresh={handlePreviewRefresh}
-              />
-              <SitePageDiffPanel
-                diff={draftDiff}
-                loading={diffLoading}
-                error={diffError}
-                onRefresh={handleDiffRefresh}
-              />
-              <SitePageHistoryPanel
-                entries={siteHistory}
-                loading={siteHistoryLoading}
-                error={siteHistoryError}
-                onRestore={handleRestore}
-                restoringVersion={restoringVersion}
-                onRefresh={refreshHistory}
-              />
-              <SitePageAuditPanel
-                entries={auditEntries}
-                loading={auditLoading}
-                error={auditError}
-                onRefresh={refreshAudit}
-              />
+          <div className="rounded-4xl border border-gray-100/70 bg-gray-50/80 p-4 shadow-inner dark:border-dark-700/70 dark:bg-dark-900/50 sm:p-5">
+            <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+              <div className="order-2 space-y-4 lg:order-1">
+                <BlockLibraryPanel />
+              </div>
+              <div className="order-1 min-w-0 space-y-4 lg:order-2">
+                <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+                  <Tabs items={workspaceTabs} value={workspaceTab} onChange={handleWorkspaceTabChange} className="px-4 pt-2" />
+                </div>
+                {workspaceTab === 'layout' ? <BlockCanvas /> : null}
+                {workspaceTab === 'preview' ? (
+                  <BlockPreviewPanel
+                    loading={loading}
+                    slug={slug}
+                    dirty={dirty}
+                    saving={saving}
+                    lastSavedAt={lastSavedAt}
+                    validation={validation}
+                    revalidate={revalidate}
+                    fetchPreview={fetchSitePreview}
+                    locale={previewLocale}
+                    title="Предпросмотр страницы"
+                    description="Генерация payload для предпросмотра с учётом текущего черновика."
+                    openWindowLabel="Открыть окно"
+                    refreshLabel="Обновить предпросмотр"
+                    className="bg-white/95 shadow-sm dark:bg-dark-800"
+                    cardPadding="sm"
+                    testIdPrefix="site-page-preview"
+                    onError={handlePreviewError}
+                  />
+                ) : null}
+              </div>
+              <div className="order-3 space-y-4">
+                <BlockInspector />
+                <SitePageGlobalBlocksPanel
+                  locale={page?.locale}
+                  assignments={globalBlockAssignments}
+                  onChange={handleGlobalBlockSelection}
+                  disabled={loading || saving || publishing}
+                />
+                <SitePageInfoPanel
+                  page={page}
+                  disabled={loading || saving || publishing}
+                  saving={pageInfoSaving}
+                  error={pageInfoError}
+                  onSubmit={handleUpdatePageInfo}
+                  onClearError={clearPageInfoError}
+                />
+                <SitePageReviewPanel
+                  status={reviewStatus}
+                  statusLabel={reviewStatusLabel}
+                  badgeColor={reviewStatusBadgeColor}
+                  message={reviewStatusMessage}
+                  hint={reviewStatusHint}
+                  options={REVIEW_STATUS_OPTIONS}
+                  disabled={publishing || saving || loading}
+                  showSelfPublishBadge={canPublish}
+                  onChange={setReviewStatus}
+                />
+                <details className="group rounded-2xl border border-gray-200/70 bg-white/95 text-gray-900 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80 dark:text-dark-50 [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
+                    <span>Метрики страницы</span>
+                    <span className="text-xs text-primary-500 group-open:hidden">Развернуть</span>
+                    <span className="hidden text-xs text-primary-500 group-open:block">Свернуть</span>
+                  </summary>
+                  <div className="border-t border-gray-100 px-4 py-4 dark:border-dark-700/60">
+                    <SitePageMetricsPanel
+                      metrics={pageMetrics}
+                      loading={metricsLoading || loading}
+                      error={metricsError}
+                      period={metricsPeriod}
+                      onChangePeriod={setMetricsPeriod}
+                      onRefresh={refreshMetrics}
+                      variant="flat"
+                      showTitle={false}
+                      className="space-y-4"
+                    />
+                  </div>
+                </details>
+                <SitePageDiffPanel
+                  diff={draftDiff}
+                  loading={diffLoading}
+                  error={diffError}
+                  onRefresh={handleDiffRefresh}
+                />
+                <SitePageHistoryPanel
+                  entries={siteHistory}
+                  loading={siteHistoryLoading}
+                  error={siteHistoryError}
+                  onRestore={handleRestore}
+                  restoringVersion={restoringVersion}
+                  onRefresh={refreshHistory}
+                />
+                <SitePageAuditPanel
+                  entries={auditEntries}
+                  loading={auditLoading}
+                  error={auditError}
+                  onRefresh={refreshAudit}
+                />
+              </div>
             </div>
           </div>
         )}

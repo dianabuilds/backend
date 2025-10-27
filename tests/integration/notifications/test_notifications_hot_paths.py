@@ -27,8 +27,11 @@ class StubNotificationRepo:
         placement: str,
         limit: int,
         offset: int,
-    ) -> list[dict[str, object]]:
-        return list(self.items.get(user_id, []))
+    ) -> tuple[list[dict[str, object]], int, int]:
+        records = list(self.items.get(user_id, []))
+        total = len(records)
+        unread = sum(1 for record in records if not record.get("read_at"))
+        return records, total, unread
 
     async def mark_read(self, user_id: str, notif_id: str) -> dict[str, object] | None:
         records = self.items.get(user_id)
@@ -106,6 +109,12 @@ def test_notifications_list_and_mark_read() -> None:
     item = body["items"][0]
     assert item["id"] == "notif-1"
     assert item["is_read"] is False
+    assert body["unread"] == 1
+    assert body["unread_total"] == 1
+    assert body["total"] == 1
+    assert body["has_more"] is False
+    assert body["limit"] == 50
+    assert body["offset"] == 0
 
     mark_response = client.post("/v1/notifications/read/notif-1")
     assert mark_response.status_code == 200, mark_response.text

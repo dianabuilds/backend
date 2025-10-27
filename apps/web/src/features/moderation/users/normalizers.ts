@@ -84,3 +84,36 @@ export function riskBadgeProps(level: ReturnType<typeof resolveRiskLevel>): { la
       return { label: 'Unknown', color: 'neutral' };
   }
 }
+
+export function formatUserIdentifier(id: string): string {
+  if (!id) return '—';
+  const trimmed = id.trim();
+  if (trimmed.length <= 12) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
+}
+
+export function getUserDisplayName(user: Pick<ModerationUserSummary, 'id' | 'username' | 'email'>): string {
+  const username = user.username?.trim();
+  if (username) {
+    return username;
+  }
+  const email = user.email?.trim();
+  if (email) {
+    return email;
+  }
+  return formatUserIdentifier(user.id);
+}
+
+export function getUserSecondaryEmail(user: Pick<ModerationUserSummary, 'username' | 'email'>): string | null {
+  const email = user.email?.trim();
+  if (!email) {
+    return null;
+  }
+  const username = user.username?.trim();
+  if (username && username.toLowerCase() === email.toLowerCase()) {
+    return null;
+  }
+  return email;
+}

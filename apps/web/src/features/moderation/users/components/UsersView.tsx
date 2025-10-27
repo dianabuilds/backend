@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Surface, TablePagination, useToast } from '@ui';
+import { useNavigate } from 'react-router-dom';
 
 import { UsersHeader } from './UsersHeader';
 import { UsersFilters } from './UsersFilters';
@@ -95,6 +96,7 @@ function sortUsers(items: ModerationUserSummary[], sort: SortState): ModerationU
 
 export default function ModerationUsersView(): React.ReactElement {
   const { pushToast } = useToast();
+  const navigate = useNavigate();
 
   const [filters, setFilters] = React.useState<FilterState>(DEFAULT_FILTERS);
   const [search, setSearch] = React.useState('');
@@ -123,10 +125,10 @@ export default function ModerationUsersView(): React.ReactElement {
   const [lastLoadedAt, setLastLoadedAt] = React.useState<string>(() => new Date().toISOString());
 
   React.useEffect(() => {
-    if (!listState.loading) {
+    if (!listState.loading && !listState.error) {
       setLastLoadedAt(new Date().toISOString());
     }
-  }, [listState.loading, listState.items]);
+  }, [listState.error, listState.items, listState.loading]);
 
   const filteredByRisk = React.useMemo(() => {
     if (filters.risk === 'any') {
@@ -147,7 +149,7 @@ export default function ModerationUsersView(): React.ReactElement {
     return count;
   }, [filters]);
 
-  const lastRefreshLabel = formatRelativeTime(lastLoadedAt);
+  const lastRefreshLabel = lastLoadedAt ? `Updated ${formatRelativeTime(lastLoadedAt)}` : 'Waiting for data';
 
   const handleFilterChange = React.useCallback((patch: Partial<FilterState>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -272,6 +274,10 @@ export default function ModerationUsersView(): React.ReactElement {
     [fetchAndSetDetail, pushToast, setDetailError],
   );
 
+  const handleCreateCase = React.useCallback(() => {
+    navigate('/moderation/cases');
+  }, [navigate]);
+
   const showEmptyState = !listState.loading && sortedItems.length === 0;
   const mobileEmptyContent = showEmptyState ? (
     <UsersEmptyState variant="mobile" onResetFilters={resetFilters} />
@@ -282,7 +288,11 @@ export default function ModerationUsersView(): React.ReactElement {
       <UsersHeader
         metrics={metrics}
         lastRefreshLabel={lastRefreshLabel}
-        onRefresh={refresh}      />
+        loading={listState.loading}
+        hasError={Boolean(listState.error)}
+        onRefresh={refresh}
+        onCreateCase={handleCreateCase}
+      />
 
       <UsersFilters
         filters={filters}
@@ -352,7 +362,3 @@ export default function ModerationUsersView(): React.ReactElement {
     </div>
   );
 }
-
-
-
-

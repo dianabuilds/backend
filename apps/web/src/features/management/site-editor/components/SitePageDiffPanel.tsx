@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { Badge, Button, Card, Spinner } from '@ui';
+import React from 'react';
+import { Badge, Button, Spinner } from '@ui';
 import type { SitePageDraftDiffResponse, SitePageDiffEntry } from '@shared/types/management';
 
 type SitePageDiffPanelProps = {
@@ -9,79 +9,121 @@ type SitePageDiffPanelProps = {
   onRefresh: () => void;
 };
 
-function renderDiffEntry(entry: SitePageDiffEntry, index: number): React.ReactElement {
+function getEntryMeta(entry: SitePageDiffEntry): {
+  title: string;
+  description: string | null;
+  badgeColor: 'primary' | 'success' | 'error' | 'warning' | 'info';
+} {
   if (entry.type === 'block') {
-    const label = {
+    const labels: Record<SitePageDiffEntry['change'], string> = {
       added: 'Добавлен блок',
       removed: 'Удалён блок',
       updated: 'Изменён блок',
       moved: 'Перемещён блок',
-    }[entry.change];
+    };
     const movement =
       entry.change === 'moved' && entry.from != null && entry.to != null
-        ? ` (позиция ${entry.from + 1} → ${entry.to + 1})`
-        : '';
-    return (
-      <li key={`${entry.blockId}-${index}`} className="flex items-start gap-2 rounded-md border border-gray-200/70 bg-white/60 px-3 py-2 text-xs shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80">
-        <Badge color={entry.change === 'added' ? 'success' : entry.change === 'removed' ? 'error' : 'info'}>
-          {entry.change}
-        </Badge>
-        <div className="flex-1">
-          <div className="font-semibold text-gray-900 dark:text-dark-50">
-            {label} <span className="font-mono text-[11px] text-primary-500">{entry.blockId}</span>
-            {movement}
-          </div>
-          {entry.change === 'updated' && entry.before && entry.after ? (
-            <div className="mt-1 grid gap-2 text-[11px] text-gray-600 dark:text-dark-200 md:grid-cols-2">
-              <div>
-                <div className="font-medium text-gray-500 dark:text-dark-300">Было</div>
-                <pre className="mt-0.5 overflow-x-auto rounded bg-gray-100/80 p-2 dark:bg-dark-700/70">
-                  {JSON.stringify(entry.before ?? null, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <div className="font-medium text-gray-500 dark:text-dark-300">Стало</div>
-                <pre className="mt-0.5 overflow-x-auto rounded bg-gray-100/80 p-2 dark:bg-dark-700/70">
-                  {JSON.stringify(entry.after ?? null, null, 2)}
-                </pre>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </li>
-    );
+        ? `Позиция ${entry.from + 1} → ${entry.to + 1}`
+        : null;
+    return {
+      title: `${labels[entry.change] ?? 'Изменение блока'} · ${entry.blockId}`,
+      description: movement,
+      badgeColor:
+        entry.change === 'added'
+          ? 'success'
+          : entry.change === 'removed'
+            ? 'error'
+            : entry.change === 'moved'
+              ? 'warning'
+              : 'info',
+    };
   }
 
-  const label =
-    entry.type === 'meta'
-      ? 'Изменения метаданных'
-      : 'Изменения данных';
+  const scope = entry.type === 'meta' ? 'Метаданные' : 'Данные';
+  const change =
+    entry.change === 'removed' ? 'удалены' : entry.change === 'added' ? 'добавлены' : 'обновлены';
+  return {
+    title: `${scope}: ${entry.field}`,
+    description: `Значения ${change}`,
+    badgeColor:
+      entry.change === 'added'
+        ? 'success'
+        : entry.change === 'removed'
+          ? 'error'
+          : 'info',
+  };
+}
+
+function renderEntryDetails(entry: SitePageDiffEntry): React.ReactNode {
+  const renderJson = (value: unknown) => (
+    <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-gray-100/80 p-2 text-[11px] leading-5 text-gray-700 dark:bg-dark-800/80 dark:text-dark-100">
+      {JSON.stringify(value ?? null, null, 2)}
+    </pre>
+  );
+
+  if (entry.type === 'block') {
+    if (entry.change === 'moved') {
+      return null;
+    }
+    if (entry.change === 'updated' && entry.before && entry.after) {
+      return (
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500 dark:text-dark-300">Было</div>
+            {renderJson(entry.before)}
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold text-gray-500 dark:text-dark-300">Стало</div>
+            {renderJson(entry.after)}
+          </div>
+        </div>
+      );
+    }
+    return entry.after ? renderJson(entry.after) : null;
+  }
+
+  const before = 'before' in entry ? entry.before : undefined;
+  const after = 'after' in entry ? entry.after : undefined;
+  if (before === undefined && after === undefined) {
+    return null;
+  }
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      {before !== undefined ? (
+        <div>
+          <div className="text-[11px] font-semibold text-gray-500 dark:text-dark-300">Было</div>
+          {renderJson(before)}
+        </div>
+      ) : null}
+      {after !== undefined ? (
+        <div>
+          <div className="text-[11px] font-semibold text-gray-500 dark:text-dark-300">Стало</div>
+          {renderJson(after)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DiffEntry({ entry, index }: { entry: SitePageDiffEntry; index: number }): React.ReactElement {
+  const meta = getEntryMeta(entry);
+  const hasDetails =
+    entry.type === 'block'
+      ? entry.change !== 'moved'
+      : true;
 
   return (
-    <li key={`${entry.type}-${entry.field}-${index}`} className="flex items-start gap-2 rounded-md border border-gray-200/70 bg-white/60 px-3 py-2 text-xs shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80">
-      <Badge color={entry.change === 'added' ? 'success' : entry.change === 'removed' ? 'error' : 'info'}>
-        {entry.change}
-      </Badge>
-      <div className="flex-1">
-        <div className="font-semibold text-gray-900 dark:text-dark-50">
-          {label} <span className="font-mono text-[11px] text-primary-500">{entry.field}</span>
+    <li
+      key={index}
+      className="rounded-2xl border border-gray-200/70 bg-white/95 px-3 py-2 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/70"
+    >
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge color={meta.badgeColor}>{entry.change}</Badge>
+          <span className="text-sm font-medium text-gray-900 dark:text-dark-50">{meta.title}</span>
         </div>
-        {entry.before !== undefined || entry.after !== undefined ? (
-          <div className="mt-1 grid gap-2 text-[11px] text-gray-600 dark:text-dark-200 md:grid-cols-2">
-            <div>
-              <div className="font-medium text-gray-500 dark:text-dark-300">Было</div>
-              <pre className="mt-0.5 overflow-x-auto rounded bg-gray-100/80 p-2 dark:bg-dark-700/70">
-                {JSON.stringify(entry.before ?? null, null, 2)}
-              </pre>
-            </div>
-            <div>
-              <div className="font-medium text-gray-500 dark:text-dark-300">Стало</div>
-              <pre className="mt-0.5 overflow-x-auto rounded bg-gray-100/80 p-2 dark:bg-dark-700/70">
-                {JSON.stringify(entry.after ?? null, null, 2)}
-              </pre>
-            </div>
-          </div>
-        ) : null}
+        {meta.description ? <p className="text-xs text-gray-500 dark:text-dark-200">{meta.description}</p> : null}
+        {hasDetails ? renderEntryDetails(entry) : null}
       </div>
     </li>
   );
@@ -96,48 +138,56 @@ export function SitePageDiffPanel({
   const hasDiff = diff && Array.isArray(diff.diff) && diff.diff.length > 0;
 
   return (
-    <Card padding="md" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-50">Изменения щодо публикации</h3>
+    <details
+      className="group rounded-2xl border border-gray-200/70 bg-white/95 text-gray-900 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80 dark:text-dark-50 [&_summary::-webkit-details-marker]:hidden"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold">
+        <span>Изменения к публикации</span>
+        <span className="text-xs text-primary-500 group-open:hidden">Развернуть</span>
+        <span className="hidden text-xs text-primary-500 group-open:block">Свернуть</span>
+      </summary>
+      <div className="space-y-3 border-t border-gray-100 px-4 py-4 dark:border-dark-700/60">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-gray-500 dark:text-dark-200">
             Сравнение текущего черновика с опубликованной версией.
           </p>
+          <Button size="xs" variant="ghost" onClick={onRefresh} disabled={loading}>
+            Обновить
+          </Button>
         </div>
-        <Button size="xs" variant="ghost" onClick={onRefresh} disabled={loading}>
-          Обновить
-        </Button>
+
+        {loading ? (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-200">
+            <Spinner size="sm" />
+            Вычисляем отличие…
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/30 dark:text-rose-200">
+            {error}
+          </div>
+        ) : null}
+
+        {diff ? (
+          <div className="rounded-xl border border-gray-200/70 bg-white/90 px-3 py-2 text-[11px] text-gray-600 dark:border-dark-600/60 dark:bg-dark-800/60 dark:text-dark-200">
+            Черновик v{diff.draft_version} · Публикация {diff.published_version ?? '—'}
+          </div>
+        ) : null}
+
+        {hasDiff ? (
+          <ul className="space-y-3">
+            {diff!.diff!.map((entry, index) => (
+              <DiffEntry key={index} entry={entry} index={index} />
+            ))}
+          </ul>
+        ) : !loading && !error ? (
+          <div className="rounded-xl border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-300">
+            Изменений относительно опубликованной версии не найдено.
+          </div>
+        ) : null}
       </div>
-
-      {loading ? (
-        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-200">
-          <Spinner size="sm" />
-          Вычисляем отличие…
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-600/60 dark:bg-rose-950/40 dark:text-rose-200">
-          {error}
-        </div>
-      ) : null}
-
-      {diff ? (
-        <div className="rounded-md border border-gray-200/70 bg-white/70 px-3 py-2 text-[11px] text-gray-600 dark:border-dark-600/60 dark:bg-dark-800/70 dark:text-dark-200">
-          Черновик v{diff.draft_version} · Публикация {diff.published_version ?? '—'}
-        </div>
-      ) : null}
-
-      {hasDiff ? (
-        <ul className="space-y-3">
-          {diff!.diff!.map((entry, index) => renderDiffEntry(entry, index))}
-        </ul>
-      ) : !loading && !error ? (
-        <div className="rounded-md border border-gray-200/70 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-dark-600/60 dark:bg-dark-800/60 dark:text-dark-200">
-          Изменений относительно опубликованной версии не найдено.
-        </div>
-      ) : null}
-    </Card>
+    </details>
   );
 }
 

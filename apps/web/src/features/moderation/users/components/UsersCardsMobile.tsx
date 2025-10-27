@@ -4,6 +4,9 @@ import { Badge, Button, Skeleton, Surface } from '@ui';
 
 import {
   formatDateTime,
+  formatUserIdentifier,
+  getUserDisplayName,
+  getUserSecondaryEmail,
   resolveRiskLevel,
   riskBadgeProps,
   statusToBadgeTone,
@@ -33,6 +36,10 @@ export function UsersCardsMobile({ items, loading, onOpenUser, emptyContent }: U
         : items.map((user) => {
             const risk = resolveRiskLevel(user);
             const riskProps = riskBadgeProps(risk);
+            const displayName = getUserDisplayName(user);
+            const secondaryEmail = getUserSecondaryEmail(user);
+            const showIdHint = !user.username?.trim();
+            const formattedId = showIdHint ? formatUserIdentifier(user.id) : null;
             return (
               <Surface
                 key={`card-${user.id}`}
@@ -42,9 +49,15 @@ export function UsersCardsMobile({ items, loading, onOpenUser, emptyContent }: U
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{user.username}</div>
-                    <div className="text-xs text-gray-500 dark:text-dark-300">{user.email ?? 'N/A'}</div>
-                    <div className="mt-1 text-[11px] text-gray-400">ID: {user.id}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{displayName}</div>
+                    {secondaryEmail ? (
+                      <div className="text-xs text-gray-500 dark:text-dark-300">{secondaryEmail}</div>
+                    ) : null}
+                    {formattedId ? (
+                      <div className="mt-1 text-[11px] text-gray-400" title={user.id}>
+                        ID: {formattedId}
+                      </div>
+                    ) : null}
                   </div>
                   <Badge color={statusToBadgeTone(user.status)} variant="soft" className="capitalize">
                     {user.status}

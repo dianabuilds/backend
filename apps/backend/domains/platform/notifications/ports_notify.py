@@ -30,8 +30,15 @@ class INotificationRepository(Protocol):
         placement: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[dict[str, Any]]: ...
+    ) -> tuple[list[dict[str, Any]], int, int]: ...
     async def mark_read(self, user_id: str, notif_id: str) -> dict[str, Any] | None: ...
+    async def prune(
+        self,
+        *,
+        retention_days: int | None = None,
+        max_per_user: int | None = None,
+        batch_size: int = 1000,
+    ) -> dict[str, Any]: ...
 
 
 class INotificationPusher(Protocol):

@@ -59,6 +59,9 @@ export type NotificationPayload = {
 export type NotificationsListResponse = {
   items: NotificationPayload[];
   unread: number;
+  unread_total?: number;
+  total?: number;
+  has_more?: boolean;
 };
 
 export type NotificationHistoryItem = NotificationPayload;

@@ -19,6 +19,8 @@ import type {
   SitePageSummary,
   SitePageVersion,
   SiteValidationErrorEntry,
+  SitePageAttachedGlobalBlock,
+  SitePageGlobalBlockReference,
 } from '@shared/types/management';
 
 import {
@@ -62,6 +64,11 @@ export function normalizePage(value: unknown): SitePageSummary | null {
 
   const publishedVersion = pickNumber(value.published_version);
   const draftVersion = pickNumber(value.draft_version);
+  const pinned = pickBoolean(value.pinned);
+  const globalBlocks = ensureArray(
+    value.global_blocks,
+    normalizePageAttachedGlobalBlock,
+  ).filter((item): item is SitePageAttachedGlobalBlock => item != null);
 
   return {
     id,
@@ -75,6 +82,8 @@ export function normalizePage(value: unknown): SitePageSummary | null {
     published_version: publishedVersion ?? null,
     draft_version: draftVersion ?? null,
     has_pending_review: pickBoolean(value.has_pending_review) ?? null,
+    pinned: pinned ?? null,
+    global_blocks: globalBlocks.length ? globalBlocks : undefined,
   };
 }
 
@@ -103,6 +112,10 @@ export function normalizeDraft(value: unknown): SitePageDraft | null {
     review_status: reviewStatus,
     updated_at: pickNullableString(value.updated_at),
     updated_by: pickNullableString(value.updated_by),
+    global_blocks: ensureArray(
+      value.global_blocks,
+      normalizePageGlobalBlockReference,
+    ).filter((item): item is SitePageGlobalBlockReference => item != null),
   };
 }
 
@@ -243,6 +256,7 @@ export function normalizeGlobalBlockUsage(value: unknown): SiteGlobalBlockUsage 
     locale: pickNullableString(value.locale) ?? null,
     has_draft: pickBoolean(value.has_draft) ?? null,
     last_published_at: pickNullableString(value.last_published_at) ?? null,
+    owner: pickNullableString(value.owner) ?? null,
   };
 }
 
@@ -389,6 +403,10 @@ export function normalizePageVersion(value: unknown): SitePageVersion | null {
     diff: diff.length ? diff : null,
     published_at: pickNullableString(value.published_at),
     published_by: pickNullableString(value.published_by),
+    global_blocks: ensureArray(
+      value.global_blocks,
+      normalizePageGlobalBlockReference,
+    ).filter((item): item is SitePageGlobalBlockReference => item != null),
   };
 }
 
@@ -400,11 +418,13 @@ export function normalizePreviewLayout(value: unknown): SitePagePreviewLayout | 
   const generatedAt = pickString(value.generated_at) ?? '';
   const data = isObjectRecord(value.data) ? (value.data as Record<string, unknown>) : {};
   const meta = isObjectRecord(value.meta) ? (value.meta as Record<string, unknown>) : {};
+  const payload = isObjectRecord(value.payload) ? (value.payload as Record<string, unknown>) : undefined;
   return {
     layout: layout || 'desktop',
     generated_at: generatedAt || '',
     data,
     meta,
+    payload,
   };
 }
 
@@ -671,4 +691,60 @@ export function normalizeBlockMetricsResponse(
     payload.previous_range = normalizeMetricsRange(value.previous_range);
   }
   return payload;
+}
+
+function normalizePageGlobalBlockReference(
+  value: unknown,
+): SitePageGlobalBlockReference | null {
+  if (typeof value === 'string') {
+    const cleaned = value.trim();
+    return cleaned ? { key: cleaned } : null;
+  }
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+  const key =
+    pickString(value.key) ??
+    pickString(value.block_key) ??
+    pickString(value.id) ??
+    pickString(value.block_id);
+  if (!key) {
+    return null;
+  }
+  const section = pickNullableString(value.section) ?? pickNullableString(value.zone);
+  return { key, section: section ?? undefined };
+}
+
+function normalizePageAttachedGlobalBlock(
+  value: unknown,
+): SitePageAttachedGlobalBlock | null {
+  const base = normalizePageGlobalBlockReference(value);
+  if (!base) {
+    return null;
+  }
+  const record = isObjectRecord(value) ? value : {};
+  const statusRaw = pickString(record.status);
+  const reviewStatusRaw = pickString(record.review_status);
+  const status = GLOBAL_BLOCK_STATUSES.includes(
+    statusRaw as typeof GLOBAL_BLOCK_STATUSES[number],
+  )
+    ? (statusRaw as SitePageAttachedGlobalBlock['status'])
+    : statusRaw || undefined;
+  const reviewStatus =
+    reviewStatusRaw && REVIEW_STATUSES.has(reviewStatusRaw)
+      ? (reviewStatusRaw as SitePageAttachedGlobalBlock['review_status'])
+      : reviewStatusRaw || undefined;
+  return {
+    ...base,
+    block_id: pickNullableString(record.block_id) ?? pickNullableString(record.id) ?? undefined,
+    title: pickNullableString(record.title) ?? undefined,
+    status,
+    locale: pickNullableString(record.locale) ?? undefined,
+    requires_publisher: pickBoolean(record.requires_publisher) ?? undefined,
+    published_version: pickNumber(record.published_version) ?? undefined,
+    draft_version: pickNumber(record.draft_version) ?? undefined,
+    review_status: reviewStatus,
+    updated_at: pickNullableString(record.updated_at) ?? undefined,
+    updated_by: pickNullableString(record.updated_by) ?? undefined,
+  };
 }

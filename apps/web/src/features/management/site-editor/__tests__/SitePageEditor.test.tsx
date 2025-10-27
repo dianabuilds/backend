@@ -17,6 +17,7 @@ vi.mock('@shared/api/management', () => ({
     diffSitePageDraft: vi.fn(),
     previewSitePage: vi.fn(),
     validateSitePageDraft: vi.fn(),
+    updateSitePage: vi.fn(),
   },
 }));
 
@@ -36,6 +37,7 @@ type MockedApi = {
   diffSitePageDraft: ReturnType<typeof vi.fn>;
   previewSitePage: ReturnType<typeof vi.fn>;
   validateSitePageDraft: ReturnType<typeof vi.fn>;
+  updateSitePage: ReturnType<typeof vi.fn>;
 };
 
 const mockedApi = managementSiteEditorApi as unknown as MockedApi;
@@ -158,6 +160,7 @@ describe('useSitePageEditorState', () => {
       published_at: '2025-10-25T09:50:00Z',
       published_by: 'publisher@caves.dev',
     });
+    mockedApi.updateSitePage.mockResolvedValue(PAGE_SUMMARY);
   });
 
   afterEach(() => {
@@ -171,7 +174,6 @@ describe('useSitePageEditorState', () => {
     await waitFor(() => expect(mockedApi.fetchSitePage).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
     await waitFor(() => expect(mockedApi.fetchSitePageMetrics).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(mockedApi.previewSitePage).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockedApi.diffSitePageDraft).toHaveBeenCalledTimes(1));
 
     await act(async () => {
@@ -181,7 +183,6 @@ describe('useSitePageEditorState', () => {
     await waitFor(() => expect(mockedApi.saveSitePageDraft).toHaveBeenCalledTimes(1));
     expect(mockedApi.saveSitePageDraft.mock.calls[0][0]).toBe('page-home');
     await waitFor(() => expect(mockedApi.validateSitePageDraft).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(mockedApi.previewSitePage).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(mockedApi.diffSitePageDraft).toHaveBeenCalledTimes(2));
   });
 
@@ -193,7 +194,6 @@ describe('useSitePageEditorState', () => {
     await waitFor(() => expect(mockedApi.fetchSitePage).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
     await waitFor(() => expect(mockedApi.fetchSitePageMetrics).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(mockedApi.previewSitePage).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(mockedApi.diffSitePageDraft).toHaveBeenCalledTimes(1));
 
     act(() => {
@@ -212,10 +212,6 @@ describe('useSitePageEditorState', () => {
     );
     await waitFor(
       () => expect(mockedApi.validateSitePageDraft).toHaveBeenCalledTimes(1),
-      { timeout: autosaveMs * 100 },
-    );
-    await waitFor(
-      () => expect(mockedApi.previewSitePage).toHaveBeenCalledTimes(2),
       { timeout: autosaveMs * 100 },
     );
     await waitFor(
@@ -239,6 +235,46 @@ describe('useSitePageEditorState', () => {
     expect(mockedApi.publishSitePage.mock.calls[0][0]).toBe('page-home');
     expect(mockedApi.publishSitePage.mock.calls[0][1]).toEqual({ comment: 'hero updated' });
     await waitFor(() => expect(mockedApi.fetchSitePage).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(mockedApi.fetchSitePageMetrics).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockedApi.fetchSitePageMetrics).toHaveBeenCalledTimes(3));
+  });
+
+  it('обновляет основные параметры страницы', async () => {
+    const updatedSummary = {
+      ...PAGE_SUMMARY,
+      title: 'Новая главная',
+      slug: '/home-new',
+      locale: 'en',
+      owner: null,
+      pinned: true,
+    };
+    mockedApi.updateSitePage.mockResolvedValueOnce(updatedSummary);
+
+    const { result } = renderHook(() => useSitePageEditorState({ pageId: 'page-home', autosaveMs: 1000 }));
+
+    await waitFor(() => expect(mockedApi.fetchSitePage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.updatePageInfo({
+        title: updatedSummary.title,
+        slug: updatedSummary.slug,
+        locale: updatedSummary.locale,
+        owner: null,
+        pinned: true,
+      });
+    });
+
+    expect(mockedApi.updateSitePage).toHaveBeenCalledTimes(1);
+    expect(mockedApi.updateSitePage).toHaveBeenCalledWith('page-home', {
+      title: updatedSummary.title,
+      slug: updatedSummary.slug,
+      locale: updatedSummary.locale,
+      owner: null,
+      pinned: true,
+    });
+    expect(result.current.page?.title).toBe(updatedSummary.title);
+    expect(result.current.page?.slug).toBe(updatedSummary.slug);
+    expect(result.current.page?.locale).toBe(updatedSummary.locale);
+    expect(result.current.page?.pinned).toBe(true);
   });
 });

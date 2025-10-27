@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SearchContainer:
     service: SearchService
+    warmup: Callable[[], Awaitable[None]] | None = None
 
 
 def _database_dsn(settings: Settings) -> str | None:
@@ -72,6 +74,7 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
             logger.warning("Falling back to in-memory search cache: %s", exc)
 
     persist = None
+    warmup: Callable[[], Awaitable[None]] | None = None
     path = getattr(s, "search_persist_path", None)
     if path and not test_mode:
         persist = FileSearchPersistence(str(path))
@@ -90,15 +93,10 @@ def build_container(settings: Settings | None = None) -> SearchContainer:
                     "Failed to warm up SQL search backend from persistence: %s", exc
                 )
 
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            asyncio.run(_warmup())
-        else:
-            loop.create_task(_warmup())
+        warmup = _warmup
 
     svc = SearchService(index=backend, query=backend, cache=cache, persist=persist)
-    return SearchContainer(service=svc)
+    return SearchContainer(service=svc, warmup=warmup)
 
 
 def register_event_indexers(events: Events, container: SearchContainer) -> None:

@@ -1,3 +1,2 @@
-﻿export { default as ManagementHomeEditor } from './components/HomeEditor';
-export { useHomeEditorContext } from './HomeEditorContext';
-export type { HomeBlock, HomeDraftData } from './types';
+export { HomeEditorContext, useHomeEditorContext } from './HomeEditorContext';
+export type { HomeEditorContextValue, HomeBlock, HomeDraftData } from './types';

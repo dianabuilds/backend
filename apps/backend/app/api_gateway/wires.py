@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from domains.platform.events.adapters.event_bus_memory import InMemoryEventBus
 from domains.platform.events.adapters.outbox_memory import InMemoryOutbox
-from domains.platform.worker.wires import build_container as build_worker_queue_container
+from domains.platform.worker.wires import (
+    build_container as build_worker_queue_container,
+)
 from domains.product.nodes.infrastructure.cache import (
     InMemoryNodeCache,
     NodeCacheConfig,
@@ -50,16 +52,26 @@ build_media_container = container_registry.resolve("platform.media.build_contain
 build_platform_moderation_container = container_registry.resolve(
     "platform.moderation.build_container"
 )
-register_email_channel = container_registry.resolve("platform.notifications.register_email_channel")
+register_email_channel = container_registry.resolve(
+    "platform.notifications.register_email_channel"
+)
 register_webhook_channel = container_registry.resolve(
     "platform.notifications.register_webhook_channel"
 )
-build_notifications_container = container_registry.resolve("platform.notifications.build_container")
-register_event_relays = container_registry.resolve("platform.notifications.register_event_relays")
+build_notifications_container = container_registry.resolve(
+    "platform.notifications.build_container"
+)
+register_event_relays = container_registry.resolve(
+    "platform.notifications.register_event_relays"
+)
 build_quota_container = container_registry.resolve("platform.quota.build_container")
 build_search_container = container_registry.resolve("platform.search.build_container")
-register_event_indexers = container_registry.resolve("platform.search.register_event_indexers")
-build_telemetry_container = container_registry.resolve("platform.telemetry.build_container")
+register_event_indexers = container_registry.resolve(
+    "platform.search.register_event_indexers"
+)
+build_telemetry_container = container_registry.resolve(
+    "platform.telemetry.build_container"
+)
 build_users_container = container_registry.resolve("platform.users.build_container")
 
 # Product dependencies
@@ -68,20 +80,30 @@ ProfileRepoFactory = container_registry.resolve("product.profile.SQLRepo")
 ProfileService = container_registry.resolve("product.profile.Service")
 TagsRepoFactory = container_registry.resolve("product.tags.SQLRepo")
 TagUsageStore = container_registry.resolve("product.tags.TagUsageStore")
-register_tags_usage_writer = container_registry.resolve("product.tags.register_usage_writer")
+register_tags_usage_writer = container_registry.resolve(
+    "product.tags.register_usage_writer"
+)
 SQLTagCatalog = container_registry.resolve("product.tags.SQLTagCatalog")
 TagService = container_registry.resolve("product.tags.TagService")
 
 NodesRepoFactory = container_registry.resolve("product.nodes.SQLRepo")
 NodeViewsRepoFactory = container_registry.resolve("product.nodes.SQLNodeViewsRepo")
-NodeReactionsRepoFactory = container_registry.resolve("product.nodes.SQLNodeReactionsRepo")
-NodeCommentsRepoFactory = container_registry.resolve("product.nodes.SQLNodeCommentsRepo")
+NodeReactionsRepoFactory = container_registry.resolve(
+    "product.nodes.SQLNodeReactionsRepo"
+)
+NodeCommentsRepoFactory = container_registry.resolve(
+    "product.nodes.SQLNodeCommentsRepo"
+)
 RedisNodeViewLimiter = container_registry.resolve("product.nodes.RedisNodeViewLimiter")
 MemoryTagCatalog = container_registry.resolve("product.nodes.MemoryTagCatalog")
-MemoryUsageProjection = container_registry.resolve("product.nodes.MemoryUsageProjection")
+MemoryUsageProjection = container_registry.resolve(
+    "product.nodes.MemoryUsageProjection"
+)
 UsageProjectionFactory = container_registry.resolve("product.nodes.SQLUsageProjection")
 EmbeddingClient = container_registry.resolve("product.nodes.EmbeddingClient")
-register_embedding_worker = container_registry.resolve("product.nodes.register_embedding_worker")
+register_embedding_worker = container_registry.resolve(
+    "product.nodes.register_embedding_worker"
+)
 NodeViewsService = container_registry.resolve("product.nodes.NodeViewsService")
 NodeReactionsService = container_registry.resolve("product.nodes.NodeReactionsService")
 NodeCommentsService = container_registry.resolve("product.nodes.NodeCommentsService")
@@ -105,7 +127,9 @@ AIService = container_registry.resolve("product.ai.AIService")
 
 AchievementsRepoFactory = container_registry.resolve("product.achievements.SQLRepo")
 DddAchievementsService = container_registry.resolve("product.achievements.Service")
-DddAchievementsAdminService = container_registry.resolve("product.achievements.AdminService")
+DddAchievementsAdminService = container_registry.resolve(
+    "product.achievements.AdminService"
+)
 
 WorldsRepoFactory = container_registry.resolve("product.worlds.SQLRepo")
 DddWorldsService = container_registry.resolve("product.worlds.Service")
@@ -255,7 +279,9 @@ def build_container(
             try:
                 rc.close()
             except Exception:
-                logger.debug("Failed to close Redis connection during wiring", exc_info=True)
+                logger.debug(
+                    "Failed to close Redis connection during wiring", exc_info=True
+                )
         outbox = ProfileOutboxRedis(str(settings.redis_url))
         bus = RedisEventBus(
             redis_url=str(settings.redis_url),
@@ -266,7 +292,9 @@ def build_container(
 
     profile_iam = ProfileIamClient()
     profile_repo = ProfileRepoFactory(settings)
-    svc = ProfileService(repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags())
+    svc = ProfileService(
+        repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags()
+    )
 
     nodes_repo = NodesRepoFactory(settings)
     node_views_repo = NodeViewsRepoFactory(settings)
@@ -280,7 +308,9 @@ def build_container(
             node_views_limiter_client = aioredis.from_url(
                 str(settings.redis_url), decode_responses=False
             )
-            node_views_limiter = RedisNodeViewLimiter(node_views_limiter_client, per_day=True)
+            node_views_limiter = RedisNodeViewLimiter(
+                node_views_limiter_client, per_day=True
+            )
         except Exception as exc:
             logger.warning("Failed to initialize node view limiter: %s", exc)
             node_views_limiter = None
@@ -329,7 +359,9 @@ def build_container(
         base_url=settings.embedding_api_base,
         model=settings.embedding_model,
         api_key=(
-            settings.embedding_api_key.get_secret_value() if settings.embedding_api_key else None
+            settings.embedding_api_key.get_secret_value()
+            if settings.embedding_api_key
+            else None
         ),
         provider=settings.embedding_provider,
         timeout=settings.embedding_timeout,
@@ -368,7 +400,9 @@ def build_container(
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (list(it.embedding) if it.embedding is not None else None),
+                    "embedding": (
+                        list(it.embedding) if it.embedding is not None else None
+                    ),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -399,7 +433,9 @@ def build_container(
                     "author_id": it.author_id,
                     "title": it.title,
                     "tags": list(it.tags),
-                    "embedding": (list(it.embedding) if it.embedding is not None else None),
+                    "embedding": (
+                        list(it.embedding) if it.embedding is not None else None
+                    ),
                     "is_public": it.is_public,
                 }
                 for it in items
@@ -417,7 +453,9 @@ def build_container(
         if not dsn_primary:
             return None
         try:
-            site_engine_cache = get_async_engine("site-editor", url=dsn_primary, future=True)
+            site_engine_cache = get_async_engine(
+                "site-editor", url=dsn_primary, future=True
+            )
         except SQLAlchemyError as exc:
             logger.error("Failed to initialize site editor engine", exc_info=exc)
             return None
@@ -425,7 +463,6 @@ def build_container(
 
     site_repository = SiteRepository(site_engine_factory)
     worker_container = build_worker_queue_container(settings)
-    site_service = SiteService(site_repository, worker_queue=worker_container.service)
 
     # AI (sql-backed registry)
     ai_registry = LLMRegistryFactory(settings, dsn=dsn_primary)
@@ -479,11 +516,18 @@ def build_container(
     billing = build_billing_container(settings)
     flags = build_flags_container(settings)
     notifications = build_notifications_container(settings, flag_service=flags.service)
+    site_service = SiteService(
+        site_repository,
+        worker_queue=worker_container.service,
+        notify_service=notifications.notify_service,
+    )
     try:
         notify_loop = asyncio.get_running_loop()
     except RuntimeError:
         notify_loop = None
-    register_event_relays(events, notify_topics, delivery=notifications.delivery, loop=notify_loop)
+    register_event_relays(
+        events, notify_topics, delivery=notifications.delivery, loop=notify_loop
+    )
     users = build_users_container(settings)
     admin = build_admin_container(settings)
     return Container(

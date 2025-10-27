@@ -106,7 +106,21 @@ export async function render(url: string): Promise<RenderResult | null> {
     </AppShell>
   );
 
-  const html = renderToString(app);
+  let html: string;
+  try {
+    html = renderToString(app);
+  } catch (error) {
+    console.error('[ssr] render crash', { url: parsedUrl.toString(), error });
+    throw error;
+  }
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[ssr] render success', {
+      url: parsedUrl.toString(),
+      htmlLength: html.length,
+      status,
+      hasData: Boolean(Object.keys(initialData ?? {}).length),
+    });
+  }
   const helmet = helmetContext.helmet;
   const head = helmet
     ? {

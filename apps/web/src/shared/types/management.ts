@@ -477,6 +477,24 @@ export type ManagementAuditUser = {
 export type SitePageType = 'landing' | 'collection' | 'article' | 'system';
 export type SitePageStatus = 'draft' | 'published' | 'archived';
 
+export type SitePageGlobalBlockReference = {
+  key: string;
+  section?: string | null;
+};
+
+export type SitePageAttachedGlobalBlock = SitePageGlobalBlockReference & {
+  block_id?: string;
+  title?: string | null;
+  status?: SiteGlobalBlockStatus | string | null;
+  locale?: string | null;
+  requires_publisher?: boolean | null;
+  published_version?: number | null;
+  draft_version?: number | null;
+  review_status?: SitePageReviewStatus | string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+};
+
 export type SitePageSummary = {
   id: string;
   slug: string;
@@ -489,6 +507,8 @@ export type SitePageSummary = {
   published_version?: number | null;
   draft_version?: number | null;
   has_pending_review?: boolean | null;
+  pinned?: boolean | null;
+  global_blocks?: SitePageAttachedGlobalBlock[];
 };
 
 export type SitePageListResponse = {
@@ -509,6 +529,7 @@ export type SitePageDraft = {
   review_status: SitePageReviewStatus;
   updated_at?: string | null;
   updated_by?: string | null;
+  global_blocks?: SitePageGlobalBlockReference[];
 };
 
 export type SiteValidationErrorEntry = {
@@ -610,6 +631,7 @@ export type SitePageVersion = {
   diff?: SitePageDiffEntry[] | null;
   published_at?: string | null;
   published_by?: string | null;
+  global_blocks?: SitePageGlobalBlockReference[];
 };
 
 export type SitePageHistoryResponse = {
@@ -630,6 +652,7 @@ export type SitePagePreviewLayout = {
   generated_at: string;
   data: Record<string, unknown>;
   meta: Record<string, unknown>;
+  payload?: Record<string, unknown>;
 };
 
 export type SitePagePreviewResponse = {
@@ -691,6 +714,7 @@ export type SiteGlobalBlockUsage = {
   locale?: string | null;
   has_draft?: boolean | null;
   last_published_at?: string | null;
+  owner?: string | null;
 };
 
 export type SiteGlobalBlockWarning = {

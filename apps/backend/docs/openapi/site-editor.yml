@@ -141,6 +141,48 @@ paths:
                 type: object
                 additionalProperties: true
                 title: Response Get Page V1 Site Pages  Page Id  Get
+        '404':
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - site
+      summary: Update Page
+      operationId: update_page_v1_site_pages__page_id__patch
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageUpdatePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Page V1 Site Pages  Page Id  Patch
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
         '422':
           description: Validation Error
           content:
@@ -2160,12 +2202,52 @@ components:
             maxLength: 255
           - type: 'null'
           title: Owner
+        pinned:
+          type: boolean
+          title: Pinned
+          default: false
       type: object
       required:
       - slug
       - type
       - title
       title: PageCreatePayload
+    PageUpdatePayload:
+      properties:
+        slug:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Slug
+        title:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Title
+        locale:
+          anyOf:
+          - type: string
+            maxLength: 8
+            minLength: 2
+          - type: 'null'
+          title: Locale
+        owner:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Owner
+        pinned:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Pinned
+      type: object
+      title: PageUpdatePayload
     PageDraftPayload:
       properties:
         version:

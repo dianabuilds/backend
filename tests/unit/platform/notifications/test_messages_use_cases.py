@@ -49,7 +49,7 @@ class StubRepo:
         placement: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], int, int]:
         self.list_calls.append(
             {
                 "user_id": user_id,
@@ -58,7 +58,9 @@ class StubRepo:
                 "offset": offset,
             }
         )
-        return list(self.rows)
+        total = len(self.rows)
+        unread_total = sum(1 for row in self.rows if not row.get("read_at"))
+        return list(self.rows), total, unread_total
 
     async def mark_read(self, user_id: str, notif_id: str) -> dict[str, Any] | None:
         self.read_calls.append((user_id, notif_id))
@@ -101,8 +103,19 @@ def test_build_list_response_counts_unread() -> None:
         {"id": "1", "is_read": False},
         {"id": "2", "is_read": True},
     ]
-    payload = build_list_response(items)
+    payload = build_list_response(
+        items,
+        total=2,
+        unread_total=1,
+        limit=50,
+        offset=0,
+    )
     assert payload["unread"] == 1
+    assert payload["unread_total"] == 1
+    assert payload["total"] == 2
+    assert payload["has_more"] is False
+    assert payload["limit"] == 50
+    assert payload["offset"] == 0
 
 
 @pytest.mark.asyncio
@@ -130,6 +143,11 @@ async def test_list_notifications_resolves_user_and_returns_payload() -> None:
     assert repo.list_calls[0]["user_id"] == "user-123"
     assert result["items"][0]["id"] == "n-1"
     assert result["unread"] == 1
+    assert result["unread_total"] == 1
+    assert result["total"] == 1
+    assert result["has_more"] is False
+    assert result["limit"] == 25
+    assert result["offset"] == 5
 
 
 @pytest.mark.asyncio

@@ -56,6 +56,8 @@ describe('useNotificationsHistory', () => {
       nextOffset: 1,
       hasMore: true,
       unread: 0,
+      unreadTotal: 0,
+      total: 5,
     });
 
     vi.mocked(markNotificationAsRead).mockResolvedValue(null);
@@ -93,6 +95,8 @@ describe('useNotificationsHistory', () => {
       nextOffset: 2,
       hasMore: false,
       unread: 0,
+      unreadTotal: 0,
+      total: 5,
     });
 
     await act(async () => {

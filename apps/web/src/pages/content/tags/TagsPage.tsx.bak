@@ -10,7 +10,7 @@ export default function TagsPage() {
   const [q, setQ] = React.useState('');
   const [type, setType] = React.useState<'all' | 'node' | 'quest'>('all');
   const [page, setPage] = React.useState(1);
-  const [pageSize, setPageSize] = React.useState(20);
+  const [pageSize, setPageSize] = React.useState(10);
   const [hasNext, setHasNext] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 

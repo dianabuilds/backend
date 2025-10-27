@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from threading import Lock
 
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.pool import NullPool
 
 from domains.platform.iam.ports.credentials_port import AuthIdentity, CredentialsPort
 from packages.core.db import get_async_engine
@@ -14,13 +17,24 @@ from packages.core.db import get_async_engine
 class SQLCredentialsAdapter(CredentialsPort):
     """Authenticate users against the SQL `users` table."""
 
-    engine: AsyncEngine
+    engine: AsyncEngine | None
 
     def __init__(self, engine: AsyncEngine | str) -> None:
-        if isinstance(engine, str):
-            self.engine = get_async_engine("iam-credentials", url=engine)
-        else:
+        self.engine_factory: Callable[[], AsyncEngine] | None
+        if isinstance(engine, AsyncEngine):
             self.engine = engine
+            self.engine_factory = None
+        else:
+            dsn = str(engine)
+            self.engine = None
+            self.engine_factory = lambda: get_async_engine(
+                "iam-credentials.repo",
+                url=dsn,
+                cache=False,
+                pool_pre_ping=False,
+                poolclass=NullPool,
+            )
+        self._engine_lock = Lock()
         self._use_fallback = False
         self._primary_query = text(
             """
@@ -61,7 +75,8 @@ class SQLCredentialsAdapter(CredentialsPort):
         if not identifier:
             return None
         query = self._fallback_query if self._use_fallback else self._primary_query
-        async with self.engine.begin() as conn:
+        engine = self._get_engine()
+        async with engine.begin() as conn:
             try:
                 row = (
                     (
@@ -91,6 +106,18 @@ class SQLCredentialsAdapter(CredentialsPort):
             role=str(row["role"]),
             is_active=bool(row["is_active"]),
         )
+
+    def _get_engine(self) -> AsyncEngine:
+        existing = self.engine
+        if existing is not None:
+            return existing
+        factory = self.engine_factory
+        if factory is None:
+            raise RuntimeError("credentials engine is not configured")
+        with self._engine_lock:
+            if self.engine is None:
+                self.engine = factory()
+            return self.engine
 
 
 __all__ = ["SQLCredentialsAdapter"]

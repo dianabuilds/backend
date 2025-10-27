@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Callable
 from datetime import datetime
+from threading import Lock
 from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.pool import NullPool
 
 from domains.product.profile.application.ports import Repo
 from domains.product.profile.domain.entities import Profile
@@ -33,10 +36,22 @@ class SQLProfileRepo(Repo):
     }
 
     def __init__(self, engine: AsyncEngine | str) -> None:
+        self._engine: AsyncEngine | None
+        self._engine_factory: Callable[[], AsyncEngine] | None
         if isinstance(engine, AsyncEngine):
             self._engine = engine
+            self._engine_factory = None
         else:
-            self._engine = get_async_engine("profile", url=engine)
+            dsn = str(engine)
+            self._engine = None
+            self._engine_factory = lambda: get_async_engine(
+                "profile.repo",
+                url=dsn,
+                cache=False,
+                pool_pre_ping=False,
+                poolclass=NullPool,
+            )
+        self._engine_lock = Lock()
         self._include_limits = True
         self._include_email_requests = True
         self._include_role_column = True
@@ -167,7 +182,19 @@ class SQLProfileRepo(Repo):
         return profile
 
     async def get(self, user_id: str) -> Profile | None:
-        async with self._engine.connect() as conn:
+        import asyncio
+        import threading
+
+        loop_id = id(asyncio.get_running_loop())
+        thread_id = threading.get_ident()
+        engine = self._get_engine()
+        logger.debug(
+            "profile_repo_get loop=%s thread=%s engine_id=%s",
+            loop_id,
+            thread_id,
+            id(engine),
+        )
+        async with engine.connect() as conn:
             return await self._fetch_profile(conn, user_id)
 
     async def update_profile(
@@ -178,7 +205,7 @@ class SQLProfileRepo(Repo):
         set_username_timestamp: bool,
         now: datetime,
     ) -> Profile:
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             profile = await self._fetch_profile(conn, user_id)
             if not profile:
                 raise ValueError("profile_not_found")
@@ -263,10 +290,28 @@ class SQLProfileRepo(Repo):
             raise ValueError("profile_not_found")
         return profile_after
 
+    def _get_engine(self) -> AsyncEngine:
+        existing = self._engine
+        if existing is not None:
+            return existing
+        factory = self._engine_factory
+        if factory is None:
+            raise RuntimeError("profile repo engine is not configured")
+        with self._engine_lock:
+            if self._engine is None:
+                engine = factory()
+                logger.debug(
+                    "profile_repo_engine_created pool=%s pre_ping=%s",
+                    type(engine.sync_engine.pool).__name__,
+                    getattr(engine.sync_engine.pool, "_pre_ping", None),
+                )
+                self._engine = engine
+            return self._engine
+
     async def email_in_use(
         self, email: str, exclude_user_id: str | None = None
     ) -> bool:
-        async with self._engine.connect() as conn:
+        async with self._get_engine().connect() as conn:
             params = {"email": email}
             conditions = "lower(email) = lower(:email)"
             if exclude_user_id:
@@ -301,7 +346,7 @@ class SQLProfileRepo(Repo):
     ) -> None:
         if not self._include_email_requests:
             raise ValueError("email_change_unavailable")
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             sql = text(
                 """
                 INSERT INTO profile_email_change_requests (user_id, token, new_email, requested_at)
@@ -342,7 +387,7 @@ class SQLProfileRepo(Repo):
     ) -> Profile:
         if not self._include_email_requests:
             raise ValueError("email_change_unavailable")
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             row = (
                 (
                     await conn.execute(
@@ -410,7 +455,7 @@ class SQLProfileRepo(Repo):
         signature: str | None,
         verified_at: datetime,
     ) -> Profile:
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             sql = text(
                 """
                 UPDATE users
@@ -442,7 +487,7 @@ class SQLProfileRepo(Repo):
         return profile_after
 
     async def clear_wallet(self, user_id: str) -> Profile:
-        async with self._engine.begin() as conn:
+        async with self._get_engine().begin() as conn:
             sql = text(
                 """
                 UPDATE users

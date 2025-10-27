@@ -64,12 +64,26 @@ class DeliveryService:
         notify_service: NotifyService,
         template_service: TemplateService | None = None,
         flag_service: FlagService | None = None,
+        *,
+        retention_days: int | None = None,
+        max_per_user: int | None = None,
     ) -> None:
         self._matrix_repo = matrix_repo
         self._preference_repo = preference_repo
         self._notify = notify_service
         self._templates = template_service
         self._flags = flag_service
+        self._retention_days = retention_days
+        self._max_per_user = max_per_user
+
+    def update_retention(
+        self,
+        *,
+        retention_days: int | None,
+        max_per_user: int | None,
+    ) -> None:
+        self._retention_days = retention_days
+        self._max_per_user = max_per_user
 
     async def deliver_to_inbox(self, event: NotificationEvent) -> dict[str, Any] | None:
         matrix = await self._matrix_repo.load()

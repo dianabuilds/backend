@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth';
 import type { AuthContextUser } from '@shared/auth';
-import { fetchNotificationsHistory, markNotificationAsRead } from '@shared/api/notifications';
+import { fetchNotificationsHistory, markNotificationAsRead, normalizeHistoryItem } from '@shared/api/notifications';
 import { apiGet } from '@shared/api/client';
 import type { NotificationHistoryItem } from '@shared/types/notifications';
 import {
@@ -65,7 +65,7 @@ const USER_MENU_ITEMS: UserMenuItem[] = [
 ];
 
 export function Topbar(): React.ReactElement {
-  const { user, logout, isAuthenticated, isReady } = useAuth();
+  const { user, logout, isAuthenticated, isReady, tokens } = useAuth();
   const typedUser = (user ?? null) as AuthContextUser | null;
   const [inbox, setInbox] = React.useState<InboxNotification[]>([]);
   const [unreadTotal, setUnreadTotal] = React.useState(0);
@@ -78,6 +78,10 @@ export function Topbar(): React.ReactElement {
   const nav = useNavigate();
   const notifRef = React.useRef<HTMLDivElement | null>(null);
   const userRef = React.useRef<HTMLDivElement | null>(null);
+  const inboxRef = React.useRef<InboxNotification[]>([]);
+  const unreadRef = React.useRef<number>(0);
+  const wsRef = React.useRef<WebSocket | null>(null);
+  const reconnectTimerRef = React.useRef<number | null>(null);
 
   const refreshInbox = React.useCallback(async () => {
     if (!isReady || !isAuthenticated) {
@@ -89,7 +93,7 @@ export function Topbar(): React.ReactElement {
     try {
       const page = await fetchNotificationsHistory({ limit: 8 });
       const rows = page.items;
-      const unread = rows.filter((item) => !item.read_at).length;
+      const unread = page.unreadTotal ?? page.unread ?? rows.filter((item) => !item.read_at).length;
       setInbox(rows);
       setUnreadTotal(unread);
     } catch {
@@ -99,6 +103,14 @@ export function Topbar(): React.ReactElement {
       setInboxLoading(false);
     }
   }, [isAuthenticated, isReady]);
+
+  React.useEffect(() => {
+    inboxRef.current = inbox;
+  }, [inbox]);
+
+  React.useEffect(() => {
+    unreadRef.current = unreadTotal;
+  }, [unreadTotal]);
 
   React.useEffect(() => {
     void refreshInbox();
@@ -113,6 +125,118 @@ export function Topbar(): React.ReactElement {
       window.removeEventListener('notifications:refresh', handler);
     };
   }, [refreshInbox]);
+
+  React.useEffect(() => {
+    if (!isReady || !isAuthenticated) {
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      return;
+    }
+
+    let disposed = false;
+
+    const handleMessage = (event: MessageEvent<string>) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+      const candidateId = typeof (parsed as any)?.id === 'string' ? String((parsed as any)?.id) : undefined;
+      const normalized = normalizeHistoryItem(parsed, candidateId);
+      if (!normalized) {
+        return;
+      }
+      const existing = inboxRef.current.find((item) => item.id === normalized.id);
+      const nextInbox = [normalized, ...inboxRef.current.filter((item) => item.id !== normalized.id)].slice(0, 8);
+      setInbox(nextInbox);
+      inboxRef.current = nextInbox;
+
+      const isUnread = !normalized.read_at;
+      const wasUnread = existing ? !existing.read_at : false;
+      const nextUnread = Math.max(0, unreadRef.current + (isUnread ? 1 : 0) - (wasUnread ? 1 : 0));
+      setUnreadTotal(nextUnread);
+      unreadRef.current = nextUnread;
+
+      window.dispatchEvent(new CustomEvent('notifications:refresh'));
+    };
+
+    function scheduleReconnect(delay = 5000) {
+      if (disposed) return;
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, delay);
+    }
+
+    function connect() {
+      if (disposed) {
+        return;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      let url = `${protocol}//${host}/v1/notifications/ws`;
+      if (tokens.accessToken) {
+        const separator = url.includes('?') ? '&' : '?';
+        url += `${separator}token=${encodeURIComponent(tokens.accessToken)}`;
+      }
+      let socket: WebSocket;
+      try {
+        socket = new WebSocket(url);
+      } catch {
+        scheduleReconnect();
+        return;
+      }
+      wsRef.current = socket;
+      socket.addEventListener('message', handleMessage);
+      socket.addEventListener('error', () => {
+        socket.close();
+      });
+      socket.addEventListener('close', (event) => {
+        if (wsRef.current === socket) {
+          wsRef.current = null;
+        }
+        socket.removeEventListener('message', handleMessage);
+        if (disposed) {
+          return;
+        }
+        if (!isAuthenticated) {
+          return;
+        }
+        if (event.code === 4401 || event.code === 1008) {
+          return;
+        }
+        scheduleReconnect();
+      });
+    }
+
+    connect();
+
+    return () => {
+      disposed = true;
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [isAuthenticated, isReady, tokens.accessToken]);
 
   React.useEffect(() => {
     if (!isReady || !isAuthenticated) return;

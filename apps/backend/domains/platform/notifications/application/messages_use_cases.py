@@ -44,14 +44,20 @@ async def list_notifications(
     offset: int = 0,
 ) -> NotificationsListResponse:
     user_id = await resolve_user_id(users_service, subject)
-    rows = await repo.list_for_user(
+    rows, total, unread_total = await repo.list_for_user(
         user_id,
         placement=placement,
         limit=limit,
         offset=offset,
     )
     items = [notification_to_dict(row) for row in rows]
-    return build_list_response(items)
+    return build_list_response(
+        items,
+        total=total,
+        unread_total=unread_total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 async def mark_notification_read(

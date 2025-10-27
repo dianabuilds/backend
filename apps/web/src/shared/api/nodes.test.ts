@@ -134,7 +134,7 @@ describe('nodes api', () => {
 
       const result = await fetchNodesList({ status: 'all' });
 
-      expect(mockedApiGet).toHaveBeenCalledWith('/v1/admin/nodes/list?limit=20&offset=0', { signal: undefined });
+      expect(mockedApiGet).toHaveBeenCalledWith('/v1/admin/nodes/list?limit=10&offset=0', { signal: undefined });
       expect(result.items).toHaveLength(2);
       expect(result.meta).toEqual({ total: 2, published: null, drafts: null, pendingEmbeddings: null });
       expect(result.hasNext).toBe(false);

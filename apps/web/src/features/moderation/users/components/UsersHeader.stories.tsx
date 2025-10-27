@@ -23,6 +23,8 @@ export const Default: Story = {
       complaints: 64,
     },
     lastRefreshLabel: 'Updated 2 minutes ago',
+    loading: false,
+    hasError: false,
     onRefresh: () => {
       /* noop for Storybook */
     },

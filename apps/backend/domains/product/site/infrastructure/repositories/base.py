@@ -51,6 +51,7 @@ class SiteRepositoryBase:
             published_version=row.get("published_version"),
             draft_version=row.get("draft_version"),
             has_pending_review=bool(row.get("has_pending_review")),
+            pinned=bool(row.get("pinned")),
         )
 
     def _row_to_draft(self, row: Mapping[str, Any]) -> PageDraft:
@@ -60,7 +61,9 @@ class SiteRepositoryBase:
             data=helpers.as_mapping(row.get("data")),
             meta=helpers.as_mapping(row.get("meta")),
             comment=row.get("comment"),
-            review_status=PageReviewStatus(row.get("review_status", PageReviewStatus.NONE.value)),
+            review_status=PageReviewStatus(
+                row.get("review_status", PageReviewStatus.NONE.value)
+            ),
             updated_at=row["updated_at"],
             updated_by=row.get("updated_by"),
         )
@@ -99,7 +102,9 @@ class SiteRepositoryBase:
             section=row.get("section") or "general",
             locale=row.get("locale"),
             status=GlobalBlockStatus(row["status"]),
-            review_status=PageReviewStatus(row.get("review_status", PageReviewStatus.NONE.value)),
+            review_status=PageReviewStatus(
+                row.get("review_status", PageReviewStatus.NONE.value)
+            ),
             data=helpers.as_mapping(row.get("data")),
             meta=helpers.as_mapping(row.get("meta")),
             updated_at=row["updated_at"],
@@ -108,7 +113,9 @@ class SiteRepositoryBase:
             draft_version=row.get("draft_version"),
             requires_publisher=bool(row.get("requires_publisher")),
             comment=row.get("comment"),
-            usage_count=int(row.get("computed_usage_count", row.get("usage_count") or 0) or 0),
+            usage_count=int(
+                row.get("computed_usage_count", row.get("usage_count") or 0) or 0
+            ),
         )
 
 

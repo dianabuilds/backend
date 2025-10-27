@@ -58,7 +58,9 @@ def normalize_numeric(value: Any) -> float | int | None:
     return None
 
 
-def calc_delta(current: float | int | None, previous: float | int | None) -> float | None:
+def calc_delta(
+    current: float | int | None, previous: float | int | None
+) -> float | None:
     if current is None or previous is None:
         return None
     previous_value = cast(float | int, previous)
@@ -88,7 +90,9 @@ def format_delta_percentage(delta: float) -> str:
     return f"{abs(delta) * 100:.0f}%"
 
 
-def extract_trend(rows: Sequence[Mapping[str, Any]], field: str) -> tuple[float, ...] | None:
+def extract_trend(
+    rows: Sequence[Mapping[str, Any]], field: str
+) -> tuple[float, ...] | None:
     if not rows:
         return None
     series: list[float] = []
@@ -266,6 +270,137 @@ def compute_mapping_diff(
     return diff
 
 
+def _coerce_block_key(candidate: Any, *, allow_id: bool = False) -> str | None:
+    if isinstance(candidate, Mapping):
+        for field in (
+            "key",
+            "block_key",
+            "blockKey",
+            "globalKey",
+            "global_block_key",
+            "globalBlockKey",
+            "reference",
+        ):
+            value = candidate.get(field)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        if allow_id:
+            value = candidate.get("id")
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return None
+    if isinstance(candidate, str):
+        cleaned = candidate.strip()
+        return cleaned or None
+    return None
+
+
+def _iter_global_block_candidates(
+    value: Any,
+    *,
+    section_hint: str | None = None,
+    allow_id: bool = False,
+) -> list[tuple[str, str | None]]:
+    refs: list[tuple[str, str | None]] = []
+    if value is None:
+        return refs
+    if isinstance(value, Mapping):
+        local_section = value.get("section")
+        if isinstance(local_section, str) and local_section.strip():
+            section_hint = local_section.strip()
+        key = _coerce_block_key(value, allow_id=allow_id)
+        if key:
+            refs.append((key, section_hint))
+        for item in value.values():
+            refs.extend(
+                _iter_global_block_candidates(
+                    item,
+                    section_hint=section_hint,
+                    allow_id=allow_id,
+                )
+            )
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for item in value:
+            refs.extend(
+                _iter_global_block_candidates(
+                    item,
+                    section_hint=section_hint,
+                    allow_id=allow_id,
+                )
+            )
+    else:
+        key = _coerce_block_key(value, allow_id=allow_id)
+        if key:
+            refs.append((key, section_hint))
+    return refs
+
+
+def extract_global_block_refs(
+    data: Mapping[str, Any] | None,
+    meta: Mapping[str, Any] | None,
+) -> list[tuple[str, str | None]]:
+    meta_map = as_mapping(meta)
+    data_map = as_mapping(data)
+    refs: list[tuple[str, str | None]] = []
+    seen: set[tuple[str, str | None]] = set()
+
+    def add_reference(key: str, section: str | None) -> None:
+        normalized_key = key.strip()
+        if not normalized_key:
+            return
+        normalized_section = None
+        if section is not None:
+            section_text = str(section).strip()
+            if section_text:
+                normalized_section = section_text
+        pair = (normalized_key, normalized_section)
+        if pair not in seen:
+            seen.add(pair)
+            refs.append(pair)
+
+    for field in ("globalBlocks", "global_blocks"):
+        for key, section in _iter_global_block_candidates(meta_map.get(field)):
+            add_reference(key, section)
+
+    for fallback_key in ("header", "footer"):
+        if fallback_key in meta_map:
+            for key, section in _iter_global_block_candidates(
+                meta_map.get(fallback_key),
+                section_hint=fallback_key,
+            ):
+                add_reference(key, section)
+
+    blocks = data_map.get("blocks")
+    if isinstance(blocks, Sequence):
+        for block in blocks:
+            if not isinstance(block, Mapping):
+                continue
+            block_type = str(block.get("type") or "").lower()
+            source = str(block.get("source") or "").lower()
+            allow_id = block_type in {"global", "global_block"} or source == "global"
+            for key, section in _iter_global_block_candidates(
+                block,
+                section_hint=block.get("section") or block.get("zone"),
+                allow_id=allow_id,
+            ):
+                add_reference(key, section)
+
+    return refs
+
+
+def format_global_block_refs(
+    data: Mapping[str, Any] | None,
+    meta: Mapping[str, Any] | None,
+) -> list[dict[str, str]]:
+    formatted: list[dict[str, str]] = []
+    for key, section in extract_global_block_refs(data, meta):
+        entry = {"key": key}
+        if section:
+            entry["section"] = section
+        formatted.append(entry)
+    return formatted
+
+
 def compute_page_diff(
     previous_data: Mapping[str, Any] | None,
     previous_meta: Mapping[str, Any] | None,
@@ -275,7 +410,9 @@ def compute_page_diff(
     previous_data = as_mapping(previous_data)
     current_data = as_mapping(current_data)
     diff: list[dict[str, Any]] = []
-    diff.extend(compute_blocks_diff(previous_data.get("blocks"), current_data.get("blocks")))
+    diff.extend(
+        compute_blocks_diff(previous_data.get("blocks"), current_data.get("blocks"))
+    )
 
     filtered_previous_data = {k: v for k, v in previous_data.items() if k != "blocks"}
     filtered_current_data = {k: v for k, v in current_data.items() if k != "blocks"}
@@ -298,7 +435,9 @@ def compute_global_block_diff(
 ) -> list[dict[str, Any]]:
     diff: list[dict[str, Any]] = []
     diff.extend(
-        compute_mapping_diff(as_mapping(previous_data), as_mapping(current_data), scope="data")
+        compute_mapping_diff(
+            as_mapping(previous_data), as_mapping(current_data), scope="data"
+        )
     )
     diff.extend(compute_mapping_diff(previous_meta, current_meta, scope="meta"))
     return diff
@@ -327,4 +466,6 @@ __all__ = [
     "compute_mapping_diff",
     "compute_page_diff",
     "compute_global_block_diff",
+    "extract_global_block_refs",
+    "format_global_block_refs",
 ]

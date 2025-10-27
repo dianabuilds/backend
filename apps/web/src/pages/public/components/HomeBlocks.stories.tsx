@@ -1,7 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { MemoryRouter } from 'react-router-dom';
-import { HomeBlocks } from './HomeBlocks';
+import { HomeBlocks } from '@features/public/home';
 import type { HomeBlockItem, HomeBlockPayload } from '@shared/types/homePublic';
 
 const meta: Meta<typeof HomeBlocks> = {
