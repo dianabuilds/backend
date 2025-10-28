@@ -157,13 +157,15 @@ export default function ProfilePage() {
   };
 
   const errorBanner = error ? (
-    <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+    <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/10 dark:text-rose-200">
+      {error}
+    </div>
   ) : null;
 
   const quickLinksCard = (
-    <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-gray-700">Quick links</h2>
-      <div className="space-y-2 text-sm text-gray-600">
+    <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70">
+      <h2 className="text-sm font-semibold text-gray-700 dark:text-dark-100">Quick links</h2>
+      <div className="space-y-2 text-sm text-gray-600 dark:text-dark-200">
         <p>Adjust notifications, security tools or review billing without leaving settings.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -205,7 +207,7 @@ export default function ProfilePage() {
   );
 
   const profileFormCard = (
-    <Card className="space-y-6 rounded-3xl border border-white/60 bg-white/80 p-6 sm:p-8 xl:p-10 shadow-sm">
+    <Card className="space-y-6 rounded-3xl border border-white/60 bg-white/80 p-6 sm:p-8 xl:p-10 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70">
       {saved && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
           Profile updated.
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                   readOnly={!avatarUrlEditable}
                   disabled={saving || avatarUploading}
                 />
-                <p className="text-xs text-gray-500">Managed automatically after uploads. Edit only if you host the image elsewhere.</p>
+                <p className="text-xs text-gray-500 dark:text-dark-300">Managed automatically after uploads. Edit only if you host the image elsewhere.</p>
               </div>
             </Accordion>
           </div>
@@ -324,7 +326,7 @@ export default function ProfilePage() {
     </Card>
   );
   const mainContent = loading ? (
-    <Card className="flex items-center justify-center gap-3 p-6 text-sm text-gray-500">
+    <Card className="flex items-center justify-center gap-3 rounded-3xl border border-white/60 bg-white/80 p-6 text-sm text-gray-500 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70 dark:text-dark-200">
       <Spinner size="sm" /> Loading profile...
     </Card>
   ) : (
@@ -399,11 +401,11 @@ function AccountSnapshotCard({ profile, canChangeUsername, nextUsernameAt, onRel
   );
 
   return (
-    <Card className="space-y-5 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
+    <Card className="space-y-5 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm dark:border-dark-600/60 dark:bg-dark-700/70">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-gray-700">Account snapshot</h2>
-          <p className="text-xs text-gray-500">Overview of your account identity and wallet connection.</p>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-dark-100">Account snapshot</h2>
+          <p className="text-xs text-gray-500 dark:text-dark-300">Overview of your account identity and wallet connection.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {profile?.role && <Badge color="neutral" variant="soft">{profile.role}</Badge>}
@@ -426,7 +428,7 @@ function AccountSnapshotCard({ profile, canChangeUsername, nextUsernameAt, onRel
       {(loading || status || error) && (
         <div className="space-y-2">
           {loading && (
-            <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-dark-700/70 dark:text-dark-200">
               <Spinner size="sm" /> Checking wallet status...
             </div>
           )}
@@ -440,7 +442,7 @@ function AccountSnapshotCard({ profile, canChangeUsername, nextUsernameAt, onRel
       )}
 
       <div className="space-y-2">
-        <div className="text-xs text-gray-500">Username change status</div>
+        <div className="text-xs text-gray-500 dark:text-dark-300">Username change status</div>
         <div
           className={`rounded-lg border px-3 py-2 text-xs ${
             canChangeUsername ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'
@@ -468,7 +470,7 @@ function AccountSnapshotCard({ profile, canChangeUsername, nextUsernameAt, onRel
         </Button>
       </div>
 
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-gray-400 dark:text-dark-300">
         We attempt to use MetaMask when available. Install a compatible wallet extension if your browser cannot detect a provider.
       </p>
     </Card>
@@ -482,9 +484,11 @@ type SnapshotRowProps = {
 
 function SnapshotRow({ label, children }: SnapshotRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span>{label}</span>
-      <div className="flex min-w-0 items-center justify-end gap-2 text-right">{children}</div>
+    <div className="flex items-center justify-between gap-4 text-sm text-gray-600 dark:text-dark-200">
+      <span className="font-medium text-gray-600 dark:text-dark-200">{label}</span>
+      <div className="flex min-w-0 items-center justify-end gap-2 text-right text-gray-900 dark:text-dark-50">
+        {children}
+      </div>
     </div>
   );
 }

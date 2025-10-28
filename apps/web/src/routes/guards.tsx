@@ -10,6 +10,17 @@ type GuardProps = {
 
 const ADMIN_ROLES = ['admin'];
 const DEFAULT_SUPER_ROLES = new Set<string>(['admin']);
+const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
+const ROLE_ALIASES: Record<string, string> = {
+  'site.viewer': 'user',
+  'site.editor': 'editor',
+  'site.publisher': 'editor',
+  'site.reviewer': 'moderator',
+  'site.admin': 'admin',
+  'platform.admin': 'admin',
+  'platform.moderator': 'moderator',
+  'finance_ops': 'support',
+};
 
 function normalizeRoles(user: any): Set<string> {
   const roles = new Set<string>();
@@ -17,7 +28,10 @@ function normalizeRoles(user: any): Set<string> {
     if (!value) return;
     const text = String(value).trim().toLowerCase();
     if (text) {
-      roles.add(text);
+      const normalized = ROLE_ALIASES[text] ?? text;
+      if (KNOWN_ROLES.has(normalized)) {
+        roles.add(normalized);
+      }
     }
   };
   const collection = Array.isArray(user?.roles) ? user.roles : [];

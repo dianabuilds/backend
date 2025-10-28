@@ -7,7 +7,7 @@ export type TemplateFieldRow = {
   value: string;
 };
 
-export const LOCALE_PRESETS = ['', 'en', 'ru'];
+export const LOCALE_PRESETS = ['ru', 'en'] as const;
 
 export const TEMPLATE_FIELD_TYPES: Array<{ value: TemplateFieldType; label: string }> = [
   { value: 'string', label: 'Short text' },

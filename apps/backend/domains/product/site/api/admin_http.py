@@ -381,6 +381,18 @@ def get_site_service(container=Depends(get_container)) -> SiteService:
 
 router = APIRouter(prefix="/v1/site", tags=["site"])
 
+_KNOWN_ROLES = {"user", "editor", "support", "moderator", "admin"}
+_ROLE_ALIASES = {
+    "site.viewer": "user",
+    "site.editor": "editor",
+    "site.publisher": "editor",
+    "site.reviewer": "moderator",
+    "site.admin": "admin",
+    "platform.admin": "admin",
+    "platform.moderator": "moderator",
+    "finance_ops": "support",
+}
+
 
 _PAGE_UPDATE_VALIDATION_ERRORS = {
     "site_page_invalid_slug",
@@ -393,7 +405,7 @@ _PAGE_UPDATE_VALIDATION_ERRORS = {
 
 @router.get(
     "/blocks/{block_id}/preview",
-    dependencies=[Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(require_role_db("editor"))],
 )
 async def preview_block(
     block_id: str,
@@ -407,32 +419,23 @@ async def preview_block(
 def _add_role(target: set[str], value: Any) -> None:
     if isinstance(value, str):
         normalized = value.strip().lower()
-        if normalized:
-            target.add(normalized)
+        if not normalized:
+            return
+        alias = _ROLE_ALIASES.get(normalized, normalized)
+        if alias in _KNOWN_ROLES:
+            target.add(alias)
 
 
 def _collect_site_roles(claims: Mapping[str, Any]) -> set[str]:
     roles: set[str] = set()
     _add_role(roles, claims.get("role"))
-    for key in ("roles", "site_roles"):
+    for key in ("roles", "site_roles", "permissions", "scopes"):
         raw = claims.get(key)
         if isinstance(raw, str):
             _add_role(roles, raw)
         elif isinstance(raw, Iterable) and not isinstance(raw, (str, bytes)):
             for item in raw:
                 _add_role(roles, item)
-    for key in ("permissions", "scopes"):
-        raw = claims.get(key)
-        if isinstance(raw, str):
-            if raw.startswith("site.") or raw.lower() in {"admin", "moderator"}:
-                _add_role(roles, raw)
-        elif isinstance(raw, Iterable) and not isinstance(raw, (str, bytes)):
-            for item in raw:
-                if isinstance(item, str) and (
-                    item.startswith("site.")
-                    or item.strip().lower() in {"admin", "moderator"}
-                ):
-                    _add_role(roles, item)
     return roles
 
 
@@ -465,7 +468,7 @@ def _resolve_actor(claims: Mapping[str, Any]) -> str | None:
 
 @router.get(
     "/pages",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def list_pages(
     page: int = Query(1, ge=1),
@@ -511,7 +514,7 @@ async def list_pages(
 @router.post(
     "/pages",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def create_page(
     request: Request,
@@ -534,7 +537,7 @@ async def create_page(
 
 @router.patch(
     "/pages/{page_id}",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def update_page(
     request: Request,
@@ -563,7 +566,7 @@ async def update_page(
 @router.delete(
     "/pages/{page_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def delete_page(
     request: Request,
@@ -583,7 +586,7 @@ async def delete_page(
 
 @router.get(
     "/pages/{page_id}",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_page(
     page_id: UUID,
@@ -601,7 +604,7 @@ async def get_page(
 
 @router.get(
     "/pages/{page_id}/draft",
-    dependencies=[Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(require_role_db("editor"))],
 )
 async def get_page_draft(
     page_id: UUID,
@@ -613,7 +616,7 @@ async def get_page_draft(
 
 @router.put(
     "/pages/{page_id}/draft",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def save_page_draft(
     request: Request,
@@ -645,7 +648,7 @@ async def save_page_draft(
 
 @router.post(
     "/pages/{page_id}/draft/validate",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def validate_page_draft(
     page_id: UUID,
@@ -673,7 +676,7 @@ async def validate_page_draft(
 
 @router.get(
     "/pages/{page_id}/draft/diff",
-    dependencies=[Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(require_role_db("editor"))],
 )
 async def diff_page_draft(
     page_id: UUID,
@@ -690,7 +693,7 @@ async def diff_page_draft(
 
 @router.post(
     "/pages/{page_id}/preview",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def preview_page(
     page_id: UUID,
@@ -748,7 +751,7 @@ async def preview_page(
 
 @router.post(
     "/pages/{page_id}/publish",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.publisher"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def publish_page(
     request: Request,
@@ -777,7 +780,7 @@ async def publish_page(
 
 @router.get(
     "/pages/{page_id}/history",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def list_page_history(
     page_id: UUID,
@@ -798,7 +801,7 @@ async def list_page_history(
 
 @router.get(
     "/pages/{page_id}/history/{version}",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_page_version(
     page_id: UUID,
@@ -814,7 +817,7 @@ async def get_page_version(
 
 @router.get(
     "/pages/{page_id}/metrics",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_page_metrics(
     page_id: UUID,
@@ -839,7 +842,7 @@ async def get_page_metrics(
 
 @router.post(
     "/pages/{page_id}/history/{version}/restore",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def restore_page_version(
     request: Request,
@@ -855,7 +858,7 @@ async def restore_page_version(
 
 @router.get(
     "/global-blocks",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def list_global_blocks(
     page: int = Query(default=1, ge=1),
@@ -895,7 +898,7 @@ async def list_global_blocks(
 @router.post(
     "/global-blocks",
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def create_global_block(
     request: Request,
@@ -919,7 +922,7 @@ async def create_global_block(
 
 @router.get(
     "/global-blocks/{block_id}",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_global_block(
     block_id: UUID,
@@ -947,7 +950,7 @@ async def get_global_block(
 
 @router.put(
     "/global-blocks/{block_id}",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.editor"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def save_global_block(
     request: Request,
@@ -974,7 +977,7 @@ async def save_global_block(
 
 @router.post(
     "/global-blocks/{block_id}/publish",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.publisher"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def publish_global_block(
     request: Request,
@@ -1036,7 +1039,7 @@ async def publish_global_block(
 
 @router.get(
     "/global-blocks/{block_id}/history",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def list_global_block_history(
     block_id: UUID,
@@ -1057,7 +1060,7 @@ async def list_global_block_history(
 
 @router.get(
     "/global-blocks/{block_id}/history/{version}",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_global_block_version(
     block_id: UUID,
@@ -1070,7 +1073,7 @@ async def get_global_block_version(
 
 @router.get(
     "/global-blocks/{block_id}/metrics",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def get_global_block_metrics(
     block_id: UUID,
@@ -1098,7 +1101,7 @@ async def get_global_block_metrics(
 
 @router.post(
     "/global-blocks/{block_id}/history/{version}/restore",
-    dependencies=[Depends(csrf_protect), Depends(require_role_db("site.publisher"))],
+    dependencies=[Depends(csrf_protect), Depends(require_role_db("editor"))],
 )
 async def restore_global_block_version(
     request: Request,
@@ -1130,7 +1133,7 @@ async def restore_global_block_version(
 
 @router.get(
     "/audit",
-    dependencies=[Depends(require_role_db("site.viewer"))],
+    dependencies=[Depends(require_role_db("user"))],
 )
 async def list_audit(
     entity_type: str | None = Query(default=None),

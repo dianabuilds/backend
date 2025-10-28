@@ -89,10 +89,8 @@ const SORT_OPTIONS: Array<{ value: SortOrder; label: string }> = [
 
 const LOCALE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '', label: 'Любая локаль' },
-  { value: 'ru', label: 'ru (основная)' },
-  { value: 'en', label: 'en' },
-  { value: 'es', label: 'es' },
-  { value: 'de', label: 'de' },
+  { value: 'ru', label: 'Русский (ru)' },
+  { value: 'en', label: 'Английский (en)' },
 ];
 
 const FILTER_CONTROL_CLASS =

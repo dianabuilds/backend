@@ -47,7 +47,7 @@ describe('Billing management flows', () => {
       user: {
         id: 'finance-ops',
         email: 'finance@caves.dev',
-        roles: ['finance_ops'],
+        roles: ['support'],
       },
     }).as('getCurrentUser');
 

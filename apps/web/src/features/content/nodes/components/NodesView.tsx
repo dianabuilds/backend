@@ -573,7 +573,13 @@ export function ContentNodesList(): React.ReactElement {
     }
   }, [confirm, pushToast, selected, setError, setItems]);
 
-  const handleCreateNode = React.useCallback(() => navigate('/nodes/new'), [navigate]);
+  const handleCreateNode = React.useCallback(() => {
+    if (devBlogOnly) {
+      navigate(`/nodes/new?tag=${encodeURIComponent(DEV_BLOG_TAG)}`);
+      return;
+    }
+    navigate('/nodes/new');
+  }, [devBlogOnly, navigate]);
   const handleImportExport = React.useCallback(() => navigate('/tools/import-export?scope=nodes'), [navigate]);
   const handleAnnounce = React.useCallback(() => navigate('/notifications?compose=nodes'), [navigate]);
 

@@ -163,19 +163,19 @@ export default function PrivateAppRoutes(): React.ReactElement {
         <Route path="/billing" element={withLayout(<BillingPage />)} />
         <Route
           path="/finance/billing/overview"
-          element={withLayout(<ManagementBillingOverview />, { allowedRoles: ['finance_ops', 'admin'] })}
+          element={withLayout(<ManagementBillingOverview />, { allowedRoles: ['support', 'admin'] })}
         />
         <Route
           path="/finance/billing/payments"
-          element={withLayout(<ManagementPayments />, { allowedRoles: ['finance_ops', 'admin'] })}
+          element={withLayout(<ManagementPayments />, { allowedRoles: ['support', 'admin'] })}
         />
         <Route
           path="/finance/billing/payments/monitoring"
-          element={withLayout(<PaymentsMonitoring />, { allowedRoles: ['finance_ops', 'admin'] })}
+          element={withLayout(<PaymentsMonitoring />, { allowedRoles: ['support', 'admin'] })}
         />
         <Route
           path="/finance/billing/tariffs"
-          element={withLayout(<ManagementTariffs />, { allowedRoles: ['finance_ops', 'admin'] })}
+          element={withLayout(<ManagementTariffs />, { allowedRoles: ['support', 'admin'] })}
         />
 
         <Route path="/platform/ai" element={withLayout(<ManagementAI />)} />
@@ -184,11 +184,26 @@ export default function PrivateAppRoutes(): React.ReactElement {
         <Route path="/platform/system" element={withLayout(<ManagementSystem />)} />
         <Route path="/platform/audit" element={withLayout(<ManagementAudit />)} />
 
-        <Route path="/moderation" element={withLayout(<ModerationOverview />)} />
-        <Route path="/moderation/cases" element={withLayout(<ModerationCases />)} />
-        <Route path="/moderation/cases/:caseId" element={withLayout(<CaseDetailPage />)} />
-        <Route path="/moderation/users" element={withLayout(<ModerationUsers />)} />
-        <Route path="/moderation/ai-rules" element={withLayout(<ModerationAIRules />)} />
+        <Route
+          path="/moderation"
+          element={withLayout(<ModerationOverview />, { allowedRoles: ['moderator', 'admin'] })}
+        />
+        <Route
+          path="/moderation/cases"
+          element={withLayout(<ModerationCases />, { allowedRoles: ['moderator', 'admin'] })}
+        />
+        <Route
+          path="/moderation/cases/:caseId"
+          element={withLayout(<CaseDetailPage />, { allowedRoles: ['moderator', 'admin'] })}
+        />
+        <Route
+          path="/moderation/users"
+          element={withLayout(<ModerationUsers />, { allowedRoles: ['moderator', 'admin'] })}
+        />
+        <Route
+          path="/moderation/ai-rules"
+          element={withLayout(<ModerationAIRules />, { allowedRoles: ['moderator', 'admin'] })}
+        />
 
         <Route
           path="/observability"

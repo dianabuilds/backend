@@ -46,10 +46,13 @@ export function useNotificationsHistory(
     pageSizeRef.current = pageSize;
   }, [pageSize]);
 
-  React.useEffect(() => () => {
-    mountedRef.current = false;
-    abortRef.current?.abort();
-    abortRef.current = null;
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
   }, []);
 
   const runFetch = React.useCallback(
@@ -74,6 +77,10 @@ export function useNotificationsHistory(
       try {
         const page = await fetchNotificationsHistory(params);
         if (!mountedRef.current || controller.signal.aborted) {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.info('notifications.history.skip', mode, 'aborted after fetch');
+          }
           return;
         }
         setItems((prev) => (mode === 'append' ? [...prev, ...page.items] : page.items));
@@ -81,6 +88,10 @@ export function useNotificationsHistory(
         setHasMore(page.hasMore);
       } catch (err: unknown) {
         if (!mountedRef.current || controller.signal.aborted) {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.info('notifications.history.skip', mode, 'aborted in catch');
+          }
           return;
         }
         if (mode === 'refresh') {
@@ -96,10 +107,17 @@ export function useNotificationsHistory(
         abortRef.current = null;
         if (mountedRef.current && !aborted) {
           if (mode === 'refresh') {
+            if (import.meta.env.DEV) {
+              // eslint-disable-next-line no-console
+              console.info('notifications.history.loading=false');
+            }
             setLoading(false);
           } else {
             setLoadingMore(false);
           }
+        } else if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.info('notifications.history.finally', { aborted, mode });
         }
       }
     },

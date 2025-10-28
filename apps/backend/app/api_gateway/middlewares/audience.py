@@ -40,7 +40,7 @@ AUDIENCE_ALLOW: AudienceMatrix = {
 ROLE_ALLOW: RoleMatrix = {
     "public": None,
     "admin": {"editor", "moderator", "admin"},
-    "ops": {"finance_ops", "admin"},
+    "ops": {"support", "admin"},
     "all": None,
 }
 

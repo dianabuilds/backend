@@ -51,7 +51,7 @@ type CreatePageFormState = {
   title: string;
   slug: string;
   type: SitePageType;
-  locale: string;
+  locale: LocaleOption;
   owner: string;
   pinned: boolean;
 };
@@ -95,12 +95,16 @@ const PINNED_OPTIONS: Array<{ value: PinnedFilter; label: string }> = [
   { value: 'without', label: 'Не закреплённые' },
 ];
 
-const LOCALE_OPTIONS: Array<{ value: string; label: string }> = [
+const LOCALE_SELECT_OPTIONS = [
+  { value: 'ru', label: 'Русский (ru)' },
+  { value: 'en', label: 'Английский (en)' },
+] as const;
+
+type LocaleOption = (typeof LOCALE_SELECT_OPTIONS)[number]['value'];
+
+const LOCALE_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '', label: 'Все локали' },
-  { value: 'ru', label: 'ru (основная)' },
-  { value: 'en', label: 'en' },
-  { value: 'es', label: 'es' },
-  { value: 'de', label: 'de' },
+  ...LOCALE_SELECT_OPTIONS,
 ];
 
 const FILTER_CONTROL_CLASS =
@@ -380,7 +384,7 @@ export default function SitePagesCatalog(): React.ReactElement {
   const clearError = React.useCallback(() => setError(null), [setError]);
 
   const openCreateDialog = React.useCallback(() => {
-    setCreateForm((prev) => ({ ...CREATE_PAGE_INITIAL, locale: prev.locale || 'ru' }));
+    setCreateForm((prev) => ({ ...CREATE_PAGE_INITIAL, locale: prev.locale }));
     setCreateError(null);
     setCreateDialogOpen(true);
   }, []);
@@ -429,7 +433,7 @@ export default function SitePagesCatalog(): React.ReactElement {
     }
     const normalizedTitle = createForm.title.trim();
     const normalizedSlug = normalizeSlugInput(createForm.slug);
-    const locale = createForm.locale.trim() || 'ru';
+    const locale = createForm.locale;
     if (!normalizedTitle || !normalizedSlug) {
       setCreateError('Введите название страницы и slug');
       return;
@@ -618,7 +622,7 @@ export default function SitePagesCatalog(): React.ReactElement {
               onChange={(event) => handleFilterChange('locale', event.currentTarget.value)}
               className={FILTER_CONTROL_CLASS}
             >
-              {LOCALE_OPTIONS.map((option) => (
+              {LOCALE_FILTER_OPTIONS.map((option) => (
                 <option key={option.value || 'all-locales'} value={option.value}>
                   {option.label}
                 </option>
@@ -1064,11 +1068,18 @@ export default function SitePagesCatalog(): React.ReactElement {
             </label>
             <label className="space-y-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200">
               <span>Локаль</span>
-              <Input
+              <Select
                 value={createForm.locale}
-                onChange={(event) => handleCreateFieldChange('locale', event.currentTarget.value)}
-                placeholder="ru"
-              />
+                onChange={(event) =>
+                  handleCreateFieldChange('locale', event.currentTarget.value as LocaleOption)
+                }
+              >
+                {LOCALE_SELECT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </label>
             <label className="space-y-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200 sm:col-span-2">
               <span>Ответственный</span>

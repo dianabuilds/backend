@@ -31,7 +31,7 @@ async def api_client(service: SiteService):
         return None
 
     async def fake_user(request: Request) -> dict[str, str]:
-        return {"role": "site.editor", "email": "tester@caves.dev", "sub": "tester"}
+        return {"role": "editor", "email": "tester@caves.dev", "sub": "tester"}
 
     original_security_get_user = iam_security.get_current_user
     iam_security.get_current_user = fake_user  # type: ignore[assignment]
@@ -39,7 +39,7 @@ async def api_client(service: SiteService):
     app.dependency_overrides[get_site_service] = override_site_service
     app.dependency_overrides[get_current_user] = fake_user
     app.dependency_overrides[csrf_protect] = allow_dependency
-    for role in ("site.viewer", "site.editor", "site.publisher", "site.reviewer"):
+    for role in ("user", "editor"):
         app.dependency_overrides[require_role_db(role)] = allow_dependency
     skip_calls = {
         get_site_service,

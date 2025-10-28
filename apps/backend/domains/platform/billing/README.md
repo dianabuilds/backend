@@ -1,4 +1,4 @@
-# Платёжный биллинг (EVM)
+﻿# Платёжный биллинг (EVM)
 
 Документ описывает текущую реализацию домена `domains.platform.billing`: архитектуру, ключевые сущности, потоки данных и интеграции. Модуль обеспечивает on-chain биллинг в EVM-сетях, управление планами и обзор для команды finance/ops.
 
@@ -9,7 +9,7 @@ domains/platform/billing
 ├─ api
 │  ├─ public/                # checkout, history, me/*
 │  ├─ admin/                 # CRUD для планов/контрактов/провайдеров
-│  └─ overview/              # dashboards для finance_ops
+│  └─ overview/              # dashboards для support
 ├─ application
 │  ├─ service.py             # BillingService: checkout, ledger, webhooks
 │  └─ use_cases/             # слой сценариев (public/admin/overview/settings)
@@ -54,7 +54,7 @@ DI-конфигурация находится в `apps/backend/domains/platform
 - **Quota** — публикуется событие `billing.plan.changed.v1` при успешном платеже (обновляет лимиты продуктов).
 - **Notifications** — триггеры для пользователя и ops (успешная оплата, просрочка, сбой).
 - **Audit** — запись всех действий admin (изменения планов, контрактов, ручные операции) и платёжных событий.
-- **Finance Ops** — отдельная роль доступа; ручки overview требуют `require_finance_ops`.
+- **Support** — отдельная роль доступа; ручки overview требуют `require_role_db("support")`.
 
 ## Данные и миграции
 
@@ -88,3 +88,4 @@ DI-конфигурация находится в `apps/backend/domains/platform
 - `docs/features/billing/tasks.md` — чек-лист задач и статусы.
 - `docs/playbooks/billing.md` — playbook и сценарии реагирования (см. обновления в этой задаче).
 - `apps/backend/scripts/billing_e2e.py` — сценарий полного цикла checkout → webhook → событий.
+

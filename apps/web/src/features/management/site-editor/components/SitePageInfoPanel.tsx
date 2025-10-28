@@ -1,6 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Button, Input, Switch } from '@ui';
+import { Button, Input, Select, Switch } from '@ui';
 import type { SitePageSummary } from '@shared/types/management';
 import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/types';
 
@@ -13,6 +13,13 @@ type SitePageInfoPanelProps = {
   onClearError: () => void;
 };
 
+const LOCALE_OPTIONS = [
+  { value: 'ru', label: 'Русский (ru)' },
+  { value: 'en', label: 'Английский (en)' },
+] as const;
+
+type LocaleOption = (typeof LOCALE_OPTIONS)[number]['value'];
+
 function normalizeSlug(value: string): string {
   if (!value) {
     return '';
@@ -24,8 +31,12 @@ function normalizeSlug(value: string): string {
   return sanitized.startsWith('/') ? sanitized : `/${sanitized}`;
 }
 
-function normalizeLocale(value: string): string {
-  return value.trim();
+function normalizeLocale(value: string | null | undefined): LocaleOption {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized.startsWith('en')) {
+    return 'en';
+  }
+  return 'ru';
 }
 
 function normalizeTitle(value: string): string {
@@ -46,7 +57,7 @@ export function SitePageInfoPanel({
 }: SitePageInfoPanelProps): React.ReactElement {
   const [title, setTitle] = React.useState('');
   const [slug, setSlug] = React.useState('');
-  const [locale, setLocale] = React.useState('ru');
+  const [locale, setLocale] = React.useState<LocaleOption>('ru');
   const [owner, setOwner] = React.useState('');
   const [pinned, setPinned] = React.useState(false);
   const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -62,7 +73,7 @@ export function SitePageInfoPanel({
     }
     setTitle(page.title ?? '');
     setSlug(normalizeSlug(page.slug ?? ''));
-    setLocale(page.locale ?? 'ru');
+    setLocale(normalizeLocale(page.locale));
     setOwner(page.owner ?? '');
     setPinned(Boolean(page.pinned));
     setValidationError(null);
@@ -73,7 +84,7 @@ export function SitePageInfoPanel({
       return {
         title: '',
         slug: '',
-        locale: 'ru',
+        locale: 'ru' as LocaleOption,
         owner: '',
         pinned: false,
       };
@@ -81,7 +92,7 @@ export function SitePageInfoPanel({
     return {
       title: page.title ?? '',
       slug: normalizeSlug(page.slug ?? ''),
-      locale: page.locale ?? 'ru',
+      locale: normalizeLocale(page.locale),
       owner: page.owner ?? '',
       pinned: Boolean(page.pinned),
     };
@@ -92,6 +103,15 @@ export function SitePageInfoPanel({
       onClearError();
       setValidationError(null);
       setter(event.currentTarget.value);
+    },
+    [onClearError],
+  );
+
+  const handleLocaleChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      onClearError();
+      setValidationError(null);
+      setLocale(event.currentTarget.value as LocaleOption);
     },
     [onClearError],
   );
@@ -122,7 +142,7 @@ export function SitePageInfoPanel({
     }
     setTitle(page.title ?? '');
     setSlug(normalizeSlug(page.slug ?? ''));
-    setLocale(page.locale ?? 'ru');
+    setLocale(normalizeLocale(page.locale));
     setOwner(page.owner ?? '');
     setPinned(Boolean(page.pinned));
     setValidationError(null);
@@ -236,12 +256,17 @@ export function SitePageInfoPanel({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200">Локаль</span>
-            <Input
+            <Select
               value={locale}
-              onChange={handleFieldChange(setLocale)}
+              onChange={handleLocaleChange}
               disabled={disabled || saving || !page}
-              placeholder="ru"
-            />
+            >
+              {LOCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </label>
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200">Ответственный</span>

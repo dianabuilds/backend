@@ -31,7 +31,7 @@ export function SettingsLayout({ title, description, error, children, side }: Se
   const navigate = useNavigate();
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 pb-12">
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-6 pb-12 lg:max-w-[1800px] lg:px-12">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
         <p className="mt-1 text-sm text-gray-500">{description}</p>

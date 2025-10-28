@@ -18,6 +18,26 @@ import {
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 
+type LocalePreset = (typeof LOCALE_PRESETS)[number];
+
+const LOCALE_PRESET_LABELS: Record<LocalePreset, string> = {
+  ru: 'Русский (ru)',
+  en: 'Английский (en)',
+};
+
+const LOCALE_PRESET_OPTIONS: Array<{ value: LocalePreset; label: string }> = LOCALE_PRESETS.map((value) => ({
+  value,
+  label: LOCALE_PRESET_LABELS[value],
+}));
+
+function normalizeLocalePreset(value: string | null | undefined): LocalePreset {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized.startsWith('en')) {
+    return 'en';
+  }
+  return 'ru';
+}
+
 function preview(text: string, max = 90) {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (clean.length <= max) return clean;
@@ -52,7 +72,7 @@ export function NotificationTemplates(): React.ReactElement {
   const [description, setDescription] = React.useState('');
   const [subject, setSubject] = React.useState('');
   const [body, setBody] = React.useState('');
-  const [localePreset, setLocalePreset] = React.useState<string>('');
+  const [localePreset, setLocalePreset] = React.useState<LocalePreset>('ru');
   const [variablesMode, setVariablesMode] = React.useState<'builder' | 'json'>('builder');
   const [variablesRows, setVariablesRows] = React.useState<TemplateFieldRow[]>([createTemplateRow(1)]);
   const variablesNextId = React.useRef(2);
@@ -113,8 +133,8 @@ export function NotificationTemplates(): React.ReactElement {
     setSubject(editingTemplate?.subject ?? '');
     setBody(editingTemplate?.body ?? '');
 
-    const localeValue = editingTemplate?.locale ?? '';
-    setLocalePreset(LOCALE_PRESETS.includes(localeValue) ? localeValue : '');
+    const localeValue = normalizeLocalePreset(editingTemplate?.locale);
+    setLocalePreset(localeValue);
 
     const [variableRows, nextVariableId] = objectToTemplateRows(editingTemplate?.variables ?? null, 1);
     setVariablesRows(variableRows);
@@ -200,7 +220,7 @@ export function NotificationTemplates(): React.ReactElement {
       body,
       description: description.trim() ? description.trim() : null,
       subject: subject.trim() ? subject.trim() : null,
-      locale: localePreset || null,
+      locale: localePreset,
       created_by: drawer.editing?.created_by ?? user?.id ?? null,
       variables: null,
       meta: null,
@@ -421,10 +441,13 @@ export function NotificationTemplates(): React.ReactElement {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Locale preset</label>
-              <Select value={localePreset} onChange={(event) => setLocalePreset(event.target.value)}>
-                {LOCALE_PRESETS.map((locale) => (
-                  <option key={locale || 'default'} value={locale}>
-                    {locale || 'Default'}
+              <Select
+                value={localePreset}
+                onChange={(event) => setLocalePreset(event.target.value as LocalePreset)}
+              >
+                {LOCALE_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </Select>

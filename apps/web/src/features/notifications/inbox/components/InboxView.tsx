@@ -1,6 +1,5 @@
 import React from 'react';
-import { Badge, Button, Spinner, Switch, Table } from '@ui';
-import { NotificationSurface, notificationTableHeadCellClass, notificationTableRowClass } from '../../common/NotificationSurface';
+import { Badge, Button, Card, Spinner, Switch } from '@ui';
 import { formatDateTime } from '@shared/utils/format';
 import type { NotificationHistoryItem } from '@shared/types/notifications';
 import { useNotificationsHistory } from '../../common/hooks';
@@ -16,97 +15,82 @@ function useRetentionConfig(): { days: number; maxPerUser: number } {
   };
 }
 
-function formatPriority(priority?: string | null): React.ReactNode {
-  const value = String(priority ?? 'normal').toLowerCase();
-  if (value === 'urgent' || value === 'high') {
-    return (
-      <Badge color="warning" variant="soft">
-        {value}
-      </Badge>
-    );
-  }
-  if (value === 'low') {
-    return (
-      <Badge color="neutral" variant="soft">
-        {value}
-      </Badge>
-    );
-  }
-  return (
-    <Badge color="info" variant="soft">
-      normal
-    </Badge>
-  );
-}
+export type NotificationInboxOverview = {
+  unread: number;
+  total: number;
+  hasError: boolean;
+  loading: boolean;
+  lastReceivedAt: string | null;
+  retentionDays: number;
+  retentionMax: number;
+};
 
-function InboxTable({
-  items,
-  onMarkRead,
-  marking,
-}: {
-  items: NotificationHistoryItem[];
-  onMarkRead: (id: string) => void;
-  marking: Record<string, boolean>;
-}) {
-  if (!items.length) return null;
-  return (
-    <div className="hide-scrollbar overflow-x-auto">
-      <Table.Table className="min-w-[900px] text-left rtl:text-right">
-        <Table.THead>
-          <Table.TR>
-            <Table.TH className={`${notificationTableHeadCellClass} w-[42%]`}>Notification</Table.TH>
-            <Table.TH className={`${notificationTableHeadCellClass} w-[12%]`}>Type</Table.TH>
-            <Table.TH className={`${notificationTableHeadCellClass} w-[12%]`}>Priority</Table.TH>
-            <Table.TH className={`${notificationTableHeadCellClass} w-[18%]`}>Created</Table.TH>
-            <Table.TH className={`${notificationTableHeadCellClass} w-[16%]`}>Status</Table.TH>
-          </Table.TR>
-        </Table.THead>
-        <Table.TBody>
-          {items.map((item) => (
-            <Table.TR key={item.id} className={notificationTableRowClass}>
-              <Table.TD className="px-6 py-4 align-top">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900 dark:text-dark-50">{item.title || 'Notification'}</span>
-                    {!item.read_at && <span className="inline-flex h-2 w-2 rounded-full bg-primary-500" />}
-                  </div>
-                  {item.message ? <p className="text-sm text-gray-600 dark:text-dark-200">{item.message}</p> : null}
-                </div>
-              </Table.TD>
-              <Table.TD className="px-6 py-4 align-top">
-                <Badge variant="soft" color="neutral">
-                  {item.type || 'system'}
-                </Badge>
-              </Table.TD>
-              <Table.TD className="px-6 py-4 align-top">{formatPriority(item.priority)}</Table.TD>
-              <Table.TD className="px-6 py-4 align-top text-sm text-gray-600">
-                {formatDateTime(item.created_at) || '-'}
-              </Table.TD>
-              <Table.TD className="px-6 py-4 align-top">
-                <div className="flex items-center gap-3">
-                  <Badge color={item.read_at ? 'neutral' : 'info'} variant="soft">
-                    {item.read_at ? 'Read' : 'Pending'}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    color="neutral"
-                    size="xs"
-                    onClick={() => onMarkRead(item.id)}
-                    disabled={!!item.read_at || marking[item.id]}
-                  >
-                    {marking[item.id] ? '...' : item.read_at ? 'Done' : 'Mark read'}
-                  </Button>
-                </div>
-              </Table.TD>
-            </Table.TR>
-          ))}
-        </Table.TBody>
-      </Table.Table>
-    </div>
-  );
-}
+const NotificationCard = React.memo(
+  ({
+    item,
+    marking,
+    onMarkRead,
+  }: {
+    item: NotificationHistoryItem;
+    marking: Record<string, boolean>;
+    onMarkRead: (id: string) => void;
+  }) => {
+    const createdAt = formatDateTime(item.created_at) || '-';
+    const message = React.useMemo(() => item.message?.trim() ?? '', [item.message]);
+    const unread = !item.read_at;
+    const handleMark = React.useCallback(() => onMarkRead(item.id), [item.id, onMarkRead]);
 
-export function NotificationInbox(): React.ReactElement {
+    return (
+      <div className="rounded-2xl border border-gray-200/70 bg-white/90 p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-dark-600/50 dark:bg-dark-700/70">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-gray-900 dark:text-dark-50">
+                {item.title || 'Notification'}
+              </span>
+              <Badge color={unread ? 'info' : 'neutral'} variant="soft">
+                {unread ? 'Pending' : 'Read'}
+              </Badge>
+              <Badge variant="soft" color="neutral">
+                {item.type || 'system'}
+              </Badge>
+            </div>
+            {message ? (
+              <p className="max-w-[48rem] whitespace-pre-wrap break-words text-sm text-gray-600 dark:text-dark-200">
+                {message}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-dark-300">
+              <span>{createdAt}</span>
+              <span aria-hidden="true">/</span>
+              {unread ? (
+                <Button
+                  variant="ghost"
+                  color="neutral"
+                  size="xs"
+                  onClick={handleMark}
+                  disabled={marking[item.id]}
+                >
+                  {marking[item.id] ? '...' : 'Mark read'}
+                </Button>
+              ) : (
+                <span className="text-gray-400 dark:text-dark-300">Marked as read</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+
+NotificationCard.displayName = 'NotificationCard';
+
+type NotificationInboxProps = {
+  onOverviewChange?: (overview: NotificationInboxOverview) => void;
+};
+
+export function NotificationInbox({ onOverviewChange }: NotificationInboxProps = {}): React.ReactElement {
   const { days, maxPerUser } = useRetentionConfig();
   const [showUnreadOnly, setShowUnreadOnly] = React.useState(false);
   const { items, loading, loadingMore, error, hasMore, refresh, loadMore, markAsRead } = useNotificationsHistory({
@@ -129,6 +113,10 @@ export function NotificationInbox(): React.ReactElement {
     () => (showUnreadOnly ? items.filter((item) => !item.read_at) : items),
     [items, showUnreadOnly],
   );
+  const lastReceivedAt = React.useMemo(() => {
+    const latest = items[0];
+    return latest?.created_at ?? latest?.updated_at ?? null;
+  }, [items]);
 
   const handleToggleUnread = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setShowUnreadOnly(event.currentTarget.checked);
@@ -152,26 +140,39 @@ export function NotificationInbox(): React.ReactElement {
     [markAsRead],
   );
 
+  React.useEffect(() => {
+    if (!onOverviewChange) return;
+    onOverviewChange({
+      unread: unreadCount,
+      total: items.length,
+      hasError: Boolean(error),
+      loading,
+      lastReceivedAt,
+      retentionDays: days,
+      retentionMax: maxPerUser,
+    });
+  }, [onOverviewChange, unreadCount, items.length, error, loading, lastReceivedAt, days, maxPerUser]);
+
   return (
-    <NotificationSurface className="space-y-6 p-6">
+    <Card className="space-y-5 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm dark:border-dark-600/60 dark:bg-dark-750/80 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold uppercase tracking-widest text-primary-600">Inbox</div>
-          <h2 className="text-2xl font-semibold text-gray-900">Personal notifications</h2>
+        <div className="space-y-2">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-primary-600">Inbox</div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-50">Personal notifications</h2>
           <p className="text-sm text-gray-600 dark:text-dark-200">
-            Инбокс хранит уведомления за последние {days} дней и показывает до {maxPerUser} последних записей.
+            Inbox keeps notifications for the last {days} days and stores up to {maxPerUser} recent entries.
           </p>
           <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-dark-200">
             <Badge color="info" variant="soft">
               {unreadCount}
             </Badge>
-            непрочитанных
+            <span>unread</span>
           </div>
         </div>
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <label className="flex items-center gap-3 text-sm text-gray-700 dark:text-dark-100">
             <Switch checked={showUnreadOnly} onChange={handleToggleUnread} />
-            Только непрочитанные
+            Unread only
           </label>
           <Button
             variant="outlined"
@@ -192,16 +193,20 @@ export function NotificationInbox(): React.ReactElement {
         <div className="flex min-h-[220px] items-center justify-center">
           <div className="flex items-center gap-2 text-sm text-indigo-600 dark:text-dark-200">
             <Spinner size="sm" />
-            <span>Загружаем уведомления...</span>
+            <span>Loading notifications...</span>
           </div>
         </div>
       ) : null}
 
-      <InboxTable items={filteredItems} onMarkRead={handleMarkRead} marking={marking} />
+      <div className="grid gap-3">
+        {filteredItems.map((item) => (
+          <NotificationCard key={item.id} item={item} marking={marking} onMarkRead={handleMarkRead} />
+        ))}
+      </div>
 
       {!loading && filteredItems.length === 0 && !error ? (
         <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-sm text-gray-500 dark:border-dark-600 dark:text-dark-200">
-          {showUnreadOnly ? 'Непрочитанных уведомлений нет.' : 'Инбокс пока пуст.'}
+          {showUnreadOnly ? 'No unread notifications.' : 'Inbox is empty for now.'}
         </div>
       ) : null}
 
@@ -217,6 +222,6 @@ export function NotificationInbox(): React.ReactElement {
           </Button>
         </div>
       ) : null}
-    </NotificationSurface>
+    </Card>
   );
 }

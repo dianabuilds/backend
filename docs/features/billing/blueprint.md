@@ -1,11 +1,11 @@
-# Blueprint биллинга с поддержкой EVM
+﻿# Blueprint биллинга с поддержкой EVM
 
 Документ фиксирует целевую архитектуру и функциональные требования биллинга после внедрения on-chain провайдера и operator overview. Используется для синхронизации команд платформы, продукта и инфраструктуры.
 
 ## 1. Цели
 
 - Поддержка подписок и разовых платежей в EVM-сетях (Ethereum mainnet/testnet + совместимые L2).
-- Разделение пользовательских сценариев (checkout, профиль) и операторского обзора finance_ops.
+- Разделение пользовательских сценариев (checkout, профиль) и операторского обзора support.
 - Единая система учёта (ledger) с on-chain подтверждениями, уведомлениями и аудитом.
 - Полноценная наблюдаемость: метрики, структурированные логи, алерты, дашборды.
 
@@ -13,7 +13,7 @@
 
 | Слой | Назначение | Основные файлы |
 | --- | --- | --- |
-| API (public/admin/overview) | REST-ручки для клиентов, админов, finance_ops | `domains/platform/billing/api/*` |
+| API (public/admin/overview) | REST-ручки для клиентов, админов, support | `domains/platform/billing/api/*` |
 | Application Service | Единый сервис оплаты: checkout, ledger, webhook | `application/service.py` |
 | Use Cases | Оркестрация для контуров (public, settings, admin, overview) | `application/use_cases/*` |
 | Адаптеры | Провайдер EVM, SQL репозитории, воркеры, интеграции | `adapters/*`, `workers/*` |
@@ -40,11 +40,11 @@
    - публикует `billing.plan.changed.v1` (Quota), создаёт уведомления, записывает события аудита.
 3. Фоновый воркер подписывается на события контрактов и дополняет webhook при задержках.
 
-### Overview для finance_ops
+### Overview для support
 1. `/v1/billing/overview/dashboard` — агрегированные метрики: MRR, ARPU, активные подписки, задолженность.
 2. `/v1/billing/overview/networks` — разрез по сетям/токенам, провалившимся/ожидающим транзакциям.
 3. `/v1/billing/overview/payouts` — статусы контрактов, остаток, прогнозы кэшфлоу.
-Доступ ограничен ролью `finance_ops`, логику проверяет `require_finance_ops`.
+Доступ ограничен ролью `support`, логику проверяет `require_role_db("support")`.
 В UI операторский контур доступен по маршрутам `/finance/billing/*`, в отличие от пользовательской страницы `/billing`.
 
 ### Пользовательский профиль
@@ -123,7 +123,7 @@
 
 - Webhook подписан `webhook_secret` (HMAC-SHA256 + timestamp window).
 - Настройки провайдера и RPC конфигурации хранятся в Vault/Secret Manager, в рантайме попадают через `BILLING_EVM_GATEWAYS/CRYPTO_CONFIG`.
-- Роль `finance_ops` отделена от `admin`: только чтение агрегатов, без права модификации планов.
+- Роль `support` отделена от `admin`: только чтение агрегатов, без права модификации планов.
 - Аудит событий доступен security/ops через `/v1/admin/audit`.
 
 ## 10. Тестирование
@@ -147,6 +147,8 @@
 
 1. Мультивалютные планы (USDC/DAI), автоматическая конвертация в USD.
 2. Fallback custodial-кошельки для enterprise.
-3. Расширенные отчёты finance_ops (планы → выручка → churn).
+3. Расширенные отчёты support (планы → выручка → churn).
 4. Self-service управление лимитами пользователем.
 5. Поддержка fiat-провайдеров через unified gateway API.
+
+

@@ -61,8 +61,8 @@ def test_admin_billing_list_plans(app_client):
     assert response.json() == {"items": [plans[0].__dict__]}
 
 
-def test_overview_dashboard_requires_finance_ops(app_client):
-    token = make_jwt(str(uuid4()), role="finance_ops")
+def test_overview_dashboard_requires_support(app_client):
+    token = make_jwt(str(uuid4()), role="support")
     add_auth(app_client, token)
 
     state = app_client.app.state
@@ -72,7 +72,7 @@ def test_overview_dashboard_requires_finance_ops(app_client):
 
     original_get_current_user = security.get_current_user
     security.get_current_user = AsyncMock(
-        return_value={"sub": "finance", "role": "finance_ops"}
+        return_value={"sub": "support-user", "role": "support"}
     )
 
     container = state.container

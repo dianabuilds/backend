@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ContentLayout } from '../ContentLayout';
 import { Card, Input as TInput, Switch, Button, TagInput, RichTextEditor, ImageUpload, Spinner } from '@ui';
 import { apiGet, apiPatch, apiPost, apiUploadMedia } from '@shared/api/client';
+import { DEV_BLOG_TAG } from '@shared/types/nodes';
 
 type Mode = 'create' | 'edit' | 'view';
 
@@ -78,9 +79,29 @@ export default function NodeCreatePage() {
   const modeParam = params.get('mode');
   const mode: Mode = nodeId ? (modeParam === 'view' ? 'view' : 'edit') : 'create';
   const readOnly = mode === 'view';
+  const paramsSignature = React.useMemo(() => params.toString(), [params]);
+  const devBlogContext = React.useMemo(() => {
+    if (nodeId) return false;
+    if (!paramsSignature) return false;
+    const snapshot = new URLSearchParams(paramsSignature);
+    return snapshot
+      .getAll('tag')
+      .some((tag) => String(tag ?? '').trim().toLowerCase() === DEV_BLOG_TAG);
+  }, [nodeId, paramsSignature]);
 
   const [title, setTitle] = React.useState('');
-  const [tags, setTags] = React.useState<string[]>([]);
+  const [tags, setTags] = React.useState<string[]>(() => {
+    if (nodeId) return [];
+    const preset = params.getAll('tag').map((tag) => String(tag ?? '').trim().toLowerCase()).filter(Boolean);
+    const presetTags = preset.length ? Array.from(new Set(preset)) : [];
+    if (!presetTags.some((tag) => tag === DEV_BLOG_TAG)) {
+      return [];
+    }
+    if (!presetTags.includes(DEV_BLOG_TAG)) {
+      presetTags.push(DEV_BLOG_TAG);
+    }
+    return presetTags;
+  });
   const [content, setContent] = React.useState('');
   const [coverUrl, setCoverUrl] = React.useState('');
   const [coverFile, setCoverFile] = React.useState<File | null>(null);
@@ -205,9 +226,21 @@ export default function NodeCreatePage() {
     setError(null);
 
     try {
+      const enforceDevBlogTag = devBlogContext;
+      const nextTags = tags.map((tag) => tag.trim()).filter(Boolean);
+      if (enforceDevBlogTag && !nextTags.some((tag) => tag.toLowerCase() === DEV_BLOG_TAG)) {
+        nextTags.push(DEV_BLOG_TAG);
+        setTags((prev) => {
+          if (prev.some((tag) => tag.toLowerCase() === DEV_BLOG_TAG)) {
+            return prev;
+          }
+          return [...prev, DEV_BLOG_TAG];
+        });
+      }
+
       const body: Record<string, unknown> = {
         title: title.trim() || undefined,
-        tags: tags.map((tag) => tag.trim()).filter(Boolean),
+        tags: nextTags,
         is_public: isPublic,
         comments_disabled: !commentsEnabled,
       };
@@ -264,7 +297,7 @@ export default function NodeCreatePage() {
       setBusy(false);
       submittingRef.current = false;
     }
-  }, [commentsEnabled, content, coverFile, coverUrl, isPublic, mode, navigate, nodeId, publishAt, readOnly, tags, title, unpublishAt]);
+  }, [commentsEnabled, content, coverFile, coverUrl, devBlogContext, isPublic, mode, navigate, nodeId, publishAt, readOnly, tags, title, unpublishAt]);
 
   return (
     <ContentLayout context="nodes">

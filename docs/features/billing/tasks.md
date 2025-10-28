@@ -22,7 +22,7 @@
 - [x] Расширить use-case `PlansAdminUseCase` для редактирования связок план↔контракт↔gateway и отображения токена/интервала (`application/use_cases/plans_admin.py`).
 - [x] Обновить admin ручки для планов, провайдеров, контрактов с новыми полями и валидацией (`api/admin/*.py`).
 - [x] Создать новый модуль `api/overview` + `application/use_cases/overview.py` с маршрутами `/v1/billing/overview/*` (dashboard, networks, payouts).
-- [x] Перенести операторские метрики с `/admin/*` в overview и выделить роль `finance_ops` (`docs/reference/api/access-policy.md` + кодовые проверки `require_finance_ops`).
+- [x] Перенести операторские метрики с `/admin/*` в overview и выделить роль `support` (`docs/reference/api/access-policy.md` + проверки `require_role_db("support")`).
 
 ## 5. Профиль и пользовательский опыт
 - [x] Обновить `BillingSettingsUseCase.build_bundle`: подтягивать подтверждённый wallet, задолженность, статусы последнего платежа (`application/use_cases/settings.py`).
@@ -96,6 +96,7 @@
 - [x] Добавить компонентные тесты (React Testing Library) для KPI, таблиц, drawer.
 - [x] Подготовить Storybook story для каждой ключевой секции (Overview, Providers, Plan Card).
 - [x] Настроить e2e сценарии (Cypress) для главных пользовательских путей (просмотр KPI, редактирование провайдера, изменение плана).
+
 
 
 

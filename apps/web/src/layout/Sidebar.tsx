@@ -152,10 +152,22 @@ const BASE_SECTIONS: Section[] = [
 ];
 
 const GROUP_ROLE_REQUIREMENTS: Record<string, string[] | undefined> = {
-  '/finance/billing': ['finance_ops', 'admin'],
+  '/finance/billing': ['support', 'admin'],
   '/platform': ['admin'],
   '/observability': ['admin'],
-  '/moderation': ['admin'],
+  '/moderation': ['moderator', 'admin'],
+};
+
+const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
+const ROLE_ALIASES: Record<string, string> = {
+  'site.viewer': 'user',
+  'site.editor': 'editor',
+  'site.publisher': 'editor',
+  'site.reviewer': 'moderator',
+  'site.admin': 'admin',
+  'platform.admin': 'admin',
+  'platform.moderator': 'moderator',
+  'finance_ops': 'support',
 };
 
 function normalizeRoles(user: any): Set<string> {
@@ -164,7 +176,10 @@ function normalizeRoles(user: any): Set<string> {
     if (!value) return;
     const text = String(value).trim().toLowerCase();
     if (text) {
-      roles.add(text);
+      const normalized = ROLE_ALIASES[text] ?? text;
+      if (KNOWN_ROLES.has(normalized)) {
+        roles.add(normalized);
+      }
     }
   };
   if (Array.isArray(user?.roles)) {

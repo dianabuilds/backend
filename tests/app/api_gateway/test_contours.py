@@ -67,7 +67,7 @@ def test_audience_middleware_enforces_admin_tokens() -> None:
     assert response.status_code == 403
 
 
-def test_ops_middleware_requires_finance_role() -> None:
+def test_ops_middleware_requires_support_role() -> None:
     app = create_app(contour="ops")
 
     @app.get("/__ops-ping")
@@ -77,7 +77,7 @@ def test_ops_middleware_requires_finance_role() -> None:
     client = TestClient(app)
     assert client.get("/__ops-ping").status_code == 401
 
-    ops_token = make_jwt("ops-user", role="finance_ops", audience="ops")
+    ops_token = make_jwt("ops-user", role="support", audience="ops")
     client.cookies.set("access_token", ops_token)
     assert client.get("/__ops-ping").status_code == 200
 

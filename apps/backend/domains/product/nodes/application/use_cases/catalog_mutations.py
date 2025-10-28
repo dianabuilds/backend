@@ -11,6 +11,9 @@ from domains.product.nodes.application.use_cases.ports import NodesServicePort
 from domains.product.nodes.domain.results import NodeView
 from domains.product.nodes.utils import has_role, normalize_actor_id
 
+DEV_BLOG_TAG = "dev-blog"
+DEV_BLOG_MIN_ROLE = "editor"
+
 
 @dataclass
 class CatalogMutationsService:
@@ -25,6 +28,11 @@ class CatalogMutationsService:
         view, node_id = await resolve_node_ref(self.nodes_service, node_ref)
         actor_id = self._require_actor(claims)
         self._ensure_owner_or_admin(view, actor_id, claims)
+        self._ensure_dev_blog_permissions(
+            existing_tags=view.tags,
+            new_tags=tags,
+            claims=claims,
+        )
         updated = await self.nodes_service.update_tags(
             node_id,
             tags,
@@ -44,6 +52,11 @@ class CatalogMutationsService:
         actor_id = self._require_actor(claims)
         title = payload.get("title")
         tags = payload.get("tags")
+        self._ensure_dev_blog_permissions(
+            existing_tags=None,
+            new_tags=tags,
+            claims=claims,
+        )
         is_public = bool(payload.get("is_public", False))
         status = payload.get("status")
         publish_at = payload.get("publish_at")
@@ -72,6 +85,11 @@ class CatalogMutationsService:
         view, node_id = await resolve_node_ref(self.nodes_service, node_ref)
         actor_id = self._require_actor(claims)
         self._ensure_owner_or_admin(view, actor_id, claims)
+        self._ensure_dev_blog_permissions(
+            existing_tags=view.tags,
+            new_tags=payload.get("tags"),
+            claims=claims,
+        )
         view = await self.nodes_service.update(
             node_id,
             title=payload.get("title"),
@@ -121,6 +139,29 @@ class CatalogMutationsService:
     ) -> None:
         if view.author_id != actor_id and not has_role(claims, "admin"):
             raise HTTPException(status_code=403, detail="forbidden")
+
+    def _ensure_dev_blog_permissions(
+        self,
+        *,
+        existing_tags: Sequence[str] | None,
+        new_tags: Any,
+        claims: Mapping[str, Any] | None,
+    ) -> None:
+        if self._uses_dev_blog_tag(existing_tags) or self._uses_dev_blog_tag(new_tags):
+            if not has_role(claims, DEV_BLOG_MIN_ROLE):
+                raise HTTPException(status_code=403, detail="dev_blog_tag_forbidden")
+
+    @staticmethod
+    def _uses_dev_blog_tag(candidate: Any) -> bool:
+        if candidate is None:
+            return False
+        if isinstance(candidate, (str, bytes)):
+            return str(candidate).strip().lower() == DEV_BLOG_TAG
+        if isinstance(candidate, Sequence):
+            return any(
+                CatalogMutationsService._uses_dev_blog_tag(item) for item in candidate
+            )
+        return False
 
 
 def _node_view_to_dict(view: NodeView) -> dict[str, Any]:

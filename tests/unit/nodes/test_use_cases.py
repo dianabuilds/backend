@@ -358,6 +358,21 @@ class TestCatalogMutationsService:
         assert result["tags"] == ["foo"]
 
     @pytest.mark.asyncio
+    async def test_set_tags_dev_blog_requires_role(self, service: StubNodeService):
+        catalog = CatalogMutationsService(nodes_service=service)
+        with pytest.raises(HTTPException) as exc:
+            await catalog.set_tags(
+                "1", ["dev-blog"], _claims(sub=AUTHOR_ID, role="user")
+            )
+        assert exc.value.status_code == 403
+        assert exc.value.detail == "dev_blog_tag_forbidden"
+
+        response = await catalog.set_tags(
+            "1", ["dev-blog"], _claims(sub=AUTHOR_ID, role="editor")
+        )
+        assert response["tags"] == ["dev-blog"]
+
+    @pytest.mark.asyncio
     async def test_create_node_uses_actor(self, service: StubNodeService):
         catalog = CatalogMutationsService(nodes_service=service)
         body = {"title": "New", "tags": ["x"], "is_public": True}
@@ -366,10 +381,37 @@ class TestCatalogMutationsService:
         assert result["tags"] == ["x"]
 
     @pytest.mark.asyncio
+    async def test_create_node_dev_blog_requires_role(self, service: StubNodeService):
+        catalog = CatalogMutationsService(nodes_service=service)
+        body = {"title": "DevBlog", "tags": ["dev-blog"], "is_public": True}
+        with pytest.raises(HTTPException) as exc:
+            await catalog.create(body, _claims(sub="author-3", role="user"))
+        assert exc.value.status_code == 403
+        assert exc.value.detail == "dev_blog_tag_forbidden"
+
+        result = await catalog.create(body, _claims(sub="author-3", role="editor"))
+        assert "dev-blog" in result["tags"]
+
+    @pytest.mark.asyncio
     async def test_update_changes_fields(self, service: StubNodeService):
         catalog = CatalogMutationsService(nodes_service=service)
         result = await catalog.update("1", {"title": "Updated"}, _claims(sub=AUTHOR_ID))
         assert result["title"] == "Updated"
+
+    @pytest.mark.asyncio
+    async def test_update_dev_blog_requires_role(self, service: StubNodeService):
+        service.views[1] = replace(service.views[1], tags=["dev-blog"])
+        catalog = CatalogMutationsService(nodes_service=service)
+
+        with pytest.raises(HTTPException) as exc:
+            await catalog.update("1", {"title": "Blocked"}, _claims(sub=AUTHOR_ID))
+        assert exc.value.status_code == 403
+        assert exc.value.detail == "dev_blog_tag_forbidden"
+
+        result = await catalog.update(
+            "1", {"title": "Allowed"}, _claims(sub=AUTHOR_ID, role="editor")
+        )
+        assert result["title"] == "Allowed"
 
 
 class _FakeSavedViewsRepo:

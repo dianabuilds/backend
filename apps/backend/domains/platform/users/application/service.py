@@ -12,7 +12,6 @@ ROLE_ORDER = {
     "support": 1,
     "editor": 2,
     "moderator": 3,
-    "finance_ops": 3,
     "admin": 4,
 }
 

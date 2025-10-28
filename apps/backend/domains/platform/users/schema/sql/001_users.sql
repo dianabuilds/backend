@@ -1,5 +1,5 @@
 -- Legacy-compatible users table (minimal subset used by platform)
-CREATE TYPE IF NOT EXISTS user_role AS ENUM ('user','support','moderator','admin');
+CREATE TYPE IF NOT EXISTS user_role AS ENUM ('user','support','editor','moderator','admin');
 
 CREATE TABLE IF NOT EXISTS users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,4 +30,3 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS ix_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS ix_users_wallet ON users(wallet_address);
 CREATE INDEX IF NOT EXISTS ix_users_username ON users(username);
-

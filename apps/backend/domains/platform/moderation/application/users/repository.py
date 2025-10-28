@@ -583,7 +583,7 @@ class ModerationUsersRepository:
             raise ModerationUserError(code="roles_update_failed", status_code=500)
         add = [str(r).strip().lower() for r in add if r is not None]
         remove = [str(r).strip().lower() for r in remove if r is not None]
-        valid: set[str] = {"user", "support", "moderator", "admin"}
+        valid: set[str] = {"user", "support", "editor", "moderator", "admin"}
         add = [r for r in add if r in valid]
         remove = [r for r in remove if r in valid]
         try:

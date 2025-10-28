@@ -91,11 +91,17 @@ export async function logout(options: LogoutOptions = {}): Promise<{ ok: boolean
 export type RefreshOptions = {
   endpoint?: string;
   signal?: AbortSignal;
+  token?: string;
 };
 
 export async function refresh(options: RefreshOptions = {}): Promise<AuthSession> {
   const endpoint = resolveEndpoint(options.endpoint, DEFAULT_REFRESH_ENDPOINT);
-  const session = await apiFetch<AuthSession>(endpoint, { method: 'POST', signal: options.signal });
+  const body = options.token ? { token: options.token } : undefined;
+  const session = await apiFetch<AuthSession>(endpoint, {
+    method: 'POST',
+    json: body,
+    signal: options.signal,
+  });
   setCsrfToken(session?.csrf_token ?? null, { ttlSeconds: session?.csrf_expires_in ?? undefined });
   return session;
 }

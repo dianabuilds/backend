@@ -37,8 +37,21 @@ const REVIEW_STATUS_BADGE_COLOR: Record<SiteGlobalBlock['review_status'], 'neutr
   rejected: 'error',
 };
 
-const PREVIEW_LOCALE_OPTIONS = ['ru', 'en'];
+const LOCALE_OPTIONS = [
+  { value: 'ru', label: 'Русский (ru)' },
+  { value: 'en', label: 'Английский (en)' },
+] as const;
 const PREVIEW_LIMIT_OPTIONS = [3, 6, 9, 12];
+
+type LocaleOption = (typeof LOCALE_OPTIONS)[number]['value'];
+
+function normalizeLocale(value: string | null | undefined): LocaleOption {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (normalized.startsWith('en')) {
+    return 'en';
+  }
+  return 'ru';
+}
 
 type TemplateStatePayload = {
   id: string;
@@ -125,7 +138,7 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
   const [preview, setPreview] = React.useState<SiteBlockPreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = React.useState(false);
   const [previewError, setPreviewError] = React.useState<string | null>(null);
-  const [previewLocale, setPreviewLocale] = React.useState(templateState?.defaults.locale ?? 'ru');
+  const [previewLocale, setPreviewLocale] = React.useState<LocaleOption>(normalizeLocale(templateState?.defaults.locale));
   const [previewLimit, setPreviewLimit] = React.useState<number>(6);
 
   const [dataText, setDataText] = React.useState<string>(toPrettyJson(templateState?.defaults.data ?? {}));
@@ -136,7 +149,7 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
   const [formKey, setFormKey] = React.useState<string>(templateState?.defaults.key ?? '');
   const [formTitle, setFormTitle] = React.useState<string>(templateState?.defaults.title ?? '');
   const [formSection, setFormSection] = React.useState<string>(templateState?.defaults.section ?? 'header');
-  const [formLocale, setFormLocale] = React.useState<string>(templateState?.defaults.locale ?? 'ru');
+  const [formLocale, setFormLocale] = React.useState<LocaleOption>(normalizeLocale(templateState?.defaults.locale));
   const [formRequiresPublisher, setFormRequiresPublisher] = React.useState<boolean>(
     templateState?.defaults.requires_publisher ?? true,
   );
@@ -182,12 +195,12 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
           setFormKey(fetchedBlock.key);
           setFormTitle(fetchedBlock.title);
           setFormSection(fetchedBlock.section ?? 'header');
-          setFormLocale(fetchedBlock.locale ?? 'ru');
+          setFormLocale(normalizeLocale(fetchedBlock.locale));
           setFormRequiresPublisher(Boolean(fetchedBlock.requires_publisher));
           setFormOwner(readOwner(fetchedBlock.meta));
           setReviewStatus(fetchedBlock.review_status);
           setComment(fetchedBlock.comment ?? '');
-          setPreviewLocale(fetchedBlock.locale || 'ru');
+          setPreviewLocale(normalizeLocale(fetchedBlock.locale));
           setDirty(false);
         })
         .catch((err) => {
@@ -214,7 +227,7 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
       setFormKey(defaults.key);
       setFormTitle(defaults.title);
       setFormSection(defaults.section);
-      setFormLocale(defaults.locale ?? 'ru');
+      setFormLocale(normalizeLocale(defaults.locale));
       setFormRequiresPublisher(defaults.requires_publisher ?? true);
       const owner = readOwner(defaults.meta);
       setFormOwner(owner);
@@ -224,7 +237,7 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
       }
       setMetaText(toPrettyJson(metaWithOwner));
       setDataText(toPrettyJson(defaults.data ?? {}));
-      setPreviewLocale(defaults.locale ?? 'ru');
+      setPreviewLocale(normalizeLocale(defaults.locale));
     }
     setReviewStatus('none');
     setComment('');
@@ -327,8 +340,8 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
     setDirty(true);
   }, []);
 
-  const handleFormLocaleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormLocale(event.target.value);
+  const handleFormLocaleChange = React.useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormLocale(event.target.value as LocaleOption);
     setDirty(true);
   }, []);
 
@@ -506,7 +519,7 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
         key: trimmedKey,
         title: trimmedTitle,
         section: trimmedSection,
-        locale: formLocale.trim() || undefined,
+        locale: formLocale,
         requires_publisher: formRequiresPublisher,
         data: parsedData,
         meta: parsedMeta,
@@ -611,7 +624,13 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
               <label className="text-xs font-medium text-gray-600 dark:text-dark-200" htmlFor="formLocale">
                 Базовая локаль
               </label>
-              <Input id="formLocale" value={formLocale} onChange={handleFormLocaleChange} placeholder="ru" />
+              <Select id="formLocale" value={formLocale} onChange={handleFormLocaleChange}>
+                {LOCALE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-600 dark:text-dark-200" htmlFor="formOwner">
@@ -800,7 +819,13 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-dark-200">Локаль</label>
-                <Input value={formLocale} disabled />
+                <Select value={formLocale} disabled>
+                  {LOCALE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-dark-200">Ответственный</label>
@@ -897,10 +922,13 @@ export default function SiteGlobalBlockEditor(): React.ReactElement {
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={previewLocale} onChange={(event) => setPreviewLocale(event.target.value)}>
-                  {PREVIEW_LOCALE_OPTIONS.map((locale) => (
-                    <option key={locale} value={locale}>
-                      Локаль: {locale}
+                <Select
+                  value={previewLocale}
+                  onChange={(event) => setPreviewLocale(event.target.value as LocaleOption)}
+                >
+                  {LOCALE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </Select>

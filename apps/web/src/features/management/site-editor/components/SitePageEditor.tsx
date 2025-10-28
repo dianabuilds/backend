@@ -45,6 +45,18 @@ const REVIEW_STATUS_BADGE_COLOR: Record<SitePageReviewStatus, 'neutral' | 'warni
   rejected: 'error',
 };
 
+const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
+const ROLE_ALIASES: Record<string, string> = {
+  'site.viewer': 'user',
+  'site.editor': 'editor',
+  'site.publisher': 'editor',
+  'site.reviewer': 'moderator',
+  'site.admin': 'admin',
+  'platform.admin': 'admin',
+  'platform.moderator': 'moderator',
+  'finance_ops': 'support',
+};
+
 function ErrorState({ message }: { message: string | null }): React.ReactElement | null {
   if (!message) return null;
   return (
@@ -174,7 +186,7 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
   const { user } = useAuth();
   const [publishDialogOpen, setPublishDialogOpen] = React.useState(false);
   const [publishComment, setPublishComment] = React.useState('');
-  const [workspaceTab, setWorkspaceTab] = React.useState<'layout' | 'preview'>('layout');
+  const [workspaceTab, setWorkspaceTab] = React.useState<'layout' | 'settings' | 'preview'>('layout');
 
   const previewLocale = React.useMemo(() => page?.locale ?? getLocale(), [page?.locale]);
 
@@ -311,20 +323,23 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
 
   const roles = React.useMemo(() => {
     const set = new Set<string>();
+    const collect = (value: unknown) => {
+      if (!value) return;
+      const text = String(value).trim().toLowerCase();
+      if (!text) return;
+      const normalized = ROLE_ALIASES[text] ?? text;
+      if (KNOWN_ROLES.has(normalized)) {
+        set.add(normalized);
+      }
+    };
     if (Array.isArray(user?.roles)) {
-      user.roles.forEach((role) => {
-        if (role) {
-          set.add(String(role));
-        }
-      });
+      user.roles.forEach(collect);
     }
-    if (user?.role) {
-      set.add(String(user.role));
-    }
+    collect(user?.role);
     return set;
   }, [user]);
 
-  const canPublish = roles.has('site.publisher') || roles.has('site.admin') || roles.has('platform.admin') || roles.has('admin') || roles.has('moderator');
+  const canPublish = roles.has('editor') || roles.has('moderator') || roles.has('admin');
 
   const reviewStatusLabel = React.useMemo(() => {
     const option = REVIEW_STATUS_OPTIONS.find((item) => item.value === reviewStatus);
@@ -358,7 +373,11 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
   const workspaceTabs = React.useMemo(() => ([
     {
       key: 'layout',
-      label: `Текущая раскладка${blocksCount > 0 ? ` (${blocksCount})` : ''}`,
+      label: `Структура${blocksCount > 0 ? ` (${blocksCount})` : ''}`,
+    },
+    {
+      key: 'settings',
+      label: 'Параметры',
     },
     {
       key: 'preview',
@@ -367,7 +386,15 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
   ]), [blocksCount]);
 
   const handleWorkspaceTabChange = React.useCallback((key: string) => {
-    setWorkspaceTab(key === 'preview' ? 'preview' : 'layout');
+    if (key === 'preview') {
+      setWorkspaceTab('preview');
+      return;
+    }
+    if (key === 'settings') {
+      setWorkspaceTab('settings');
+      return;
+    }
+    setWorkspaceTab('layout');
   }, []);
 
   const reviewStatusBadgeColor = REVIEW_STATUS_BADGE_COLOR[reviewStatus] ?? 'neutral';
@@ -476,23 +503,27 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
                     onError={handlePreviewError}
                   />
                 ) : null}
+                {workspaceTab === 'settings' ? (
+                  <div className="space-y-4">
+                    <SitePageInfoPanel
+                      page={page}
+                      disabled={loading || saving || publishing}
+                      saving={pageInfoSaving}
+                      error={pageInfoError}
+                      onSubmit={handleUpdatePageInfo}
+                      onClearError={clearPageInfoError}
+                    />
+                    <SitePageGlobalBlocksPanel
+                      locale={page?.locale}
+                      assignments={globalBlockAssignments}
+                      onChange={handleGlobalBlockSelection}
+                      disabled={loading || saving || publishing}
+                    />
+                  </div>
+                ) : null}
               </div>
               <div className="order-3 space-y-4">
                 <BlockInspector />
-                <SitePageGlobalBlocksPanel
-                  locale={page?.locale}
-                  assignments={globalBlockAssignments}
-                  onChange={handleGlobalBlockSelection}
-                  disabled={loading || saving || publishing}
-                />
-                <SitePageInfoPanel
-                  page={page}
-                  disabled={loading || saving || publishing}
-                  saving={pageInfoSaving}
-                  error={pageInfoError}
-                  onSubmit={handleUpdatePageInfo}
-                  onClearError={clearPageInfoError}
-                />
                 <SitePageReviewPanel
                   status={reviewStatus}
                   statusLabel={reviewStatusLabel}

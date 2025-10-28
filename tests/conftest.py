@@ -62,7 +62,7 @@ def make_jwt(sub: str, role: str = "user", audience: str | None = None) -> str:
     if aud is None:
         if role_value in {"admin", "moderator", "editor"}:
             aud = "admin"
-        elif role_value == "finance_ops":
+        elif role_value == "support":
             aud = "ops"
         else:
             aud = "public"

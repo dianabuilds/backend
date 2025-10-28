@@ -76,12 +76,9 @@ class SiteService:
                 if isinstance(role, str) and role.strip()
             }
             elevated_roles = {
-                "site.admin",
-                "site.publisher",
-                "site.editor",
-                "site.reviewer",
-                "admin",
+                "editor",
                 "moderator",
+                "admin",
             }
             if normalized_roles.isdisjoint(elevated_roles):
                 allow_owner_override = True

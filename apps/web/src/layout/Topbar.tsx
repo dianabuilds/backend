@@ -2,8 +2,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@shared/auth';
 import type { AuthContextUser } from '@shared/auth';
-import { fetchNotificationsHistory, markNotificationAsRead, normalizeHistoryItem } from '@shared/api/notifications';
+import {
+  fetchNotificationsHistory,
+  markNotificationAsRead,
+  normalizeHistoryItem,
+} from '@shared/api/notifications';
 import { apiGet } from '@shared/api/client';
+import { refresh as refreshSession } from '@shared/api/auth';
 import type { NotificationHistoryItem } from '@shared/types/notifications';
 import {
   ArrowRightOnRectangleIcon,
@@ -81,6 +86,7 @@ export function Topbar(): React.ReactElement {
   const inboxRef = React.useRef<InboxNotification[]>([]);
   const unreadRef = React.useRef<number>(0);
   const wsRef = React.useRef<WebSocket | null>(null);
+  const wsTokenRef = React.useRef<string | null>(null);
   const reconnectTimerRef = React.useRef<number | null>(null);
 
   const refreshInbox = React.useCallback(async () => {
@@ -128,6 +134,7 @@ export function Topbar(): React.ReactElement {
 
   React.useEffect(() => {
     if (!isReady || !isAuthenticated) {
+      wsTokenRef.current = null;
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -174,11 +181,40 @@ export function Topbar(): React.ReactElement {
       }
       reconnectTimerRef.current = window.setTimeout(() => {
         reconnectTimerRef.current = null;
-        connect();
+        void connect();
       }, delay);
     }
 
-    function connect() {
+    async function obtainAccessToken(): Promise<string | null> {
+      if (wsTokenRef.current) {
+        return wsTokenRef.current;
+      }
+      const directToken = tokens.accessToken;
+      if (directToken) {
+        wsTokenRef.current = directToken;
+        return directToken;
+      }
+      try {
+        const refreshToken = tokens.refreshToken || null;
+        if (!refreshToken) {
+          return null;
+        }
+        const session = await refreshSession({ token: refreshToken });
+        const refreshed = session?.access_token;
+        if (refreshed) {
+          wsTokenRef.current = refreshed;
+          return refreshed;
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          // eslint-disable-next-line no-console
+          console.warn('notifications.ws.refresh_failed', err);
+        }
+      }
+      return null;
+    }
+
+    async function connect() {
       if (disposed) {
         return;
       }
@@ -186,26 +222,70 @@ export function Topbar(): React.ReactElement {
         wsRef.current.close();
         wsRef.current = null;
       }
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      let url = `${protocol}//${host}/v1/notifications/ws`;
-      if (tokens.accessToken) {
+      const env = (import.meta as any)?.env ?? {};
+      const explicitWsBase = typeof env.VITE_WS_BASE === 'string' ? env.VITE_WS_BASE.trim() : '';
+      const apiBaseFallback = typeof env.VITE_API_BASE === 'string' ? env.VITE_API_BASE.trim() : '';
+
+      let url: string;
+      const preferredBase = explicitWsBase || apiBaseFallback;
+      if (preferredBase) {
+        try {
+          const parsed = new URL(preferredBase);
+          const proto = parsed.protocol === 'https:' ? 'wss:' : parsed.protocol === 'http:' ? 'ws:' : parsed.protocol;
+          const basePath = parsed.pathname.replace(/\/+$/u, '');
+          url = `${proto}//${parsed.host}${basePath}/v1/notifications/ws`;
+        } catch {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          url = `${protocol}//${window.location.host}/v1/notifications/ws`;
+        }
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        url = `${protocol}//${window.location.host}/v1/notifications/ws`;
+      }
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.info('notifications.ws.connect', { explicitWsBase, apiBaseFallback, preferredBase, url });
+      }
+      const wsToken = await obtainAccessToken();
+      if (wsToken) {
         const separator = url.includes('?') ? '&' : '?';
-        url += `${separator}token=${encodeURIComponent(tokens.accessToken)}`;
+        url += `${separator}token=${encodeURIComponent(wsToken)}`;
       }
       let socket: WebSocket;
       try {
         socket = new WebSocket(url);
       } catch {
+        wsTokenRef.current = null;
         scheduleReconnect();
         return;
       }
       wsRef.current = socket;
+      socket.addEventListener('open', () => {
+        if ((import.meta as any)?.env?.DEV) {
+          // eslint-disable-next-line no-console
+          console.info('notifications.ws.open');
+        }
+      });
       socket.addEventListener('message', handleMessage);
-      socket.addEventListener('error', () => {
+      socket.addEventListener('error', (event) => {
+        if ((import.meta as any)?.env?.DEV) {
+          // eslint-disable-next-line no-console
+          console.error('notifications.ws.error', event);
+        }
         socket.close();
       });
       socket.addEventListener('close', (event) => {
+        if (event.code === 4401 || event.code === 4403) {
+          wsTokenRef.current = null;
+        }
+        if ((import.meta as any)?.env?.DEV) {
+          // eslint-disable-next-line no-console
+          console.info('notifications.ws.close', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+          });
+        }
         if (wsRef.current === socket) {
           wsRef.current = null;
         }
@@ -223,7 +303,7 @@ export function Topbar(): React.ReactElement {
       });
     }
 
-    connect();
+    void connect();
 
     return () => {
       disposed = true;

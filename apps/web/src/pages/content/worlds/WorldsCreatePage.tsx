@@ -12,20 +12,19 @@ type WorldPayload = {
 };
 
 const localeOptions = [
-  { value: "ru-RU", label: "Русский" },
-  { value: "en-US", label: "English" },
+  { value: "ru", label: "Русский (ru)" },
+  { value: "en", label: "Английский (en)" },
 ] as const;
 type LocaleValue = (typeof localeOptions)[number]["value"];
 
 const defaultLocale = localeOptions[0].value;
 
 function normalizeLocale(raw?: string | null): LocaleValue {
-  if (!raw) return defaultLocale;
-  const lower = String(raw).toLowerCase();
-  const directMatch = localeOptions.find((option) => option.value.toLowerCase() === lower);
-  if (directMatch) return directMatch.value;
-  const prefixMatch = localeOptions.find((option) => option.value.split('-')[0].toLowerCase() === lower);
-  return prefixMatch ? prefixMatch.value : defaultLocale;
+  const normalized = (raw ?? "").trim().toLowerCase();
+  if (normalized.startsWith("en")) {
+    return "en";
+  }
+  return defaultLocale;
 }
 
 type WorldCreateResponse = {
@@ -66,7 +65,7 @@ function useWorldForm(worldId: string | null) {
     try {
       const payload: Record<string, string | undefined> = {
         title: title.trim() || undefined,
-        locale: locale.trim() || undefined,
+        locale,
         description: description.trim() || undefined,
       };
       if (!payload.title) throw new Error("Введите название мира");

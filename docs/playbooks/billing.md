@@ -1,10 +1,10 @@
-# Playbook биллинга (EVM)
+﻿# Playbook биллинга (EVM)
 
 Документ описывает порядок вывода биллинга с EVM-провайдером в прод и реакцию на основные инциденты. Используйте совместно со схемой архитектуры (`docs/features/billing/blueprint.md`) и таск-листом (`docs/features/billing/tasks.md`).
 
 ## 1. Предрелизная подготовка
 - **Миграции**: убедитесь, что применены `001_billing.sql`, `002_contracts.sql`, `003_crypto_config.sql`.
-- **Конфигурация**: заданы переменные `BILLING_EVM_GATEWAYS`, `BILLING_RPC_CONFIG`, `BILLING_WEBHOOK_SECRET`, `APP_BILLING_FINANCE_OPS_USER_ID`.
+- **Конфигурация**: заданы переменные `BILLING_EVM_GATEWAYS`, `BILLING_RPC_CONFIG`, `BILLING_WEBHOOK_SECRET`, `APP_BILLING_support_USER_ID`.
 - **Контракты**: зарегистрированы on-chain адреса, ABI и методы `mint`/`burn`. Проверьте, что секрет вебхука совпадает с релеем.
 - **Quota/Notifications/Audit**: схемы событий `billing.plan.changed.v1`, шаблоны уведомлений и источники аудита подключены.
 - **Дашборды**: в Grafana опубликованы панели `Billing Overview` (Prometheus) и дашборды по Quota.
@@ -26,7 +26,7 @@
 ## 3. Rollout
 - **Blue/Green**: выводите по контурам (staging → canary → prod). На каждом этапе прогоняйте E2E-скрипт.
 - **Workers**: включите `billing.contracts_listener` и убедитесь, что он подключился к RPC.
-- **Finance Ops**: оповестите команду о новых маршрутах `/v1/billing/overview/*` и роли `finance_ops`.
+- **Support**: оповестите команду о новых маршрутах `/v1/billing/overview/*` и роли `support`.
 - **Feature Flags**: при необходимости ограничьте доступ к EVM-планам через gateway конфиг (enabled=false).
 
 ## 4. Мониторинг и алерты
@@ -62,7 +62,7 @@
         -d '{"rpc_endpoints": {"<network>": "<backup_rpc>"}}'
    ```
 2. Убедитесь, что воркер снова обрабатывает события.
-3. Зафиксируйте инцидент в audit + уведомите finance_ops.
+3. Зафиксируйте инцидент в audit + уведомите support.
 
 ## 6. Пост-инцидентный анализ
 - Снимите экспорт метрик, журналов и трасс.
@@ -75,7 +75,8 @@
 - **Просмотр метрик**: `curl http://localhost:8000/v1/metrics | grep billing_`.
 
 ## 8. Контакты
-- Finance Ops: `#finops-billing`
+- Support: `#finops-billing`
 - On-call инженер: см. `docs/playbooks/notifications.md`
 - Инфраструктура RPC: `#infra-blockchain`
+
 

@@ -27,7 +27,7 @@ type FiltersState = {
   source: FilterValue<BlockSourceMode>;
   surface: FilterValue<BlockSurface>;
   owner: FilterValue<string>;
-  locale: FilterValue<BlockLocale>;
+  locale: FilterValue<SupportedLocale>;
 };
 
 const INITIAL_FILTERS: FiltersState = {
@@ -58,15 +58,18 @@ function collectSurfaces(entries: SiteBlockLibraryEntry[]): BlockSurface[] {
   return Array.from(surfaces).sort((a, b) => SURFACE_LABELS[a].localeCompare(SURFACE_LABELS[b], 'ru'));
 }
 
-function collectLocales(entries: SiteBlockLibraryEntry[]): BlockLocale[] {
-  const locales = new Set<BlockLocale>();
-  entries.forEach((entry) => entry.locales.forEach((locale) => locales.add(locale)));
-  return Array.from(locales).sort((a, b) => LOCALE_LABELS[a].localeCompare(LOCALE_LABELS[b], 'ru'));
-}
+const SUPPORTED_LOCALES = ['ru', 'en'] as const;
+type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 const OWNER_OPTIONS = collectOwners(SITE_BLOCK_LIBRARY);
 const SURFACE_OPTIONS = collectSurfaces(SITE_BLOCK_LIBRARY);
-const LOCALE_OPTIONS = collectLocales(SITE_BLOCK_LIBRARY);
+const LOCALE_OPTIONS: Array<{ value: FilterValue<SupportedLocale>; label: string }> = [
+  { value: 'all', label: 'Любые локали' },
+  ...SUPPORTED_LOCALES.map((locale) => ({
+    value: locale,
+    label: LOCALE_LABELS[locale],
+  })),
+];
 const CATEGORY_OPTIONS = Array.from(new Set<BlockCategory>(SITE_BLOCK_LIBRARY.map((entry) => entry.category))).sort(
   (a, b) => CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], 'ru'),
 );
@@ -76,6 +79,32 @@ const SOURCE_OPTIONS = Array.from(
 const STATUS_OPTIONS = (Object.keys(statusOrder) as SiteBlockLibraryEntry['status'][]).sort(
   (a, b) => statusOrder[a] - statusOrder[b],
 );
+
+const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
+const ROLE_ALIASES: Record<string, string> = {
+  'site.viewer': 'user',
+  'site.editor': 'editor',
+  'site.publisher': 'editor',
+  'site.reviewer': 'moderator',
+  'site.admin': 'admin',
+  'platform.admin': 'admin',
+  'platform.moderator': 'moderator',
+  'finance_ops': 'support',
+};
+const CAN_CREATE_ROLES = ['editor', 'moderator', 'admin'];
+
+function normalizeLocale(locale: string | null | undefined): SupportedLocale {
+  const normalized = (locale ?? '').trim().toLowerCase();
+  if (normalized.startsWith('en')) {
+    return 'en';
+  }
+  return 'ru';
+}
+
+function pickSupportedLocale(locales: BlockLocale[]): SupportedLocale {
+  const match = locales.find((locale) => SUPPORTED_LOCALES.includes(locale as SupportedLocale));
+  return normalizeLocale(match);
+}
 
 function matchesFilter<T>(value: FilterValue<T>, list: T[], predicate: (item: T) => boolean): boolean {
   if (value === 'all') return true;
@@ -134,7 +163,13 @@ function LibraryCard({ entry, canCreate, onCreate }: LibraryCardProps): React.Re
   const statusMeta = STATUS_LABELS[entry.status];
   const surfaces = entry.surfaces.map((surface) => SURFACE_LABELS[surface]).join(', ');
   const sources = entry.sources.map((source) => SOURCE_LABELS[source]).join(', ');
-  const locales = entry.locales.map((locale) => LOCALE_LABELS[locale]).join(', ');
+  const supportedLocales = entry.locales.filter((locale) =>
+    SUPPORTED_LOCALES.includes(locale as SupportedLocale),
+  ) as SupportedLocale[];
+  const locales =
+    supportedLocales.length > 0
+      ? supportedLocales.map((locale) => LOCALE_LABELS[locale]).join(', ')
+      : LOCALE_LABELS['ru'];
   const showTemplateCta = Boolean(entry.globalTemplate && onCreate);
   const templateMessage =
     entry.globalTemplate?.note ?? entry.statusNote ?? 'Создайте глобальный блок на основе шаблона.';
@@ -248,27 +283,25 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
 
   const roles = React.useMemo(() => {
     const set = new Set<string>();
+    const collect = (value: unknown) => {
+      if (!value) return;
+      const text = String(value).trim().toLowerCase();
+      if (!text) return;
+      const normalized = ROLE_ALIASES[text] ?? text;
+      if (KNOWN_ROLES.has(normalized)) {
+        set.add(normalized);
+      }
+    };
     if (Array.isArray(user?.roles)) {
-      user.roles.forEach((role) => {
-        if (role) {
-          set.add(String(role));
-        }
-      });
+      user.roles.forEach(collect);
     }
-    if (user?.role) {
-      set.add(String(user.role));
-    }
+    collect(user?.role);
     return set;
   }, [user]);
 
   const canCreateGlobalBlock = React.useMemo(
     () =>
-      roles.has('site.editor') ||
-      roles.has('site.publisher') ||
-      roles.has('site.admin') ||
-      roles.has('platform.admin') ||
-      roles.has('admin') ||
-      roles.has('moderator'),
+      CAN_CREATE_ROLES.some((role) => roles.has(role)),
     [roles],
   );
 
@@ -290,11 +323,12 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
         return null;
       }
       const key = makeGlobalBlockKey(template.keyPrefix || entry.id);
+      const resolvedLocale = normalizeLocale(template.defaultLocale ?? pickSupportedLocale(entry.locales));
       const payload: CreateSiteGlobalBlockPayload = {
         key,
         title: template.title ?? entry.label,
         section: template.section,
-        locale: template.defaultLocale ?? entry.locales[0] ?? 'ru',
+        locale: resolvedLocale,
         requires_publisher: template.requiresPublisher ?? true,
       };
       if (template.data) {
@@ -311,7 +345,7 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
       return {
         id: entry.id,
         label: entry.label,
-        locale: template.defaultLocale ?? entry.locales[0] ?? null,
+        locale: resolvedLocale,
         documentationUrl: entry.documentationUrl ?? null,
         note: template.note ?? entry.statusNote ?? null,
         defaults: payload,
@@ -453,12 +487,13 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
           </Select>
           <Select
             value={filters.locale}
-            onChange={(event) => handleFilterChange('locale', event.target.value as FilterValue<BlockLocale>)}
+            onChange={(event) =>
+              handleFilterChange('locale', event.target.value as FilterValue<SupportedLocale>)
+            }
           >
-            <option value="all">Любые локали</option>
-            {LOCALE_OPTIONS.map((locale) => (
-              <option key={locale} value={locale}>
-                {LOCALE_LABELS[locale]}
+            {LOCALE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>

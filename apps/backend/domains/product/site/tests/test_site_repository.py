@@ -840,7 +840,7 @@ async def test_list_pages_respects_viewer_access(service: SiteService):
     assert restricted_total == len(restricted_slugs)
 
     elevated_pages, _ = await service.list_pages(
-        viewer_roles={"site.editor"},
+        viewer_roles={"editor"},
         sort="title_asc",
         page_size=20,
     )

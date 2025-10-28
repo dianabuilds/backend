@@ -8,6 +8,7 @@ import { extractErrorMessage } from '@shared/utils/errors';
 import { makeIdempotencyKey } from '@shared/utils/idempotency';
 import { fetchNotificationPreferences, updateNotificationPreferences } from '@shared/api/notifications';
 import type { NotificationPreferences } from '@shared/types/notifications';
+import { NotificationSurface } from '../../common/NotificationSurface';
 
 type PreferencesMap = NotificationPreferences;
 
@@ -218,6 +219,37 @@ export default function NotificationSettingsView(): React.ReactElement {
     }
     return 'Disabled';
   }, [topics]);
+  const customizationOptions = React.useMemo(() => {
+    const features = new Set<string>();
+    let hasToggleable = false;
+    let hasDigest = false;
+    let hasConsent = false;
+    for (const topic of topics) {
+      for (const channel of topic.channels) {
+        if (!channel.locked) {
+          hasToggleable = true;
+        }
+        if (channel.supportsDigest) {
+          hasDigest = true;
+        }
+        if (channel.requiresConsent) {
+          hasConsent = true;
+        }
+      }
+    }
+    if (hasToggleable) {
+      features.add('Enable or disable individual channels');
+    }
+    if (hasDigest) {
+      features.add('Choose digest frequency where it is supported');
+    }
+    if (hasConsent) {
+      features.add('Capture explicit consent before joining certain channels');
+    }
+    features.add('Send yourself a test notification safely');
+    features.add('Reset notification preferences at any time');
+    return Array.from(features);
+  }, [topics]);
 
   const lastSavedLabel = React.useMemo(() => {
     if (!lastSavedAt) return 'Not yet saved';
@@ -337,26 +369,36 @@ export default function NotificationSettingsView(): React.ReactElement {
           </div>
         </div>
       </Card>
-      <WalletConnectionCard />
       <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
         <div className="space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700">More settings</h2>
+          <h2 className="text-sm font-semibold text-gray-700">Personalise delivery</h2>
           <p className="text-xs text-gray-500">
-            Jump between profile, security and billing without leaving notifications.
+            Keep inbox noise low while mission-critical alerts still arrive on time.
           </p>
         </div>
+        <ul className="list-disc space-y-1 pl-5 text-xs text-gray-500">
+          {customizationOptions.map((item) => (
+            <li key={item} className="leading-relaxed">
+              {item}
+            </li>
+          ))}
+        </ul>
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" size="sm" variant="ghost" color="neutral" onClick={() => navigate('/profile')}>
-            Profile
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            color="neutral"
+            onClick={() => navigate('/settings/notifications/inbox')}
+          >
+            Open inbox
           </Button>
-          <Button type="button" size="sm" variant="ghost" color="neutral" onClick={() => navigate('/settings/security')}>
-            Security
-          </Button>
-          <Button type="button" size="sm" color="primary" onClick={() => navigate('/billing')}>
-            Billing
+          <Button type="button" size="sm" color="primary" onClick={() => navigate('/notifications')}>
+            Notifications hub
           </Button>
         </div>
       </Card>
+      <WalletConnectionCard />
     </>
   );
 
@@ -368,14 +410,11 @@ export default function NotificationSettingsView(): React.ReactElement {
       side={sidePanel}
     >
       {loading || !preferences ? (
-        <Card className="flex flex-1 items-center gap-3 p-6 text-sm text-gray-500">
+        <NotificationSurface className="flex flex-1 items-center justify-center gap-3 p-6 sm:p-8 text-sm text-gray-500">
           <Spinner size="sm" /> Loading notification preferences...
-        </Card>
+        </NotificationSurface>
       ) : (
-        <Card
-          skin="none"
-          className="flex-1 rounded-3xl bg-gradient-to-br from-white via-[#f4f6ff] to-[#e8edff] p-6 shadow-xl ring-1 ring-white/60"
-        >
+        <NotificationSurface className="flex-1 space-y-6 p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-gray-900">Notification channels</h2>
@@ -416,7 +455,7 @@ export default function NotificationSettingsView(): React.ReactElement {
             </div>
           )}
 
-          <div className="mt-6 space-y-6">
+          <div className="pt-2 space-y-6">
             {topics.map((topic) => (
               <div key={topic.key} className="space-y-4">
                 <div className="space-y-1">
@@ -429,9 +468,9 @@ export default function NotificationSettingsView(): React.ReactElement {
                     return (
                       <div
                         key={`${topic.key}:${channel.key}`}
-                        className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition"
+                        className="rounded-2xl border border-white/60 bg-white/80 p-4 shadow-sm transition dark:border-dark-600/60 dark:bg-dark-700/70"
                       >
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex flex-col gap-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-semibold text-gray-900">{channel.label}</span>
@@ -453,14 +492,16 @@ export default function NotificationSettingsView(): React.ReactElement {
                               <p className="text-xs text-gray-500">{channel.description}</p>
                             ) : null}
                           </div>
-                          <Switch
-                            checked={channel.locked ? true : channel.optIn}
-                            disabled={channel.locked}
-                            onChange={(event) =>
-                              handleToggle(channel.topicKey, channel.key, channel.locked, event.currentTarget.checked)
-                            }
-                            aria-label={`Toggle ${channel.label}`}
-                          />
+                          <div className="flex items-center sm:items-start">
+                            <Switch
+                              checked={channel.locked ? true : channel.optIn}
+                              disabled={channel.locked}
+                              onChange={(event) =>
+                                handleToggle(channel.topicKey, channel.key, channel.locked, event.currentTarget.checked)
+                              }
+                              aria-label={`Toggle ${channel.label}`}
+                            />
+                          </div>
                         </div>
                         {channel.supportsDigest ? (
                           <div className="mt-3 max-w-sm">
@@ -487,7 +528,7 @@ export default function NotificationSettingsView(): React.ReactElement {
                         ) : null}
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
                           <span>{channel.locked ? 'Always on' : 'Personal preference'}</span>
-                          <span aria-hidden="true">•</span>
+                          <span aria-hidden="true">/</span>
                           <button
                             type="button"
                             className="font-medium text-primary-600 hover:text-primary-500"
@@ -503,7 +544,7 @@ export default function NotificationSettingsView(): React.ReactElement {
               </div>
             ))}
           </div>
-        </Card>
+        </NotificationSurface>
       )}
     </SettingsLayout>
   );

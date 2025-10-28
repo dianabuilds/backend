@@ -232,59 +232,10 @@ def require_role_db(min_role: str):
     return _guard
 
 
-async def require_finance_ops(req: Request) -> None:
-    s = load_settings()
-    info: dict[str, Any] | None = None
-    key = (
-        req.headers.get("X-Ops-Key")
-        or req.headers.get("x-ops-key")
-        or req.headers.get("X-Admin-Key")
-        or req.headers.get("x-admin-key")
-    )
-    accepted_keys: set[str] = set()
-    ops_secret = getattr(s, "ops_api_key", None)
-    if ops_secret:
-        accepted_keys.add(ops_secret.get_secret_value())
-    admin_secret = getattr(s, "admin_api_key", None)
-    if admin_secret:
-        accepted_keys.add(admin_secret.get_secret_value())
-    if key and key in accepted_keys:
-        info = {"auth_via": "ops-key"}
-    else:
-        claims: dict[str, Any] = await get_current_user(req)
-        role = str(claims.get("role") or "").lower()
-        if role in {"finance_ops", "admin"}:
-            info = {"auth_via": "token", "role": role}
-        else:
-            try:
-                container = req.app.state.container  # type: ignore[attr-defined]
-                users: UsersService = container.users.service
-                uid = str(claims.get("sub") or "")
-                if uid:
-                    u = await users.get(uid)
-                    if u and u.role in {"finance_ops", "admin"}:
-                        info = {"auth_via": "token-db", "role": u.role}
-            except (AttributeError, RuntimeError, SQLAlchemyError) as exc:
-                logger.debug("finance_ops_lookup_failed", exc_info=exc)
-                info = None
-        if info is None:
-            raise HTTPException(status_code=403, detail="finance_ops_required")
-    try:
-        ctx = getattr(req.state, "auth_context", {})  # type: ignore[attr-defined]
-        if not isinstance(ctx, dict):
-            ctx = {}
-        ctx.update(info or {})
-        req.state.auth_context = ctx  # type: ignore[attr-defined]
-    except AttributeError:
-        logger.debug("Request state missing while setting auth context", exc_info=True)
-    return None
-
-
 __all__ = [
     "get_current_user",
     "csrf_protect",
     "require_admin",
     "require_role_db",
     "issue_csrf_token",
-    "require_finance_ops",
 ]
