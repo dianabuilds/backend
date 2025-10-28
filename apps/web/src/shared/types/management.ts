@@ -10,7 +10,14 @@ export type BillingProvider = {
   enabled: boolean;
   priority: number;
   config?: BillingProviderConfig | null;
+  contract_slug?: string | null;
+  networks?: BillingProviderNetworks | null;
+  supported_tokens?: BillingProviderTokens | null;
+  default_network?: string | null;
 };
+
+export type BillingProviderNetworks = Record<string, unknown> | string[];
+export type BillingProviderTokens = string[] | Record<string, unknown>;
 
 export type BillingProviderPayload = {
   slug: string;
@@ -19,6 +26,9 @@ export type BillingProviderPayload = {
   priority: number;
   config?: BillingProviderConfig | null;
   contract_slug?: string | null;
+  networks?: BillingProviderNetworks | null;
+  supported_tokens?: BillingProviderTokens | null;
+  default_network?: string | null;
 };
 
 export type BillingContractMethods = {
@@ -53,14 +63,54 @@ export type BillingTransaction = {
   gateway_slug?: string | null;
   status?: string | null;
   currency?: string | null;
+  token?: string | null;
+  network?: string | null;
+  product_type?: string | null;
+  product_id?: string | null;
   gross_cents?: number | null;
+  fee_cents?: number | null;
+  net_cents?: number | null;
+  tx_hash?: string | null;
+  confirmed_at?: string | null;
+  failure_reason?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+export type BillingPayout = {
+  id: string;
+  user_id?: string | null;
+  gateway_slug?: string | null;
+  product_type?: string | null;
+  product_id?: string | null;
+  currency?: string | null;
+  token?: string | null;
+  network?: string | null;
+  gross_cents?: number | null;
+  fee_cents?: number | null;
+  net_cents?: number | null;
+  tx_hash?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  confirmed_at?: string | null;
+  failure_reason?: string | null;
+  meta?: Record<string, unknown> | null;
+};
+
+export type BillingKpiContracts = {
+  total: number;
+  enabled: number;
+  disabled: number;
+  testnet: number;
+  mainnet: number;
 };
 
 export type BillingKpi = {
   success: number;
   errors: number;
+  pending: number;
   volume_cents: number;
   avg_confirm_ms: number;
+  contracts?: Partial<BillingKpiContracts> | null;
 };
 
 export type BillingContractEvent = {
@@ -91,11 +141,36 @@ export type BillingContractMetricsTimeseries = {
   volume: BillingContractVolumeTimeseriesPoint[];
 };
 
+export type BillingMetricsTokenBreakdown = {
+  token: string;
+  total: number;
+  mrr_usd: number;
+};
+
+export type BillingMetricsNetworkBreakdown = {
+  network: string;
+  chain_id?: string | null;
+  total: number;
+};
+
 export type BillingMetrics = {
   active_subs: number;
   mrr: number;
   arpu: number;
   churn_30d: number;
+  tokens: BillingMetricsTokenBreakdown[];
+  networks: BillingMetricsNetworkBreakdown[];
+};
+
+export type BillingRevenuePoint = {
+  day: string;
+  amount: number;
+};
+
+export type BillingOverviewResponse = {
+  kpi: BillingKpi;
+  subscriptions: BillingMetrics;
+  revenue: BillingRevenuePoint[];
 };
 
 export type BillingPlanLimits = Record<string, unknown> | null;
@@ -109,8 +184,13 @@ export type BillingPlan = {
   description?: string | null;
   price_cents?: number | null;
   currency?: string | null;
+  price_token?: string | null;
+  price_usd_estimate?: number | null;
+  billing_interval?: string | null;
   is_active: boolean;
   order?: number | null;
+  gateway_slug?: string | null;
+  contract_slug?: string | null;
   monthly_limits?: BillingPlanLimits;
   features?: BillingPlanFeatures;
   updated_at?: string | null;
@@ -123,8 +203,13 @@ export type BillingPlanPayload = {
   description?: string | null;
   price_cents?: number | null;
   currency?: string | null;
+  price_token?: string | null;
+  price_usd_estimate?: number | null;
+  billing_interval?: string | null;
   is_active?: boolean;
   order?: number | null;
+  gateway_slug?: string | null;
+  contract_slug?: string | null;
   monthly_limits?: BillingPlanLimits;
   features?: BillingPlanFeatures;
 };

@@ -7,7 +7,14 @@ from domains.platform.users.domain.models import User
 from domains.platform.users.ports import UsersRepo
 from packages.core.config import Settings
 
-ROLE_ORDER = {"user": 0, "support": 1, "editor": 2, "moderator": 3, "admin": 4}
+ROLE_ORDER = {
+    "user": 0,
+    "support": 1,
+    "editor": 2,
+    "moderator": 3,
+    "finance_ops": 3,
+    "admin": 4,
+}
 
 
 @dataclass

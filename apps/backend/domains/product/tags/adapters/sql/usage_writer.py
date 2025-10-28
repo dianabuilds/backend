@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import Counter
 from typing import Any
 
 from sqlalchemy import text
@@ -48,35 +49,51 @@ class SQLTagUsageWriter:
         ]
         if not added and not removed:
             return
+        add_counts = Counter(added)
+        remove_counts = Counter(removed)
         async with self._engine.begin() as conn:
-            if added:
+            if add_counts:
                 sql_inc = text(
                     """
                     INSERT INTO tag_usage_counters(author_id, content_type, slug, count)
-                    VALUES (cast(:aid as uuid), :ctype, :slug, 1)
+                    VALUES (cast(:aid as uuid), :ctype, :slug, :delta)
                     ON CONFLICT (author_id, content_type, slug)
-                    DO UPDATE SET count = tag_usage_counters.count + 1
+                    DO UPDATE SET count = tag_usage_counters.count + EXCLUDED.count
                     """
                 )
-                for s in added:
-                    await conn.execute(sql_inc, {"aid": aid, "ctype": ctype, "slug": s})
-            if removed:
+                params = [
+                    {"aid": aid, "ctype": ctype, "slug": slug, "delta": delta}
+                    for slug, delta in add_counts.items()
+                ]
+                await conn.execute(sql_inc, params)
+            if remove_counts:
                 sql_dec = text(
                     """
                     UPDATE tag_usage_counters
-                    SET count = GREATEST(count - 1, 0)
-                    WHERE author_id = cast(:aid as uuid) AND content_type = :ctype AND slug = :slug
+                    SET count = GREATEST(count - :delta, 0)
+                    WHERE author_id = cast(:aid as uuid)
+                      AND content_type = :ctype
+                      AND slug = :slug
                     """
                 )
+                dec_params = [
+                    {"aid": aid, "ctype": ctype, "slug": slug, "delta": delta}
+                    for slug, delta in remove_counts.items()
+                ]
+                await conn.execute(sql_dec, dec_params)
                 sql_del = text(
                     """
                     DELETE FROM tag_usage_counters
-                    WHERE author_id = cast(:aid as uuid) AND content_type = :ctype AND slug = :slug AND count <= 0
+                    WHERE author_id = cast(:aid as uuid)
+                      AND content_type = :ctype
+                      AND slug = ANY(:slugs)
+                      AND count <= 0
                     """
                 )
-                for s in removed:
-                    await conn.execute(sql_dec, {"aid": aid, "ctype": ctype, "slug": s})
-                    await conn.execute(sql_del, {"aid": aid, "ctype": ctype, "slug": s})
+                await conn.execute(
+                    sql_del,
+                    {"aid": aid, "ctype": ctype, "slugs": list(remove_counts.keys())},
+                )
 
 
 def register_tags_usage_writer(

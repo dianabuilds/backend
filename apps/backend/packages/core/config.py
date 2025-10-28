@@ -180,6 +180,13 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("DATABASE_SSL_CA", "APP_DATABASE_SSL_CA"),
     )
+    profile_require_wallet_signature: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "PROFILE_REQUIRE_WALLET_SIGNATURE",
+            "APP_PROFILE_REQUIRE_WALLET_SIGNATURE",
+        ),
+    )
 
     # events platform
     event_topics: str = "profile.updated.v1"  # CSV
@@ -289,6 +296,12 @@ class Settings(BaseSettings):
 
     # billing/webhook integration
     billing_webhook_secret: SecretStr | None = None
+    billing_finance_ops_user_id: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "BILLING_FINANCE_OPS_USER_ID", "APP_BILLING_FINANCE_OPS_USER_ID"
+        ),
+    )
 
     embedding_provider: str | None = Field(
         default=None,

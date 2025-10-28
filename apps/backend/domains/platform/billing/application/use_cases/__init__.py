@@ -15,6 +15,7 @@ from domains.platform.billing.ports import (
 
 from .contracts_admin import ContractsAdminUseCase
 from .metrics import MetricsAdminUseCase
+from .overview import OverviewUseCases
 from .plans_admin import PlansAdminUseCase
 from .providers_admin import ProvidersAdminUseCase
 from .public import PublicBillingUseCases
@@ -33,6 +34,7 @@ class AdminUseCases:
 class BillingUseCases:
     public: PublicBillingUseCases
     admin: AdminUseCases
+    overview: OverviewUseCases
     settings: BillingSettingsUseCase
 
 
@@ -54,23 +56,37 @@ def build_use_cases(
     public = PublicBillingUseCases(
         service=service, contracts=contracts, webhook_secret=webhook_secret
     )
+    metrics_use_case = MetricsAdminUseCase(
+        service=service, analytics=analytics, crypto_store=crypto_store
+    )
     admin = AdminUseCases(
         plans=PlansAdminUseCase(
             plans=plans, audit_service=audit_service, audit_repo=audit_repo
         ),
-        providers=ProvidersAdminUseCase(gateways=gateways, ledger=service.ledger),
-        contracts=ContractsAdminUseCase(contracts=contracts),
-        metrics=MetricsAdminUseCase(
-            service=service, analytics=analytics, crypto_store=crypto_store
+        providers=ProvidersAdminUseCase(
+            gateways=gateways,
+            ledger=service.ledger,
+            audit_service=audit_service,
         ),
+        contracts=ContractsAdminUseCase(
+            contracts=contracts,
+            audit_service=audit_service,
+        ),
+        metrics=metrics_use_case,
+    )
+    overview = OverviewUseCases(
+        metrics=metrics_use_case, ledger=service.ledger, service=service
     )
     settings = BillingSettingsUseCase(service=service, profile_service=profile_service)
-    return BillingUseCases(public=public, admin=admin, settings=settings)
+    return BillingUseCases(
+        public=public, admin=admin, overview=overview, settings=settings
+    )
 
 
 __all__ = [
     "BillingUseCases",
     "AdminUseCases",
+    "OverviewUseCases",
     "BillingSettingsUseCase",
     "ProfileServiceProtocol",
     "build_use_cases",

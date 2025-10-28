@@ -150,3 +150,46 @@ async def test_upload_avatar_validates_input(service: Service) -> None:
     assert payload["success"] == 1
     assert meta.status_code == 200
     assert storage_backend.saved[0][1] == "avatar.png"
+
+
+@pytest.mark.asyncio
+async def test_set_wallet_signature_enforced_by_flag() -> None:
+    repo = MemoryRepo()
+    svc = Service(
+        repo=repo,
+        outbox=DummyOutbox(),
+        iam=DummyIam(),
+        flags=Flags(require_wallet_signature=True),
+    )
+    _seed_profile(svc)
+    subject = {"user_id": "u1"}
+
+    with pytest.raises(ValueError) as exc:
+        await svc.set_wallet(
+            "u1", address="0xabc", chain_id="1", signature=None, subject=subject
+        )
+    assert str(exc.value) == "wallet_signature_required"
+
+    with pytest.raises(ValueError) as exc:
+        await svc.set_wallet(
+            "u1",
+            address="0xabc",
+            chain_id="1",
+            signature="short",
+            subject=subject,
+        )
+    assert str(exc.value) == "wallet_signature_invalid"
+
+    signature = "f" * 32
+    result = await svc.set_wallet(
+        "u1",
+        address=" 0xabc ",
+        chain_id=" 2 ",
+        signature=signature,
+        subject=subject,
+    )
+    assert result.wallet.address == "0xabc"
+    assert result.wallet.chain_id == "2"
+    view = profile_to_dict(await svc.get_profile("u1"))
+    assert view["wallet"]["address"] == "0xabc"
+    assert view["wallet"]["chain_id"] == "2"

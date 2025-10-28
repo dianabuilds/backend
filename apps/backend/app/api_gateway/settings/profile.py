@@ -5,7 +5,6 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, Request, Response, status
 from pydantic import BaseModel, Field
 
-from apps.backend.infra.security.rate_limits import public_rate_limits_payload
 from domains.platform.iam.security import csrf_protect, get_current_user, require_admin
 from domains.product.profile.application.commands import (
     bind_wallet,
@@ -20,6 +19,10 @@ from domains.product.profile.application.queries import (
     get_profile_admin,
     get_profile_me,
 )
+from domains.product.profile.infrastructure.admin_audit import (
+    log_profile_admin_action,
+    resolve_actor_id,
+)
 from packages.core.errors import ApiError
 from packages.core.settings_contract import attach_settings_schema
 
@@ -27,6 +30,7 @@ from ..idempotency import require_idempotency_key
 from ..routers import get_container
 from .common import (
     maybe_current_user,
+    profile_limits_payload,
     profile_payload,
     require_user_id,
     subject_from_claims,
@@ -144,6 +148,16 @@ _PROFILE_ERROR_MAP: dict[str, tuple[int, str, str]] = {
         "E_WALLET_TAKEN",
         "Wallet already bound",
     ),
+    "wallet_signature_required": (
+        status.HTTP_400_BAD_REQUEST,
+        "E_WALLET_SIGNATURE_REQUIRED",
+        "Wallet signature is required",
+    ),
+    "wallet_signature_invalid": (
+        status.HTTP_400_BAD_REQUEST,
+        "E_WALLET_SIGNATURE_INVALID",
+        "Wallet signature verification failed",
+    ),
     "forbidden": (
         status.HTTP_403_FORBIDDEN,
         "E_FORBIDDEN",
@@ -180,7 +194,7 @@ def _profile_response(
 ) -> dict[str, Any]:
     _apply_response_meta(response, meta)
     enriched = profile_payload(response, payload)
-    enriched["rate_limits"] = public_rate_limits_payload()
+    enriched["rate_limits"] = profile_limits_payload(enriched["profile"])
     return enriched
 
 
@@ -223,7 +237,20 @@ def register(admin_router: APIRouter, personal_router: APIRouter) -> None:
             )
         except ProfileError as error:
             _raise_profile_error(error)
-        return _profile_response(response, payload, meta)
+        result = _profile_response(response, payload, meta)
+        await log_profile_admin_action(
+            container,
+            actor_id=resolve_actor_id(claims, request),
+            action="profile.admin.settings.update",
+            target_user_id=user_id,
+            request=request,
+            after=payload,
+            extra={
+                "fields": sorted(body.model_dump(exclude_unset=True).keys()),
+                "source": "settings_api",
+            },
+        )
+        return result
 
     @personal_router.get("/profile")
     async def me_settings_profile_get(

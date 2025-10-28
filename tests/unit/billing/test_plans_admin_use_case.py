@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -27,6 +27,11 @@ class DummyPlan:
     order: int = 100
     monthly_limits: dict | None = None
     features: dict | None = None
+    price_token: str | None = None
+    price_usd_estimate: float | None = None
+    billing_interval: str = "month"
+    gateway_slug: str | None = None
+    contract_slug: str | None = None
 
 
 @pytest.mark.asyncio
@@ -64,33 +69,6 @@ async def test_upsert_fetches_existing_plan_and_logs_audit(monkeypatch) -> None:
     assert payload.resource_id == "basic"
     assert payload.before == existing.__dict__
     assert kwargs["error_slug"] == "billing_plan_audit_failed"
-
-
-@pytest.mark.asyncio
-async def test_upsert_without_slug_skips_lookup(monkeypatch) -> None:
-    repo = SimpleNamespace(
-        get_by_slug=AsyncMock(),
-        upsert=AsyncMock(return_value=DummyPlan(id="2", slug="auto", title="Auto")),
-        list_all=AsyncMock(),
-        delete=AsyncMock(),
-    )
-    audit_repo = SimpleNamespace(list=AsyncMock(return_value=[]))
-
-    async def fake_safe(*_args, **_kwargs):
-        return None
-
-    monkeypatch.setattr(plans_admin, "safe_audit_log", fake_safe)
-
-    use_case = PlansAdminUseCase(
-        plans=repo,
-        audit_service=SimpleNamespace(),
-        audit_repo=audit_repo,
-    )
-
-    await use_case.upsert(payload={}, actor_id=None)
-
-    repo.get_by_slug.assert_not_called()
-    repo.upsert.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -173,3 +151,87 @@ async def test_audit_filters_records() -> None:
 
     assert result == {"items": [records[0]]}
     audit_repo.list.assert_awaited_once_with(limit=5)
+
+
+@pytest.mark.asyncio
+async def test_upsert_accepts_gateway_and_contract(monkeypatch) -> None:
+    existing = DummyPlan(
+        id="1",
+        slug="basic",
+        title="Basic",
+        gateway_slug="gw-old",
+        contract_slug="ct-old",
+    )
+    created = DummyPlan(
+        id="1",
+        slug="basic",
+        title="Basic",
+        gateway_slug="gw-new",
+        contract_slug="ct-new",
+        price_token="USDC",
+        billing_interval="year",
+    )
+    repo = SimpleNamespace(
+        get_by_slug=AsyncMock(return_value=existing),
+        upsert=AsyncMock(return_value=created),
+        list_all=AsyncMock(),
+        delete=AsyncMock(),
+    )
+    audit_repo = SimpleNamespace(list=AsyncMock(return_value=[]))
+
+    async def fake_safe(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(plans_admin, "safe_audit_log", fake_safe)
+
+    use_case = PlansAdminUseCase(
+        plans=repo,
+        audit_service=SimpleNamespace(),
+        audit_repo=audit_repo,
+    )
+
+    await use_case.upsert(
+        payload={
+            "slug": "basic",
+            "gateway_slug": "gw-new",
+            "contract_slug": None,
+            "price_token": "USDC",
+            "billing_interval": "year",
+        },
+        actor_id=None,
+    )
+
+    repo.upsert.assert_awaited_once()
+    upsert_payload = repo.upsert.await_args.args[0]
+    assert upsert_payload["gateway_slug"] == "gw-new"
+    assert upsert_payload["contract_slug"] is None
+    assert upsert_payload["price_token"] == "USDC"
+    assert upsert_payload["billing_interval"] == "year"
+
+
+@pytest.mark.asyncio
+async def test_upsert_requires_slug(monkeypatch) -> None:
+    repo = SimpleNamespace(
+        get_by_slug=AsyncMock(),
+        upsert=AsyncMock(),
+        list_all=AsyncMock(),
+        delete=AsyncMock(),
+    )
+    audit_repo = SimpleNamespace(list=AsyncMock(return_value=[]))
+
+    async def fake_safe(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(plans_admin, "safe_audit_log", fake_safe)
+
+    use_case = PlansAdminUseCase(
+        plans=repo,
+        audit_service=SimpleNamespace(),
+        audit_repo=audit_repo,
+    )
+
+    with pytest.raises(BillingUseCaseError):
+        await use_case.upsert(payload={}, actor_id=None)
+
+    repo.get_by_slug.assert_not_called()
+    repo.upsert.assert_not_called()

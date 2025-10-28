@@ -29,6 +29,10 @@ class MetricsAdminUseCase:
         series = await self.analytics.revenue_timeseries(days=days)
         return {"series": series}
 
+    async def network_breakdown(self) -> dict[str, Any]:
+        rows = await self.analytics.network_breakdown()
+        return {"networks": rows}
+
     async def get_crypto_config(self) -> dict[str, Any]:
         row = await self.crypto_store.get("default")
         return {"config": (row or {}).get("config") or {}}

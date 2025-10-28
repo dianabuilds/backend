@@ -3,45 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Spinner, Button, Badge } from "@ui";
 import { SettingsLayout } from '@shared/settings/SettingsLayout';
 import { WalletConnectionCard } from '@shared/settings/WalletConnectionCard';
-import { apiGet } from '@shared/api/client';
+import { shortenAddress } from '@shared/settings/useWalletConnection';
+import {
+  BillingGasInfo,
+  BillingHistoryResponse,
+  BillingSummary,
+  fetchBillingHistory,
+  fetchBillingSummary,
+} from '@shared/api/billing';
 import { extractErrorMessage } from '@shared/utils/errors';
-
-interface Summary {
-  plan: {
-    id: string;
-    slug: string;
-    title: string;
-    price_cents: number | null;
-    currency: string | null;
-    features?: Record<string, any> | null;
-  } | null;
-  subscription: {
-    plan_id: string;
-    status: string;
-    auto_renew: boolean;
-    started_at: string;
-    ends_at?: string | null;
-  } | null;
-  payment: {
-    mode: string;
-    title: string;
-    message: string;
-    coming_soon?: boolean;
-  };
-}
-
-interface HistoryResponse {
-  items: Array<{
-    id?: string;
-    status?: string;
-    created_at?: string;
-    amount?: number | null;
-    currency?: string | null;
-    provider?: string | null;
-    product_type?: string | null;
-  }>;
-  coming_soon?: boolean;
-}
 
 function formatPrice(priceCents: number | null, currency?: string | null): string {
   if (priceCents == null) return 'Free';
@@ -49,9 +19,51 @@ function formatPrice(priceCents: number | null, currency?: string | null): strin
   return `${value.toFixed(2)} ${currency || 'USD'}`;
 }
 
+function formatAmountFromCents(amountCents?: number | null, currency?: string | null): string {
+  if (amountCents == null) return '—';
+  const value = amountCents / 100;
+  return `${value.toFixed(2)} ${currency || 'USD'}`;
+}
+
+function shortenHash(hash?: string | null): string | null {
+  if (!hash) return null;
+  const trimmed = hash.trim();
+  if (trimmed.length <= 14) return trimmed;
+  return `${trimmed.slice(0, 8)}…${trimmed.slice(-6)}`;
+}
+
+function describeGas(gas?: BillingGasInfo | null): string | null {
+  if (!gas) return null;
+  const parts: string[] = [];
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null) return null;
+    if (Math.abs(value) >= 1000) {
+      return value.toLocaleString();
+    }
+    return value.toString();
+  };
+  const fee = formatNumber(gas.fee ?? null);
+  if (fee) {
+    const unit = gas.token || gas.currency || '';
+    parts.push(unit ? `fee ${fee} ${unit}` : `fee ${fee}`);
+  }
+  const used = formatNumber(gas.used ?? null);
+  if (used) {
+    parts.push(`used ${used}`);
+  }
+  const price = formatNumber(gas.price ?? null);
+  if (price) {
+    parts.push(`price ${price}${gas.unit ? ` ${gas.unit}` : ''}`);
+  }
+  if (gas.note) {
+    parts.push(gas.note);
+  }
+  return parts.length ? parts.join(' • ') : null;
+}
+
 export default function BillingPage() {
-  const [summary, setSummary] = React.useState<Summary | null>(null);
-  const [history, setHistory] = React.useState<HistoryResponse | null>(null);
+  const [summary, setSummary] = React.useState<BillingSummary | null>(null);
+  const [history, setHistory] = React.useState<BillingHistoryResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const navigate = useNavigate();
@@ -60,14 +72,14 @@ export default function BillingPage() {
     setLoading(true);
     setError(null);
     try {
-      const s = await apiGet<Summary>('/v1/billing/me/summary');
+      const s = await fetchBillingSummary();
       setSummary(s);
     } catch (err) {
       setSummary(null);
       setError(extractErrorMessage(err, 'Billing service is temporarily unavailable.'));
     }
     try {
-      const h = await apiGet<HistoryResponse>('/v1/billing/me/history?limit=10');
+      const h = await fetchBillingHistory({ limit: 10 });
       setHistory(h);
     } catch {
       setHistory(null);
@@ -95,6 +107,43 @@ export default function BillingPage() {
             : 'Manual renewal'
     : 'No subscription';
   const paymentLabel = payment?.title || payment?.mode || 'Manual payouts';
+  const paymentStatus = payment?.status || null;
+  const walletInfo = summary?.wallet ?? null;
+  const walletAddress = walletInfo?.address ?? null;
+  const walletStatus = walletAddress
+    ? `${shortenAddress(walletAddress)}${walletInfo?.is_verified === false ? ' (unverified)' : ''}`
+    : 'Not connected';
+  const debt = summary?.debt ?? null;
+  const outstandingLabel =
+    debt?.is_overdue && debt?.amount_cents != null
+      ? formatAmountFromCents(debt.amount_cents, debt.currency)
+      : 'No outstanding balance';
+  const outstandingTextClass = debt?.is_overdue ? 'text-rose-600' : 'text-gray-900';
+  const lastPayment = summary?.last_payment ?? null;
+  const lastPaymentStatus = lastPayment?.status || 'Not recorded';
+  const lastPaymentStatusClass = (() => {
+    const normalized = lastPaymentStatus.toLowerCase();
+    if (normalized.includes('fail')) return 'text-rose-600';
+    if (normalized.includes('pending') || normalized.includes('process')) return 'text-amber-600';
+    if (normalized.includes('success') || normalized.includes('succeed') || normalized.includes('captured')) {
+      return 'text-emerald-600';
+    }
+    return 'text-gray-700';
+  })();
+  const lastPaymentAmount =
+    lastPayment?.amount_cents != null
+      ? formatAmountFromCents(lastPayment.amount_cents, lastPayment.currency)
+      : lastPayment?.amount != null
+        ? `${lastPayment.amount.toFixed(2)} ${lastPayment.currency || 'USD'}`
+        : null;
+  const lastPaymentCreated = lastPayment?.created_at
+    ? new Date(lastPayment.created_at).toLocaleString()
+    : null;
+  const lastPaymentNetwork = lastPayment?.network || null;
+  const lastPaymentToken = lastPayment?.token || null;
+  const lastPaymentHash = shortenHash(lastPayment?.tx_hash);
+  const lastPaymentGas = describeGas(lastPayment?.gas ?? null);
+  const lastPaymentFailure = lastPayment?.failure_reason || null;
 
   const errorBanner = error ? (
     <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -135,9 +184,21 @@ export default function BillingPage() {
             <span>Payment</span>
             <span className="font-medium text-gray-900">{paymentLabel}</span>
           </div>
+          <div className="flex items-center justify-between">
+            <span>Wallet</span>
+            <span className="font-medium text-gray-900">{walletStatus}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Outstanding</span>
+            <span className={`font-medium ${outstandingTextClass}`}>{outstandingLabel}</span>
+          </div>
         </div>
       </Card>
-      <WalletConnectionCard onWalletChange={() => { void loadBilling(); }} />
+      <WalletConnectionCard
+        initialWalletAddress={walletAddress}
+        initialWalletChainId={walletInfo?.chain_id ?? null}
+        onWalletChange={() => { void loadBilling(); }}
+      />
       <Card className="space-y-4 rounded-3xl border border-white/60 bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-gray-700">Quick links</h2>
         <div className="space-y-2 text-sm text-gray-600">
@@ -191,6 +252,45 @@ export default function BillingPage() {
           <div className="mt-2 text-sm text-gray-500">
             {payment?.message || 'Currently we support only EVM (SIWE) wallets.'}
           </div>
+          {paymentStatus === 'wallet_missing' && (
+            <div className="mt-1 text-xs text-rose-500">
+              Connect an EVM wallet to enable payouts and invoice history.
+            </div>
+          )}
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-gray-600">Last payment</h2>
+          {lastPayment ? (
+            <div className="mt-2 space-y-1 text-sm text-gray-500">
+              <div>
+                Status:{' '}
+                <span className={`font-medium ${lastPaymentStatusClass}`}>
+                  {lastPaymentStatus}
+                </span>
+                {lastPaymentFailure && (
+                  <span className="ml-1 text-xs text-rose-500">
+                    ({lastPaymentFailure})
+                  </span>
+                )}
+              </div>
+              {lastPaymentCreated && (
+                <div>Created: {lastPaymentCreated}</div>
+              )}
+              {lastPaymentAmount && (
+                <div>Amount: {lastPaymentAmount}</div>
+              )}
+              <div className="text-xs text-gray-500">
+                {lastPaymentNetwork && <span className="mr-3">Network: {lastPaymentNetwork}</span>}
+                {lastPaymentToken && <span className="mr-3">Token: {lastPaymentToken}</span>}
+                {lastPaymentHash && <span className="mr-3">Tx: {lastPaymentHash}</span>}
+                {lastPaymentGas && <span>Gas: {lastPaymentGas}</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-sm text-gray-500">
+              No payments recorded yet.
+            </div>
+          )}
         </div>
       </Card>
 
@@ -204,20 +304,46 @@ export default function BillingPage() {
           <div className="text-sm text-gray-500">No billing history yet.</div>
         ) : (
           <div className="space-y-3">
-            {historyItems.map((item) => (
-              <div key={item.id || item.created_at} className="rounded border border-gray-200 p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{item.status || 'Transaction'}</span>
-                  {item.created_at && (
-                    <span className="text-gray-500">{new Date(item.created_at).toLocaleString()}</span>
+            {historyItems.map((item) => {
+              const statusText = item.status || 'Transaction';
+              const normalized = statusText.toLowerCase();
+              const statusClass = normalized.includes('fail')
+                ? 'text-rose-600'
+                : normalized.includes('pending') || normalized.includes('process')
+                  ? 'text-amber-600'
+                  : 'text-gray-900';
+              const amountLabel =
+                item.amount_cents != null
+                  ? formatAmountFromCents(item.amount_cents, item.currency)
+                  : item.amount != null
+                    ? `${item.amount.toFixed(2)} ${item.currency || 'USD'}`
+                    : 'Amount pending';
+              const txHashLabel = shortenHash(item.tx_hash);
+              const gasLabel = describeGas(item.gas ?? null);
+              return (
+                <div key={item.id || item.created_at} className="rounded border border-gray-200 p-3">
+                  <div className="flex justify-between text-sm">
+                    <span className={`font-medium ${statusClass}`}>{statusText}</span>
+                    {item.created_at && (
+                      <span className="text-gray-500">{new Date(item.created_at).toLocaleString()}</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {amountLabel}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                    {item.provider && <span>Provider: {item.provider}</span>}
+                    {item.network && <span>Network: {item.network}</span>}
+                    {item.token && <span>Token: {item.token}</span>}
+                    {txHashLabel && <span>Tx: {txHashLabel}</span>}
+                    {gasLabel && <span>Gas: {gasLabel}</span>}
+                  </div>
+                  {item.failure_reason && (
+                    <div className="mt-1 text-xs text-rose-500">Failure: {item.failure_reason}</div>
                   )}
                 </div>
-                <div className="text-sm text-gray-600">
-                  {item.amount != null ? `${item.amount.toFixed(2)} ${item.currency || 'USD'}` : 'Amount pending'}
-                </div>
-                {item.provider && <div className="text-xs text-gray-500">Provider: {item.provider}</div>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <div className="text-xs text-gray-400">

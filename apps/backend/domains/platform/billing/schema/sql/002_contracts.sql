@@ -4,15 +4,20 @@ CREATE TABLE IF NOT EXISTS payment_contracts (
   slug text NOT NULL UNIQUE,
   title text NULL,
   chain text NOT NULL,
+  chain_id bigint NULL,
   address text NOT NULL,
   type text NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
   status text NOT NULL DEFAULT 'active',
   testnet boolean NOT NULL DEFAULT false,
   methods jsonb NULL,
+  mint_method text NULL,
+  burn_method text NULL,
   abi_present boolean NOT NULL DEFAULT false,
-  webhook_url text NULL,
   abi jsonb NULL,
+  webhook_url text NULL,
+  webhook_secret text NULL,
+  fallback_rpc jsonb NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -33,4 +38,3 @@ CREATE TABLE IF NOT EXISTS payment_contract_events (
 );
 CREATE INDEX IF NOT EXISTS ix_contract_events_contract ON payment_contract_events(contract_id);
 CREATE INDEX IF NOT EXISTS ix_contract_events_created ON payment_contract_events(created_at DESC);
-

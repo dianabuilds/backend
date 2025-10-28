@@ -212,7 +212,7 @@ class NotificationRepository(INotificationRepository):
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[dict[str, Any]], int, int]:
-        priority_expr = "COALESCE(r.priority, 'normal')"
+        priority_expr = "COALESCE(priority, 'normal')"
         where_clauses = ["r.user_id = CAST(:uid AS uuid)"]
         params: dict[str, Any] = {
             "uid": user_id,
@@ -225,27 +225,41 @@ class NotificationRepository(INotificationRepository):
             )
             params["placement"] = placement
         where_sql = " AND ".join(where_clauses)
-        count_sql = text(
-            "SELECT COUNT(*) AS total, "
-            "COUNT(*) FILTER (WHERE read_at IS NULL) AS unread "
-            "FROM notification_receipts r "
-            f"WHERE {where_sql}"
+        order_case = (
+            f"CASE\n        WHEN {priority_expr} IN ('urgent', 'high') THEN 0\n"
+            f"        WHEN {priority_expr} = 'normal' THEN 1\n"
+            "        ELSE 2\n    END"
         )
+        base_filtered = _BASE_SELECT + "\nWHERE " + where_sql
         sql = text(
-            _BASE_SELECT
-            + "\nWHERE "
-            + where_sql
-            + f"\nORDER BY\n    CASE\n        WHEN {priority_expr} IN ('urgent', 'high') THEN 0\n        WHEN {priority_expr} = 'normal' THEN 1\n        ELSE 2\n    END,\n    r.created_at DESC\nLIMIT :limit OFFSET :offset"
+            f"""
+            WITH filtered AS (
+                {base_filtered}
+            ),
+            annotated AS (
+                SELECT
+                    *,
+                    COUNT(*) OVER () AS total_count,
+                    COUNT(*) FILTER (WHERE read_at IS NULL) OVER () AS unread_count,
+                    ROW_NUMBER() OVER (
+                        ORDER BY
+                            {order_case},
+                            created_at DESC,
+                            id DESC
+                    ) AS row_number
+                FROM filtered
+            )
+            SELECT *
+            FROM annotated
+            WHERE row_number > :offset
+              AND row_number <= :offset + :limit
+            ORDER BY row_number
+            """
         )
         async with self._engine.begin() as conn:
-            counts = (await conn.execute(count_sql, params)).mappings().first()
             rows = (await conn.execute(sql, params)).mappings().all()
-        total = (
-            int(counts["total"]) if counts and counts.get("total") is not None else 0
-        )
-        unread = (
-            int(counts["unread"]) if counts and counts.get("unread") is not None else 0
-        )
+        total = int(rows[0]["total_count"]) if rows else 0
+        unread = int(rows[0]["unread_count"]) if rows else 0
         items = [self._normalize_row(row) for row in rows]
         return items, total, unread
 

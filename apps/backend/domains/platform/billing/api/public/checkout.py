@@ -22,7 +22,14 @@ def register(router: APIRouter) -> None:
     ) -> dict[str, Any]:
         user_id = str(claims.get("sub")) if claims and claims.get("sub") else None
         plan_slug = body.get("plan")
+        idempotency_key = body.get("idempotency_key")
+        if isinstance(idempotency_key, str):
+            idempotency_key = idempotency_key.strip() or None
+        else:
+            idempotency_key = None
         try:
-            return await use_cases.checkout(user_id=user_id, plan_slug=plan_slug)
+            return await use_cases.checkout(
+                user_id=user_id, plan_slug=plan_slug, idempotency_key=idempotency_key
+            )
         except BillingUseCaseError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

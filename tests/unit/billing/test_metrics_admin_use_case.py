@@ -110,3 +110,24 @@ async def test_get_crypto_config_defaults_to_empty() -> None:
     )
 
     assert await use_case.get_crypto_config() == {"config": {}}
+
+
+@pytest.mark.asyncio
+async def test_network_breakdown_delegates_to_analytics() -> None:
+    service = SimpleNamespace(
+        get_summary_for_user=AsyncMock(),
+        get_history_for_user=AsyncMock(),
+    )
+    analytics = SimpleNamespace(
+        kpi=AsyncMock(),
+        subscription_metrics=AsyncMock(),
+        revenue_timeseries=AsyncMock(return_value=[]),
+        network_breakdown=AsyncMock(return_value=[{"network": "polygon"}]),
+    )
+    crypto = SimpleNamespace(get=AsyncMock(return_value=None), set=AsyncMock())
+    use_case = MetricsAdminUseCase(
+        service=service, analytics=analytics, crypto_store=crypto
+    )
+
+    assert await use_case.network_breakdown() == {"networks": [{"network": "polygon"}]}
+    analytics.network_breakdown.assert_awaited_once()

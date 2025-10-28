@@ -7,7 +7,6 @@ from .http import router
 
 def register_public(app: FastAPI) -> None:
     """Attach the public contour routes for domain product.profile."""
-    # TODO: wire handlers when the contour gains real endpoints.
     app.include_router(router)
 
 

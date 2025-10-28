@@ -1,0 +1,16 @@
+{
+  "$id": "profile.email.change.requested.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "new_email"],
+  "properties": {
+    "id": {"type": "string"},
+    "new_email": {
+      "type": "string",
+      "format": "email",
+      "minLength": 3,
+      "maxLength": 320
+    }
+  }
+}

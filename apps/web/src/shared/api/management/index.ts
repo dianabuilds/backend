@@ -7,6 +7,7 @@ export * from './audit';
 export * from './siteEditor';
 
 import {
+  fetchBillingOverview,
   fetchBillingKpi,
   fetchBillingProviders,
   saveBillingProvider,
@@ -24,6 +25,7 @@ import {
   deleteBillingPlan,
   updateBillingPlanLimits,
   fetchBillingPlanHistory,
+  fetchBillingOverviewPayouts,
 } from './billing';
 import {
   fetchManagementAiModels,
@@ -72,6 +74,7 @@ import {
 } from './siteEditor';
 
 export const managementApi = {
+  fetchBillingOverview,
   fetchBillingKpi,
   fetchBillingProviders,
   saveBillingProvider,
@@ -89,6 +92,7 @@ export const managementApi = {
   deleteBillingPlan,
   updateBillingPlanLimits,
   fetchBillingPlanHistory,
+  fetchBillingOverviewPayouts,
   fetchManagementAiModels,
   saveManagementAiModel,
   deleteManagementAiModel,

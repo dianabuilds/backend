@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -38,7 +38,13 @@ async def test_upsert_populates_payload() -> None:
     payload = {
         "title": "Payment",
         "address": "0xabc",
-        "methods": ["mint"],
+        "chain": "polygon",
+        "chain_id": 137,
+        "methods": {"mint": {}},
+        "mint_method": "mint",
+        "burn_method": "burn",
+        "webhook_secret": "secret",
+        "fallback_rpc": {"polygon": "https://rpc"},
         "abi": {"contract": "demo"},
     }
 
@@ -47,6 +53,12 @@ async def test_upsert_populates_payload() -> None:
     assert result == {"contract": {"id": "c1", "slug": "token"}}
     sent = repo.upsert.call_args.args[0]
     assert sent["slug"] == "0xabc"
+    assert sent["chain"] == "polygon"
+    assert sent["chain_id"] == 137
+    assert sent["mint_method"] == "mint"
+    assert sent["burn_method"] == "burn"
+    assert sent["webhook_secret"] == "secret"
+    assert sent["fallback_rpc"] == {"polygon": "https://rpc"}
     assert sent["abi_present"] is True
 
 

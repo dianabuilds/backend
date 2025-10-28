@@ -22,7 +22,7 @@ class BillingSettingsUseCase:
     async def build_bundle(self, user_id: str) -> dict[str, Any]:
         summary = await self.service.get_summary_for_user(user_id)
         history = await self.service.get_history_for_user(user_id)
-        wallet: Any = None
+        wallet: dict[str, Any] | None = None
         try:
             profile_view = await self.profile_service.get_profile(user_id)
         except ValueError:
@@ -33,8 +33,27 @@ class BillingSettingsUseCase:
             )
             wallet = None
         else:
-            wallet = profile_to_dict(profile_view).get("wallet")
-        return {"summary": summary, "history": history, "wallet": wallet}
+            profile_payload = profile_to_dict(profile_view)
+            wallet_data = profile_payload.get("wallet") or {}
+            if isinstance(wallet_data, dict):
+                wallet = {
+                    "address": wallet_data.get("address"),
+                    "chain_id": wallet_data.get("chain_id"),
+                    "verified_at": wallet_data.get("verified_at"),
+                    "is_verified": bool(wallet_data.get("verified_at")),
+                }
+                wallet["status"] = "connected" if wallet.get("address") else "missing"
+            else:
+                wallet = None
+        summary_payload = dict(summary)
+        summary_payload["wallet"] = wallet
+        payment = dict(summary_payload.get("payment") or {})
+        payment.setdefault("mode", "evm_wallet")
+        payment["status"] = (
+            "wallet_connected" if wallet and wallet.get("address") else "wallet_missing"
+        )
+        summary_payload["payment"] = payment
+        return {"summary": summary_payload, "history": history, "wallet": wallet}
 
 
 __all__ = ["BillingSettingsUseCase", "ProfileServiceProtocol"]

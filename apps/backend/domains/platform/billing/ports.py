@@ -14,6 +14,9 @@ class CheckoutResult:
     url: str | None
     provider: str
     external_id: str
+    payload: JsonDict | None = None
+    meta: JsonDict | None = None
+    expires_at: str | None = None
 
 
 @dataclass
@@ -45,7 +48,11 @@ class PlanRepo(Protocol):
 class SubscriptionRepo(Protocol):
     async def get_active_for_user(self, user_id: str) -> Subscription | None: ...
     async def activate(
-        self, user_id: str, plan_id: str, auto_renew: bool, ends_at: str | None = None
+        self,
+        user_id: str,
+        plan_id: str,
+        auto_renew: bool = True,
+        ends_at: str | None = None,
     ) -> Subscription: ...
 
 
@@ -55,6 +62,23 @@ class LedgerRepo(Protocol):
 
     # Optional convenience methods for admin listings
     async def list_recent(self, limit: int = 100) -> JsonDictList: ...
+    async def get_by_external_id(self, external_id: str) -> JsonDict | None: ...
+    async def get_by_tx_hash(self, tx_hash: str) -> JsonDict | None: ...
+    async def update_transaction(
+        self,
+        transaction_id: str,
+        *,
+        status: str,
+        tx_hash: str | None = None,
+        network: str | None = None,
+        token: str | None = None,
+        confirmed_at: Any | None = None,
+        failure_reason: str | None = None,
+        meta_patch: JsonDict | None = None,
+    ) -> JsonDict: ...
+    async def list_pending(
+        self, *, older_than_seconds: int, limit: int = 100
+    ) -> JsonDictList: ...
 
 
 class GatewayRepo(Protocol):
@@ -93,6 +117,7 @@ class BillingAnalyticsRepo(Protocol):
     async def kpi(self) -> JsonDict: ...
     async def subscription_metrics(self) -> JsonDict: ...
     async def revenue_timeseries(self, days: int = 30) -> JsonDictList: ...
+    async def network_breakdown(self) -> JsonDictList: ...
 
 
 class BillingSummaryRepo(Protocol):
@@ -101,6 +126,16 @@ class BillingSummaryRepo(Protocol):
 
 class BillingHistoryRepo(Protocol):
     async def get_history(self, user_id: str, limit: int = 20) -> BillingHistory: ...
+
+
+class EventPublisher(Protocol):
+    def publish(
+        self, topic: str, payload: JsonDict, key: str | None = None
+    ) -> None: ...
+
+
+class NotificationService(Protocol):
+    async def create_notification(self, command: Any) -> Any: ...
 
 
 __all__ = [
@@ -117,4 +152,6 @@ __all__ = [
     "BillingHistory",
     "BillingSummaryRepo",
     "BillingHistoryRepo",
+    "EventPublisher",
+    "NotificationService",
 ]

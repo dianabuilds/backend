@@ -1,0 +1,16 @@
+{
+  "$id": "profile.email.updated.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "email"],
+  "properties": {
+    "id": {"type": "string"},
+    "email": {
+      "type": "string",
+      "format": "email",
+      "minLength": 3,
+      "maxLength": 320
+    }
+  }
+}

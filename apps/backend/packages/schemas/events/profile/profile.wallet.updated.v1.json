@@ -1,0 +1,12 @@
+{
+  "$id": "profile.wallet.updated.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "wallet_address"],
+  "properties": {
+    "id": {"type": "string"},
+    "wallet_address": {"type": "string"},
+    "wallet_chain_id": {"type": ["string", "null"]}
+  }
+}

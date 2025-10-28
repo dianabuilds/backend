@@ -15,6 +15,7 @@ export {
   Users,
   Gauge,
   TrendingDown,
+  Activity,
   ListFilter,
   Search,
   Copy,
@@ -28,5 +29,8 @@ export {
   Paperclip,
   Image,
   Pin,
+  ArrowUpRight,
+  Download,
+  FlaskConical,
 
 } from 'lucide-react';

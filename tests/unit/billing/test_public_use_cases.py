@@ -1,8 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import hmac
 from dataclasses import dataclass
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -28,6 +29,9 @@ class DummyCheckoutResult:
     url: str | None
     provider: str
     external_id: str
+    payload: dict[str, Any] | None = None
+    meta: dict[str, Any] | None = None
+    expires_at: str | None = None
 
 
 class DummyService:
@@ -88,7 +92,11 @@ async def test_checkout_requires_plan_slug() -> None:
 async def test_checkout_returns_checkout_payload() -> None:
     service = DummyService()
     checkout_result = DummyCheckoutResult(
-        url="https://pay", provider="mock", external_id="ext"
+        url="https://pay",
+        provider="mock",
+        external_id="ext",
+        payload={"chainId": 1},
+        meta={"network": "ethereum"},
     )
     service.checkout.return_value = checkout_result
     use_cases = PublicBillingUseCases(
@@ -98,7 +106,30 @@ async def test_checkout_returns_checkout_payload() -> None:
     result = await use_cases.checkout(user_id="user-1", plan_slug="starter")
 
     assert result == {"ok": True, "checkout": checkout_result.__dict__}
-    service.checkout.assert_awaited_once_with("user-1", "starter")
+    service.checkout.assert_awaited_once_with(
+        user_id="user-1", plan_slug="starter", idempotency_key=None
+    )
+
+
+@pytest.mark.asyncio
+async def test_checkout_forwards_idempotency_key() -> None:
+    service = DummyService()
+    checkout_result = DummyCheckoutResult(
+        url=None, provider="mock", external_id="ext", payload=None
+    )
+    service.checkout.return_value = checkout_result
+    use_cases = PublicBillingUseCases(
+        service=service, contracts=DummyContracts(), webhook_secret=None
+    )
+
+    result = await use_cases.checkout(
+        user_id="user-1", plan_slug="starter", idempotency_key="idem-123"
+    )
+
+    assert result == {"ok": True, "checkout": checkout_result.__dict__}
+    service.checkout.assert_awaited_once_with(
+        user_id="user-1", plan_slug="starter", idempotency_key="idem-123"
+    )
 
 
 @pytest.mark.asyncio
@@ -113,6 +144,37 @@ async def test_get_my_summary_requires_auth() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_my_history_preserves_extended_fields() -> None:
+    service = DummyService()
+    history_payload = {
+        "items": [
+            {
+                "id": "tx-1",
+                "status": "pending",
+                "created_at": "2024-05-01T12:00:00Z",
+                "amount": 15.0,
+                "amount_cents": 1500,
+                "currency": "USD",
+                "token": "USDC",
+                "network": "polygon",
+                "tx_hash": "0xabc",
+                "gas": {"fee": 42, "token": "MATIC"},
+            }
+        ],
+        "coming_soon": False,
+    }
+    service.get_history_for_user.return_value = history_payload
+    use_cases = PublicBillingUseCases(
+        service=service, contracts=DummyContracts(), webhook_secret=None
+    )
+
+    result = await use_cases.get_my_history(user_id="user-1")
+
+    service.get_history_for_user.assert_awaited_once_with("user-1", limit=20)
+    assert result == history_payload
+
+
+@pytest.mark.asyncio
 async def test_handle_contracts_webhook_validates_signature() -> None:
     body = b'{"contract": "c-1"}'
     secret = "super-secret"
@@ -120,7 +182,7 @@ async def test_handle_contracts_webhook_validates_signature() -> None:
 
     service = DummyService()
     contracts = DummyContracts()
-    contracts.get.return_value = {"id": "c-1"}
+    contracts.get.return_value = {"id": "c-1", "methods": {"mint": {}}}
     use_cases = PublicBillingUseCases(
         service=service, contracts=contracts, webhook_secret=secret
     )
@@ -134,6 +196,7 @@ async def test_handle_contracts_webhook_validates_signature() -> None:
     contracts.add_event.assert_awaited_once()
     added_event = contracts.add_event.call_args.args[0]
     assert added_event["contract_id"] == "c-1"
+    assert added_event["meta"]["raw_payload"]["contract"] == "c-1"
 
 
 @pytest.mark.asyncio
@@ -203,3 +266,40 @@ async def test_handle_contracts_webhook_missing_contract() -> None:
         await use_cases.handle_contracts_webhook(raw_body=payload, signature=signature)
     assert exc.value.status_code == 404
     contracts.add_event.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_contracts_webhook_unknown_method() -> None:
+    secret = "secret"
+    payload = b'{"contract": "c-1", "method": "burn"}'
+    signature = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+    contracts = DummyContracts()
+    contracts.get.return_value = {"id": "c-1", "methods": {"mint": {}}}
+    use_cases = PublicBillingUseCases(
+        service=DummyService(), contracts=contracts, webhook_secret=secret
+    )
+
+    with pytest.raises(BillingUseCaseError) as exc:
+        await use_cases.handle_contracts_webhook(raw_body=payload, signature=signature)
+    assert exc.value.status_code == 400
+    contracts.add_event.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_handle_contracts_webhook_status_normalized() -> None:
+    secret = "secret"
+    body = b'{"contract": "c-1", "status": "FAILED"}'
+    signature = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    contracts = DummyContracts()
+    contracts.get.return_value = {"id": "c-1", "methods": {}}
+    use_cases = PublicBillingUseCases(
+        service=DummyService(), contracts=contracts, webhook_secret=secret
+    )
+
+    result = await use_cases.handle_contracts_webhook(
+        raw_body=body, signature=signature
+    )
+
+    assert result == {"ok": True}
+    event = contracts.add_event.call_args.args[0]
+    assert event["status"] == "failed"

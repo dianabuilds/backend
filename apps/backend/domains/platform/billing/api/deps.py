@@ -13,6 +13,7 @@ from ..application.use_cases import (
 )
 from ..application.use_cases.contracts_admin import ContractsAdminUseCase
 from ..application.use_cases.metrics import MetricsAdminUseCase
+from ..application.use_cases.overview import OverviewUseCases
 from ..application.use_cases.plans_admin import PlansAdminUseCase
 from ..application.use_cases.providers_admin import ProvidersAdminUseCase
 from ..application.use_cases.public import PublicBillingUseCases
@@ -75,6 +76,14 @@ def get_admin_contracts_use_case(req: Request) -> ContractsAdminUseCase:
 
 def get_admin_metrics_use_case(req: Request) -> MetricsAdminUseCase:
     return _resolve_use_cases(req).admin.metrics
+
+
+def get_overview_use_case(req: Request) -> OverviewUseCases:
+    return _resolve_use_cases(req).overview
+
+
+def get_overview_metrics_use_case(req: Request) -> MetricsAdminUseCase:
+    return _resolve_use_cases(req).overview.metrics
 
 
 def get_actor_id(req: Request) -> str | None:

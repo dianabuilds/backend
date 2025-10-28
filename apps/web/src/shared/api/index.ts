@@ -2,6 +2,7 @@ export * from './client';
 export * from './auth';
 export * from './notifications';
 export * from './management';
+export * from './billing';
 export * from './nodes';
 export * from './relations';
 export * from './observability';

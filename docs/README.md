@@ -9,6 +9,7 @@
 | `features/<feature>/` | Гайды по конкретным фичам (UX, API, процессы админки). Внутри обязательно есть `README.md` или `overview.md` с кратким описанием. |
 | `features/admin-ui/` | Общие правила для административных интерфейсов: сетки, взаимодействия, доступность. |
 | `features/node-engagement/` | Материалы по Node Engagement (UX-гайд, API runbook). |
+| `features/profile-settings/` | API и процессы управления профилями пользователей (public/admin контуры). |
 | `features/moderation/` | Визия и инструкции по модерации, обновления UI. |
 | `features/site-editor/` | Документация редактора сайта: модель данных, API, библиотека блоков, правила hero. |
 | `frontend/` | Технические правила фронтенда (слойность, контроль зависимостей). |
@@ -40,6 +41,7 @@
 ## Быстрый путеводитель
 
 - `features/site-editor/overview.md` — архитектура и процессы редактора сайта.  
+- `features/profile-settings/README.md` — устройство API настроек профиля, контуры public/admin, SLO и аудит.  
 - `features/node-engagement/api.md` и `features/node-engagement/ux.md` — руководство по админке Node Engagement.  
 - `features/admin-ui/interaction-rules.md` — стандарты поведения и адаптивности админских UI.  
 - `playbooks/backend-testing.md` — структура тестов и правила запуска.  

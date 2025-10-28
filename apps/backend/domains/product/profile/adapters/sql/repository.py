@@ -205,6 +205,7 @@ class SQLProfileRepo(Repo):
         set_username_timestamp: bool,
         now: datetime,
     ) -> Profile:
+        profile_after: Profile | None = None
         async with self._get_engine().begin() as conn:
             profile = await self._fetch_profile(conn, user_id)
             if not profile:
@@ -285,7 +286,7 @@ class SQLProfileRepo(Repo):
                     {"user_id": user_id, "ts": now},
                 )
 
-        profile_after = await self.get(user_id)
+            profile_after = await self._fetch_profile(conn, user_id)
         if profile_after is None:
             raise ValueError("profile_not_found")
         return profile_after
@@ -387,6 +388,7 @@ class SQLProfileRepo(Repo):
     ) -> Profile:
         if not self._include_email_requests:
             raise ValueError("email_change_unavailable")
+        profile_after: Profile | None = None
         async with self._get_engine().begin() as conn:
             row = (
                 (
@@ -441,7 +443,7 @@ class SQLProfileRepo(Repo):
                 {"user_id": user_id},
             )
 
-        profile_after = await self.get(user_id)
+            profile_after = await self._fetch_profile(conn, user_id)
         if profile_after is None:
             raise ValueError("profile_not_found")
         return profile_after
@@ -455,6 +457,7 @@ class SQLProfileRepo(Repo):
         signature: str | None,
         verified_at: datetime,
     ) -> Profile:
+        profile_after: Profile | None = None
         async with self._get_engine().begin() as conn:
             sql = text(
                 """
@@ -481,12 +484,13 @@ class SQLProfileRepo(Repo):
             except IntegrityError as exc:
                 raise ValueError("wallet_taken") from exc
 
-        profile_after = await self.get(user_id)
+            profile_after = await self._fetch_profile(conn, user_id)
         if profile_after is None:
             raise ValueError("profile_not_found")
         return profile_after
 
     async def clear_wallet(self, user_id: str) -> Profile:
+        profile_after: Profile | None = None
         async with self._get_engine().begin() as conn:
             sql = text(
                 """
@@ -500,7 +504,7 @@ class SQLProfileRepo(Repo):
             )
             await conn.execute(sql, {"id": user_id})
 
-        profile_after = await self.get(user_id)
+            profile_after = await self._fetch_profile(conn, user_id)
         if profile_after is None:
             raise ValueError("profile_not_found")
         return profile_after

@@ -18,6 +18,11 @@ class Plan:
     features: dict[str, Any] | None
     created_at: datetime
     updated_at: datetime
+    price_token: str | None = None
+    price_usd_estimate: float | None = None
+    billing_interval: str = "month"
+    gateway_slug: str | None = None
+    contract_slug: str | None = None
 
 
 @dataclass(frozen=True)
@@ -40,13 +45,18 @@ class LedgerTx:
     gateway_slug: str | None
     product_type: str
     product_id: str | None
-    currency: str | None
     gross_cents: int
     fee_cents: int
     net_cents: int
     status: str
     created_at: datetime
-    meta: dict[str, Any] | None
+    currency: str | None = None
+    token: str | None = None
+    network: str | None = None
+    tx_hash: str | None = None
+    confirmed_at: datetime | None = None
+    failure_reason: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 __all__ = ["Plan", "Subscription", "LedgerTx"]

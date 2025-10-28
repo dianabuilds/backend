@@ -93,8 +93,13 @@ MVP можно расширять, переиспользуя установле
   alter table user_sessions add column if not exists terminated_reason text null;
   create index if not exists ix_user_sessions_device on user_sessions (user_id, device_id);
   `
-  Переиспользуем текущие поля session_token_hash, efresh_token_hash, evoked_at; отдельный evoked boolean добавлять не нужно.
-- **audit_logs** (существует, migrations 1b2c3d4e5f6 +  012): структура с esource_type, esource_id, efore, fter, extra, ip, user_agent, workspace_id. Новые требования покрываем ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  Переиспользуем текущие поля session_token_hash, 
+efresh_token_hash, 
+evoked_at; отдельный 
+evoked boolean добавлять не нужно.
+- **audit_logs** (существует, migrations 1b2c3d4e5f6 +  012): структура с 
+esource_type, 
+esource_id, efore, fter, extra, ip, user_agent, workspace_id. Новые требования покрываем ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
 
 Миграции оформляем через Alembic с проверками information_schema, чтобы повторный запуск был идемпотентным.
 

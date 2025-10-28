@@ -9,7 +9,7 @@ from domains.platform.billing.application.use_cases.exceptions import (
 )
 from domains.platform.iam.security import csrf_protect, require_admin
 
-from ..deps import get_admin_contracts_use_case
+from ..deps import get_actor_id, get_admin_contracts_use_case
 
 
 def register(router: APIRouter) -> None:
@@ -24,11 +24,12 @@ def register(router: APIRouter) -> None:
     async def admin_upsert_contract(
         body: dict[str, Any],
         use_case=Depends(get_admin_contracts_use_case),
+        actor_id=Depends(get_actor_id),
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         try:
-            return await use_case.upsert_contract(payload=body)
+            return await use_case.upsert_contract(payload=body, actor_id=actor_id)
         except BillingUseCaseError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
@@ -36,11 +37,14 @@ def register(router: APIRouter) -> None:
     async def admin_delete_contract(
         id_or_slug: str,
         use_case=Depends(get_admin_contracts_use_case),
+        actor_id=Depends(get_actor_id),
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         try:
-            return await use_case.delete_contract(id_or_slug=id_or_slug)
+            return await use_case.delete_contract(
+                id_or_slug=id_or_slug, actor_id=actor_id
+            )
         except BillingUseCaseError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
@@ -58,11 +62,14 @@ def register(router: APIRouter) -> None:
         id_or_slug: str,
         body: dict[str, Any],
         use_case=Depends(get_admin_contracts_use_case),
+        actor_id=Depends(get_actor_id),
         _admin: None = Depends(require_admin),
         _csrf: None = Depends(csrf_protect),
     ) -> dict[str, Any]:
         try:
-            return await use_case.add_event(id_or_slug=id_or_slug, payload=body)
+            return await use_case.add_event(
+                id_or_slug=id_or_slug, payload=body, actor_id=actor_id
+            )
         except BillingUseCaseError as exc:
             raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import Counter
 from collections.abc import Sequence
 
 from sqlalchemy import text
@@ -38,50 +39,67 @@ class SQLUsageProjection:
         if not aid or (not added_slugs and not removed_slugs):
             return
 
+        add_counts = Counter(added_slugs)
+        remove_counts = Counter(removed_slugs)
+
         async def _run() -> None:
             async with self._engine.begin() as conn:
-                if added_slugs:
+                if add_counts:
                     sql_inc = text(
                         """
                         INSERT INTO tag_usage_counters(author_id, content_type, slug, count)
-                        VALUES (cast(:aid as uuid), :ctype, :slug, 1)
+                        VALUES (cast(:aid as uuid), :ctype, :slug, :delta)
                         ON CONFLICT (author_id, content_type, slug)
-                        DO UPDATE SET count = tag_usage_counters.count + 1
+                        DO UPDATE SET count = tag_usage_counters.count + EXCLUDED.count
                         """
                     )
-                    for slug in added_slugs:
-                        await conn.execute(
-                            sql_inc,
-                            {"aid": aid, "ctype": self._content_type, "slug": slug},
-                        )
-                if removed_slugs:
+                    params = [
+                        {
+                            "aid": aid,
+                            "ctype": self._content_type,
+                            "slug": slug,
+                            "delta": delta,
+                        }
+                        for slug, delta in add_counts.items()
+                    ]
+                    await conn.execute(sql_inc, params)
+                if remove_counts:
                     sql_dec = text(
                         """
                         UPDATE tag_usage_counters
-                           SET count = GREATEST(count - 1, 0)
+                           SET count = GREATEST(count - :delta, 0)
                          WHERE author_id = cast(:aid as uuid)
                            AND content_type = :ctype
                            AND slug = :slug
                         """
                     )
+                    dec_params = [
+                        {
+                            "aid": aid,
+                            "ctype": self._content_type,
+                            "slug": slug,
+                            "delta": delta,
+                        }
+                        for slug, delta in remove_counts.items()
+                    ]
+                    await conn.execute(sql_dec, dec_params)
                     sql_del = text(
                         """
                         DELETE FROM tag_usage_counters
                          WHERE author_id = cast(:aid as uuid)
                            AND content_type = :ctype
-                           AND slug = :slug
+                           AND slug = ANY(:slugs)
                            AND count <= 0
                         """
                     )
-                    for slug in removed_slugs:
-                        await conn.execute(
-                            sql_dec,
-                            {"aid": aid, "ctype": self._content_type, "slug": slug},
-                        )
-                        await conn.execute(
-                            sql_del,
-                            {"aid": aid, "ctype": self._content_type, "slug": slug},
-                        )
+                    await conn.execute(
+                        sql_del,
+                        {
+                            "aid": aid,
+                            "ctype": self._content_type,
+                            "slugs": list(remove_counts.keys()),
+                        },
+                    )
 
         try:
             loop = asyncio.get_running_loop()

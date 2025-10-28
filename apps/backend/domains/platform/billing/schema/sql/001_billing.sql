@@ -5,6 +5,11 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
   title text NOT NULL,
   description text NULL,
   price_cents int NULL,
+  price_token text NULL,
+  price_usd_estimate numeric(18, 4) NULL,
+  billing_interval text NOT NULL DEFAULT 'month',
+  gateway_slug text NULL,
+  contract_slug text NULL,
   currency text NULL DEFAULT 'USD',
   is_active boolean NOT NULL DEFAULT true,
   "order" int NOT NULL DEFAULT 100,
@@ -33,18 +38,24 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   gateway_slug text NULL,
-  type text NOT NULL,
-  id uuid NULL,
+  product_type text NOT NULL,
+  product_id uuid NULL,
   currency text NULL DEFAULT 'USD',
+  token text NULL,
+  network text NULL,
   gross_cents int NOT NULL,
   fee_cents int NOT NULL DEFAULT 0,
   net_cents int NOT NULL,
+  tx_hash text NULL,
   status text NOT NULL DEFAULT 'captured',
   created_at timestamptz NOT NULL DEFAULT now(),
+  confirmed_at timestamptz NULL,
+  failure_reason text NULL,
   meta jsonb NULL
 );
 CREATE INDEX IF NOT EXISTS ix_payment_tx_user ON payment_transactions(user_id);
 CREATE INDEX IF NOT EXISTS ix_payment_tx_gateway ON payment_transactions(gateway_slug);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_payment_tx_hash ON payment_transactions(tx_hash) WHERE tx_hash IS NOT NULL;
 
 -- Payment gateways
 CREATE TABLE IF NOT EXISTS payment_gateways (
@@ -57,4 +68,3 @@ CREATE TABLE IF NOT EXISTS payment_gateways (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-

@@ -95,3 +95,25 @@ async def test_list_transactions_uses_ledger() -> None:
 
     assert result == {"items": [{"id": "txn"}]}
     ledger.list_recent.assert_awaited_once_with(limit=5)
+
+
+@pytest.mark.asyncio
+async def test_upsert_includes_networks() -> None:
+    gateways = SimpleNamespace(upsert=AsyncMock(return_value={"slug": "provider"}))
+    use_case = ProvidersAdminUseCase(
+        gateways=gateways,
+        ledger=SimpleNamespace(list_recent=AsyncMock()),
+    )
+    payload = {
+        "slug": "provider",
+        "networks": ["polygon"],
+        "supported_tokens": ["USDC"],
+        "default_network": "polygon",
+    }
+
+    await use_case.upsert_provider(payload=payload)
+
+    config = gateways.upsert.await_args.args[0]["config"]
+    assert config["networks"] == ["polygon"]
+    assert config["supported_tokens"] == ["USDC"]
+    assert config["default_network"] == "polygon"

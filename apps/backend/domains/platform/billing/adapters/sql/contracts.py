@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from domains.platform.billing.metrics import observe_contract_event
 from domains.platform.billing.ports import ContractsRepo
 
 JsonDict = dict[str, Any]
@@ -30,8 +31,9 @@ class SQLContractsRepo(ContractsRepo):
     async def list(self) -> JsonDictList:
         sql = text(
             """
-            SELECT id, slug, title, chain, address, type, enabled, status, testnet,
-                   methods, abi_present, webhook_url, created_at, updated_at
+            SELECT id, slug, title, chain, chain_id, address, type, enabled, status, testnet,
+                   methods, mint_method, burn_method, abi_present, webhook_url, webhook_secret,
+                   fallback_rpc, created_at, updated_at
             FROM payment_contracts
             ORDER BY created_at DESC
             """
@@ -50,6 +52,7 @@ class SQLContractsRepo(ContractsRepo):
                         "slug": str(r["slug"]),
                         "title": r["title"],
                         "chain": r["chain"],
+                        "chain_id": r["chain_id"],
                         "address": r["address"],
                         "type": r["type"],
                         "enabled": bool(r["enabled"]),
@@ -58,8 +61,16 @@ class SQLContractsRepo(ContractsRepo):
                         "methods": (
                             dict(r["methods"]) if r["methods"] is not None else None
                         ),
+                        "mint_method": r["mint_method"],
+                        "burn_method": r["burn_method"],
                         "abi_present": bool(r["abi_present"]),
                         "webhook_url": r["webhook_url"],
+                        "webhook_secret": r["webhook_secret"],
+                        "fallback_rpc": (
+                            dict(r["fallback_rpc"])
+                            if r["fallback_rpc"] is not None
+                            else None
+                        ),
                         "created_at": r["created_at"],
                         "updated_at": r["updated_at"],
                     }
@@ -70,28 +81,37 @@ class SQLContractsRepo(ContractsRepo):
         sql = text(
             """
             INSERT INTO payment_contracts (
-              id, slug, title, chain, address, type, enabled, status, testnet,
-              methods, abi_present, webhook_url, abi, created_at, updated_at
+              id, slug, title, chain, chain_id, address, type, enabled, status, testnet,
+              methods, mint_method, burn_method, abi_present, abi, webhook_url, webhook_secret,
+              fallback_rpc, created_at, updated_at
             ) VALUES (
-              coalesce(:id, gen_random_uuid()), :slug, :title, :chain, :address, :type,
+              coalesce(:id, gen_random_uuid()), :slug, :title, :chain, :chain_id, :address, :type,
               coalesce(:enabled,true), coalesce(:status,'active'), coalesce(:testnet,false),
-              cast(:methods as jsonb), coalesce(:abi_present,false), :webhook_url, cast(:abi as jsonb), now(), now()
+              cast(:methods as jsonb), :mint_method, :burn_method,
+              coalesce(:abi_present,false), cast(:abi as jsonb), :webhook_url, :webhook_secret,
+              cast(:fallback_rpc as jsonb), now(), now()
             )
             ON CONFLICT (slug) DO UPDATE SET
               title = excluded.title,
               chain = excluded.chain,
+              chain_id = excluded.chain_id,
               address = excluded.address,
               type = excluded.type,
               enabled = excluded.enabled,
               status = excluded.status,
               testnet = excluded.testnet,
               methods = excluded.methods,
+              mint_method = excluded.mint_method,
+              burn_method = excluded.burn_method,
               abi_present = excluded.abi_present,
-              webhook_url = excluded.webhook_url,
               abi = excluded.abi,
+              webhook_url = excluded.webhook_url,
+              webhook_secret = excluded.webhook_secret,
+              fallback_rpc = excluded.fallback_rpc,
               updated_at = now()
-            RETURNING id, slug, title, chain, address, type, enabled, status, testnet,
-                      methods, abi_present, webhook_url, created_at, updated_at
+            RETURNING id, slug, title, chain, chain_id, address, type, enabled, status, testnet,
+                      methods, mint_method, burn_method, abi_present, abi, webhook_url,
+                      webhook_secret, fallback_rpc, created_at, updated_at
             """
         )
         payload = {
@@ -99,15 +119,20 @@ class SQLContractsRepo(ContractsRepo):
             "slug": c.get("slug"),
             "title": c.get("title"),
             "chain": c.get("chain"),
+            "chain_id": c.get("chain_id"),
             "address": c.get("address"),
             "type": c.get("type"),
             "enabled": c.get("enabled", True),
             "status": c.get("status", "active"),
             "testnet": c.get("testnet", False),
             "methods": c.get("methods"),
+            "mint_method": c.get("mint_method"),
+            "burn_method": c.get("burn_method"),
             "abi_present": bool(c.get("abi_present") or bool(c.get("abi"))),
-            "webhook_url": c.get("webhook_url"),
             "abi": c.get("abi"),
+            "webhook_url": c.get("webhook_url"),
+            "webhook_secret": c.get("webhook_secret"),
+            "fallback_rpc": c.get("fallback_rpc"),
         }
         async with self._engine.begin() as conn:
             r = (await conn.execute(sql, payload)).mappings().first()
@@ -119,14 +144,22 @@ class SQLContractsRepo(ContractsRepo):
                 "slug": str(r["slug"]),
                 "title": r["title"],
                 "chain": r["chain"],
+                "chain_id": r["chain_id"],
                 "address": r["address"],
                 "type": r["type"],
                 "enabled": bool(r["enabled"]),
                 "status": r["status"],
                 "testnet": bool(r["testnet"]),
                 "methods": dict(r["methods"]) if r["methods"] is not None else None,
+                "mint_method": r["mint_method"],
+                "burn_method": r["burn_method"],
                 "abi_present": bool(r["abi_present"]),
+                "abi": r["abi"],
                 "webhook_url": r["webhook_url"],
+                "webhook_secret": r["webhook_secret"],
+                "fallback_rpc": (
+                    dict(r["fallback_rpc"]) if r["fallback_rpc"] is not None else None
+                ),
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
             }
@@ -139,8 +172,9 @@ class SQLContractsRepo(ContractsRepo):
     async def get(self, id_or_slug: str) -> JsonDict | None:
         sql = text(
             """
-            SELECT id, slug, title, chain, address, type, enabled, status, testnet,
-                   methods, abi_present, webhook_url, created_at, updated_at
+            SELECT id, slug, title, chain, chain_id, address, type, enabled, status, testnet,
+                   methods, mint_method, burn_method, abi_present, abi, webhook_url,
+                   webhook_secret, fallback_rpc, created_at, updated_at
             FROM payment_contracts
             WHERE id::text = :id OR slug = :id
             LIMIT 1
@@ -155,14 +189,22 @@ class SQLContractsRepo(ContractsRepo):
                 "slug": str(r["slug"]),
                 "title": r["title"],
                 "chain": r["chain"],
+                "chain_id": r["chain_id"],
                 "address": r["address"],
                 "type": r["type"],
                 "enabled": bool(r["enabled"]),
                 "status": r["status"],
                 "testnet": bool(r["testnet"]),
                 "methods": dict(r["methods"]) if r["methods"] is not None else None,
+                "mint_method": r["mint_method"],
+                "burn_method": r["burn_method"],
                 "abi_present": bool(r["abi_present"]),
+                "abi": r["abi"],
                 "webhook_url": r["webhook_url"],
+                "webhook_secret": r["webhook_secret"],
+                "fallback_rpc": (
+                    dict(r["fallback_rpc"]) if r["fallback_rpc"] is not None else None
+                ),
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
             }
@@ -170,8 +212,9 @@ class SQLContractsRepo(ContractsRepo):
     async def get_by_address(self, address: str) -> JsonDict | None:
         sql = text(
             """
-            SELECT id, slug, title, chain, address, type, enabled, status, testnet,
-                   methods, abi_present, webhook_url, created_at, updated_at
+            SELECT id, slug, title, chain, chain_id, address, type, enabled, status, testnet,
+                   methods, mint_method, burn_method, abi_present, abi, webhook_url,
+                   webhook_secret, fallback_rpc, created_at, updated_at
             FROM payment_contracts
             WHERE lower(address) = lower(:addr)
             LIMIT 1
@@ -186,14 +229,22 @@ class SQLContractsRepo(ContractsRepo):
                 "slug": str(r["slug"]),
                 "title": r["title"],
                 "chain": r["chain"],
+                "chain_id": r["chain_id"],
                 "address": r["address"],
                 "type": r["type"],
                 "enabled": bool(r["enabled"]),
                 "status": r["status"],
                 "testnet": bool(r["testnet"]),
                 "methods": dict(r["methods"]) if r["methods"] is not None else None,
+                "mint_method": r["mint_method"],
+                "burn_method": r["burn_method"],
                 "abi_present": bool(r["abi_present"]),
+                "abi": r["abi"],
                 "webhook_url": r["webhook_url"],
+                "webhook_secret": r["webhook_secret"],
+                "fallback_rpc": (
+                    dict(r["fallback_rpc"]) if r["fallback_rpc"] is not None else None
+                ),
                 "created_at": r["created_at"],
                 "updated_at": r["updated_at"],
             }
@@ -253,8 +304,24 @@ class SQLContractsRepo(ContractsRepo):
             VALUES (gen_random_uuid(), :contract_id, :event, :method, :tx_hash, :status, :amount, :token, cast(:meta as jsonb), now())
             """
         )
+        payload = {
+            "contract_id": e.get("contract_id"),
+            "event": e.get("event"),
+            "method": e.get("method"),
+            "tx_hash": e.get("tx_hash"),
+            "status": e.get("status"),
+            "amount": e.get("amount"),
+            "token": e.get("token"),
+            "meta": e.get("meta"),
+        }
         async with self._engine.begin() as conn:
-            await conn.execute(sql, e)
+            await conn.execute(sql, payload)
+        observe_contract_event(
+            event=e.get("event"),
+            status=e.get("status"),
+            chain_id=e.get("chain_id"),
+            method=e.get("method"),
+        )
 
     async def metrics_methods(
         self, id_or_slug: str | None, window: int = 1000

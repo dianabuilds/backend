@@ -12,7 +12,13 @@ from domains.platform.billing.ports import (
 class MockProvider(PaymentProvider):
     async def checkout(self, user_id: str, plan: Plan) -> CheckoutResult:
         # Return a fake external id and no external URL
-        return CheckoutResult(url=None, provider="mock", external_id=str(uuid.uuid4()))
+        return CheckoutResult(
+            url=None,
+            provider="mock",
+            external_id=str(uuid.uuid4()),
+            payload=None,
+            meta={"mock": True, "plan": plan.slug, "user_id": user_id},
+        )
 
     async def verify_webhook(
         self, payload: bytes, signature: str | None

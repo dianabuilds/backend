@@ -17,6 +17,7 @@ def test_public_contour_exposes_only_public_routes() -> None:
     app = create_app(contour="public")
     paths = _collect_paths(app)
     assert "/v1/nodes" in paths
+    assert "/v1/profile/me" in paths
     assert not any(path.startswith("/v1/admin") for path in paths)
     assert all("/api/moderation" not in path for path in paths)
 
@@ -25,6 +26,8 @@ def test_admin_contour_exposes_only_admin_routes() -> None:
     app = create_app(contour="admin")
     paths = _collect_paths(app)
     assert "/v1/profile" not in paths
+    assert "/v1/admin/profile/{user_id}" in paths
+    assert "/v1/admin/profile/{user_id}/username" in paths
     assert all(
         path.startswith("/v1/admin")
         or path.startswith("/api/moderation")

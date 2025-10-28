@@ -22,6 +22,8 @@ const DEFAULT_METRICS: BillingMetrics = {
   mrr: 0,
   arpu: 0,
   churn_30d: 0,
+  tokens: [],
+  networks: [],
 };
 
 export type UseManagementTariffsOptions = {

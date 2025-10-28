@@ -26,7 +26,7 @@ type Section = {
   groups: Group[];
 };
 
-const sections: Section[] = [
+const BASE_SECTIONS: Section[] = [
   {
     title: 'Workspace',
     groups: [
@@ -75,14 +75,14 @@ const sections: Section[] = [
     title: 'Revenue',
     groups: [
       {
-        base: '/billing',
+        base: '/finance/billing',
         label: 'Billing & Plans',
         icon: <CurrencyDollarIcon className="h-5 w-5 text-gray-400 dark:text-dark-300" />,
         children: [
-          { to: '/billing', label: 'Overview' },
-          { to: '/billing/payments', label: 'Payments' },
-          { to: '/billing/payments/monitoring', label: 'Payments Monitoring' },
-          { to: '/billing/tariffs', label: 'Tariffs' },
+          { to: '/finance/billing/overview', label: 'Overview' },
+          { to: '/finance/billing/payments', label: 'Payments' },
+          { to: '/finance/billing/payments/monitoring', label: 'Payments Monitoring' },
+          { to: '/finance/billing/tariffs', label: 'Tariffs' },
         ],
       },
     ],
@@ -151,7 +151,49 @@ const sections: Section[] = [
   },
 ];
 
-function buildInitialState(pathname: string) {
+const GROUP_ROLE_REQUIREMENTS: Record<string, string[] | undefined> = {
+  '/finance/billing': ['finance_ops', 'admin'],
+  '/platform': ['admin'],
+  '/observability': ['admin'],
+  '/moderation': ['admin'],
+};
+
+function normalizeRoles(user: any): Set<string> {
+  const roles = new Set<string>();
+  const collect = (value: unknown) => {
+    if (!value) return;
+    const text = String(value).trim().toLowerCase();
+    if (text) {
+      roles.add(text);
+    }
+  };
+  if (Array.isArray(user?.roles)) {
+    for (const role of user.roles) {
+      collect(role);
+    }
+  }
+  collect(user?.role);
+  return roles;
+}
+
+function filterSections(sections: Section[], roles: Set<string>): Section[] {
+  const isSuper = roles.has('admin');
+  return sections
+    .map((section) => {
+      const groups = section.groups.filter((group) => {
+        if (isSuper) return true;
+        const required = GROUP_ROLE_REQUIREMENTS[group.base];
+        if (!required || required.length === 0) {
+          return true;
+        }
+        return required.some((role) => roles.has(role));
+      });
+      return { ...section, groups };
+    })
+    .filter((section) => section.groups.length > 0);
+}
+
+function buildInitialState(pathname: string, sections: Section[]) {
   const state: Record<string, boolean> = {};
   for (const section of sections) {
     for (const group of section.groups) {
@@ -163,8 +205,10 @@ function buildInitialState(pathname: string) {
 
 export function Sidebar() {
   const { pathname } = useLocation();
-  const { logout } = useAuth();
-  const [open, setOpen] = React.useState<Record<string, boolean>>(() => buildInitialState(pathname));
+  const { logout, user } = useAuth();
+  const roles = React.useMemo(() => normalizeRoles(user), [user]);
+  const sections = React.useMemo(() => filterSections(BASE_SECTIONS, roles), [roles]);
+  const [open, setOpen] = React.useState<Record<string, boolean>>(() => buildInitialState(pathname, sections));
 
   React.useEffect(() => {
     setOpen((prev) => {
@@ -178,7 +222,7 @@ export function Sidebar() {
       }
       return next;
     });
-  }, [pathname]);
+  }, [pathname, sections]);
 
   return (
     <aside className="sidebar-panel ltr:border-r rtl:border-l border-gray-200 dark:border-dark-600/80 bg-white dark:bg-dark-900 w-64 shrink-0 min-h-100vh">

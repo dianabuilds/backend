@@ -425,7 +425,12 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
     from domains.product.nodes.api import make_admin_router as nodes_admin_router
     from domains.product.nodes.api import make_public_router as nodes_router
     from domains.product.premium.api.http import make_router as premium_router
-    from domains.product.profile.api.http import make_router as profile_router
+    from domains.product.profile.api import (
+        make_admin_router as profile_admin_router,
+    )
+    from domains.product.profile.api import (
+        make_public_router as profile_public_router,
+    )
     from domains.product.quests.api.http import make_router as quests_router
     from domains.product.referrals.api.http import make_router as referrals_router
     from domains.product.site.api import make_router as site_router
@@ -451,7 +456,7 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
         app.include_router(router)
 
     public_specs: list[Any] = [
-        profile_router,
+        profile_public_router,
         settings_router,
         settings_me_router,
         events_router,
@@ -488,6 +493,7 @@ def _register_core_routers(app: FastAPI, settings: Settings, contour: str) -> No
     admin_specs: list[Any] = [
         admin_router,
         notifications_admin_router,
+        profile_admin_router,
     ]
     if settings.content_enabled:
         admin_specs.append(site_router)

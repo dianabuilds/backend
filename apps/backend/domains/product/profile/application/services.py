@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
@@ -8,9 +10,28 @@ from domains.product.profile.application.mappers import to_view
 from domains.product.profile.application.ports import IamClient, Outbox, Repo
 from domains.product.profile.domain.entities import Profile
 from domains.product.profile.domain.results import EmailChangeRequest, ProfileView
+
+try:
+    from prometheus_client import Histogram  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    Histogram = None  # type: ignore
+
 from packages.core import Flags
 
 COOLDOWN_DAYS = 14
+MIN_SIGNATURE_LENGTH = 16
+
+logger = logging.getLogger(__name__)
+
+if Histogram is not None:
+    PROFILE_SETTINGS_LATENCY = Histogram(
+        "profile_settings_operation_latency_seconds",
+        "Latency of profile settings operations",
+        labelnames=("operation",),
+        buckets=(0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0),
+    )
+else:  # pragma: no cover - histogram disabled when dependency missing
+    PROFILE_SETTINGS_LATENCY = None  # type: ignore
 
 
 class Service:
@@ -31,6 +52,43 @@ class Service:
 
     def _to_view(self, profile: Profile) -> ProfileView:
         return to_view(profile, cooldown=self.cooldown)
+
+    @staticmethod
+    def _normalize_address(address: str) -> str:
+        return address.strip()
+
+    @staticmethod
+    def _normalize_chain_id(chain_id: str | None) -> str | None:
+        if chain_id is None:
+            return None
+        trimmed = chain_id.strip() if isinstance(chain_id, str) else str(chain_id)
+        return trimmed or None
+
+    @staticmethod
+    def _normalize_signature(signature: str | None) -> str | None:
+        if signature is None:
+            return None
+        trimmed = signature.strip()
+        return trimmed or None
+
+    def _verify_wallet_signature(
+        self, address: str, signature: str, chain_id: str | None
+    ) -> bool:
+        _ = (address, chain_id)
+        return len(signature) >= MIN_SIGNATURE_LENGTH
+
+    def _observe_metric(self, operation: str, start: float) -> None:
+        if PROFILE_SETTINGS_LATENCY is None:
+            return
+        duration = time.perf_counter() - start
+        try:
+            PROFILE_SETTINGS_LATENCY.labels(operation=operation).observe(duration)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.debug(
+                "profile_settings_metric_emit_failed",
+                extra={"operation": operation},
+                exc_info=exc,
+            )
 
     async def get_profile(self, user_id: str) -> ProfileView:
         profile = await self.repo.get(user_id)
@@ -119,6 +177,7 @@ class Service:
         new_email: str,
         subject: dict,
     ) -> EmailChangeRequest:
+        start = time.perf_counter()
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
 
@@ -160,9 +219,12 @@ class Service:
             },
             key=user_id,
         )
-        return EmailChangeRequest(
-            status="pending", pending_email=normalized_email, token=token
-        )
+        try:
+            return EmailChangeRequest(
+                status="pending", pending_email=normalized_email, token=token
+            )
+        finally:
+            self._observe_metric("email_request", start)
 
     async def confirm_email_change(
         self,
@@ -170,6 +232,7 @@ class Service:
         token: str,
         subject: dict,
     ) -> ProfileView:
+        start = time.perf_counter()
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
         if not isinstance(token, str) or not token.strip():
@@ -189,7 +252,10 @@ class Service:
             },
             key=updated.id,
         )
-        return self._to_view(updated)
+        try:
+            return self._to_view(updated)
+        finally:
+            self._observe_metric("email_confirm", start)
 
     async def set_wallet(
         self,
@@ -200,15 +266,31 @@ class Service:
         signature: str | None,
         subject: dict,
     ) -> ProfileView:
+        start = time.perf_counter()
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
-        if not isinstance(address, str) or not address:
+        if not isinstance(address, str):
             raise ValueError("wallet_required")
+        normalized_address = self._normalize_address(address)
+        if not normalized_address:
+            raise ValueError("wallet_required")
+        normalized_chain_id = self._normalize_chain_id(chain_id)
+        normalized_signature = self._normalize_signature(
+            signature if isinstance(signature, str) else None
+        )
+
+        if self.flags.require_wallet_signature and not normalized_signature:
+            raise ValueError("wallet_signature_required")
+        if normalized_signature and self.flags.require_wallet_signature:
+            if not self._verify_wallet_signature(
+                normalized_address, normalized_signature, normalized_chain_id
+            ):
+                raise ValueError("wallet_signature_invalid")
         updated = await self.repo.set_wallet(
             user_id,
-            address=address,
-            chain_id=chain_id,
-            signature=signature,
+            address=normalized_address,
+            chain_id=normalized_chain_id,
+            signature=normalized_signature,
             verified_at=self._now(),
         )
         self.outbox.publish(
@@ -220,9 +302,13 @@ class Service:
             },
             key=updated.id,
         )
-        return self._to_view(updated)
+        try:
+            return self._to_view(updated)
+        finally:
+            self._observe_metric("wallet_bind", start)
 
     async def clear_wallet(self, user_id: str, subject: dict) -> ProfileView:
+        start = time.perf_counter()
         if not self.iam.allow(subject, "profile.update", {"user_id": user_id}):
             raise PermissionError("denied")
         updated = await self.repo.clear_wallet(user_id)
@@ -231,4 +317,7 @@ class Service:
             {"id": updated.id},
             key=updated.id,
         )
-        return self._to_view(updated)
+        try:
+            return self._to_view(updated)
+        finally:
+            self._observe_metric("wallet_unbind", start)

@@ -293,7 +293,14 @@ def build_container(
     profile_iam = ProfileIamClient()
     profile_repo = ProfileRepoFactory(settings)
     svc = ProfileService(
-        repo=profile_repo, outbox=outbox, iam=profile_iam, flags=Flags()
+        repo=profile_repo,
+        outbox=outbox,
+        iam=profile_iam,
+        flags=Flags(
+            require_wallet_signature=bool(
+                getattr(settings, "profile_require_wallet_signature", False)
+            )
+        ),
     )
 
     nodes_repo = NodesRepoFactory(settings)
@@ -516,6 +523,13 @@ def build_container(
     billing = build_billing_container(settings)
     flags = build_flags_container(settings)
     notifications = build_notifications_container(settings, flag_service=flags.service)
+    finance_ops_recipient = (
+        getattr(settings, "billing_finance_ops_user_id", None) or "finance"
+    )
+    billing.service.events = events
+    billing.service.notify_service = notifications.notify_service
+    billing.service.audit_service = audit.service
+    billing.service.finance_ops_recipient = finance_ops_recipient
     site_service = SiteService(
         site_repository,
         worker_queue=worker_container.service,

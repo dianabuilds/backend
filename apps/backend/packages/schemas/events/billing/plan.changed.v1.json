@@ -1,0 +1,117 @@
+{
+  "$id": "billing.plan.changed.v1",
+  "title": "Billing plan changed",
+  "type": "object",
+  "required": ["user_id", "plan", "transaction", "occurred_at"],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan": {
+      "type": "object",
+      "required": ["slug"],
+      "properties": {
+        "id": {
+          "type": ["string", "null"]
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": ["string", "null"]
+        },
+        "price_cents": {
+          "type": ["integer", "null"]
+        },
+        "currency": {
+          "type": ["string", "null"]
+        },
+        "price_token": {
+          "type": ["string", "null"]
+        },
+        "price_usd_estimate": {
+          "type": ["number", "null"]
+        },
+        "billing_interval": {
+          "type": ["string", "null"]
+        },
+        "features": {
+          "type": ["object", "null"]
+        },
+        "monthly_limits": {
+          "type": ["object", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "subscription": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["id", "plan_id", "status", "auto_renew", "started_at"],
+          "properties": {
+            "id": {"type": "string"},
+            "plan_id": {"type": "string"},
+            "status": {"type": "string"},
+            "auto_renew": {"type": "boolean"},
+            "started_at": {"type": "string", "format": "date-time"},
+            "ends_at": {"type": ["string", "null"], "format": "date-time"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "previous_subscription": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["id", "plan_id", "status", "auto_renew", "started_at"],
+          "properties": {
+            "id": {"type": "string"},
+            "plan_id": {"type": "string"},
+            "status": {"type": "string"},
+            "auto_renew": {"type": "boolean"},
+            "started_at": {"type": "string", "format": "date-time"},
+            "ends_at": {"type": ["string", "null"], "format": "date-time"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "previous_plan": {
+      "type": ["object", "null"],
+      "properties": {
+        "plan_id": {"type": ["string", "null"]},
+        "slug": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "transaction": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "id": {"type": ["string", "null"]},
+        "status": {"type": "string"},
+        "tx_hash": {"type": ["string", "null"]},
+        "network": {"type": ["string", "null"]},
+        "token": {"type": ["string", "null"]},
+        "amount_cents": {"type": ["integer", "null"]},
+        "currency": {"type": ["string", "null"]},
+        "gateway": {"type": ["string", "null"]},
+        "external_id": {"type": ["string", "null"]},
+        "confirmed_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": {"type": ["string", "null"], "format": "date-time"}
+      },
+      "additionalProperties": false
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

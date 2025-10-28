@@ -8,3 +8,4 @@ export * from './payments-monitoring';
 export * from './tariffs';
 export * from './home';
 export * from './site-editor';
+export * from './overview';

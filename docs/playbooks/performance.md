@@ -36,6 +36,19 @@
 - В документации (например, в `./code-audit.md`) оставляем ссылки и краткие выводы, без вставки полных логов.
 - Перед релизом проверяем, что новые фичи не ломают гайд по PageHero/кэшированию и не вводят синхронные блокировки.
 
+## Billing / Blockchain мониторинг
+- Метрики:
+  - `billing_transactions_total{status,network,token,source}` и `billing_transaction_value_usd_total{network,token,source}` — поток транзакций и объём.
+  - `billing_subscriptions_*` (`*_active`, `*_mrr_usd`, `*_arpu_usd`, `*_churn_ratio`, `*_token_total`, `*_token_mrr_usd`, `*_network_total`) — состояние подписок и выручки.
+  - `billing_transactions_network_*` (`volume`, `failed_total`, `pending_total`) — проблемные сети/токены.
+  - `billing_contract_events_total{event,status,chain_id,method}` и `billing_contracts_inventory_total{label}` — активность смарт-контрактов.
+- Алерты (примерные пороги, настраиваются в Grafana/Alertmanager):
+  - Ошибки транзакций (`status="failed"`) >5 в течение 5 минут или доля ошибок >10% по сравнению с `status="succeeded"`.
+  - Рост `pending` > 20 транзакций на протяжении 10 минут — сигнал о деградации RPC или воркера `billing.contracts`.
+  - `billing_transactions_network_failed_total` > 0 на mainnet-сетях (Polygon/Arbitrum) в течение 3 минут — расследуем RPC/контракт.
+  - `billing_subscriptions_churn_ratio` > 0.2 — проверяем фич-флаги и статусы тарифов.
+- Дашборды дополняем ссылкой на `/v1/admin/telemetry/prometheus` (scrape Prometheus) и на overview API (`/v1/billing/overview/*`) для кросс-проверки.
+
 ## Связанные документы
 - `./code-audit.md` — полный процесс аудита.
 - `./security.md` — ограничения для API и фоновых воркеров.

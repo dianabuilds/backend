@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 
@@ -61,6 +62,28 @@ def profile_payload(response: Response, profile: dict[str, Any]) -> dict[str, An
     return payload
 
 
+def profile_limits_payload(
+    profile: Mapping[str, Any] | None
+) -> dict[str, dict[str, Any]]:
+    data = dict(profile or {})
+    limits_raw = data.get("limits")
+    limits: Mapping[str, Any]
+    if isinstance(limits_raw, Mapping):
+        limits = limits_raw
+    else:
+        limits = {}
+
+    username_limits = {
+        "can_change": bool(limits.get("can_change_username", False)),
+        "next_change_at": limits.get("next_username_change_at"),
+    }
+    email_limits = {
+        "can_change": bool(limits.get("can_change_email", False)),
+        "next_change_at": limits.get("next_email_change_at"),
+    }
+    return {"username": username_limits, "email": email_limits}
+
+
 def settings_payload(response: Response, key: str, value: Any) -> dict[str, Any]:
     etag = compute_etag(value)
     set_etag(response, etag)
@@ -91,6 +114,7 @@ __all__ = [
     "engine_for_dsn",
     "maybe_current_user",
     "profile_payload",
+    "profile_limits_payload",
     "require_user_id",
     "settings_payload",
     "subject_from_claims",

@@ -8,6 +8,13 @@ vi.mock('./client', () => ({
 
 import { apiDelete, apiGet, apiPost } from './client';
 import {
+  fetchBillingOverview,
+  fetchBillingKpi,
+  fetchBillingMetrics,
+  fetchBillingOverviewPayouts,
+  fetchBillingTransactions,
+} from './management/billing';
+import {
   deleteFeatureFlag,
   fetchFeatureFlags,
   saveFeatureFlag,
@@ -165,6 +172,164 @@ describe('management flags api', () => {
   });
 });
 
+describe('management billing api', () => {
+  it('normalizes overview payload', async () => {
+    mockedApiGet.mockResolvedValue({
+      kpi: {
+        success: '5',
+        errors: '2',
+        pending: null,
+        volume_cents: '5500',
+        avg_confirm_ms: '120.5',
+        contracts: {
+          total: '4',
+          enabled: '3',
+          disabled: '1',
+          testnet: '1',
+          mainnet: '3',
+        },
+      },
+      subscriptions: {
+        active_subs: '12',
+        mrr: '240.75',
+        arpu: '20.0625',
+        churn_30d: '0.15',
+        tokens: [
+          { token: 'usdc', total: '8', mrr_usd: '160.5' },
+          { token: '', total: null, mrr_usd: null },
+        ],
+        networks: [
+          { network: 'ethereum', chain_id: 1, total: '6' },
+          { network: '', total: 2 },
+        ],
+      },
+      revenue: [
+        { day: '2024-01-01', amount: '42.5' },
+        { day: null, amount: 0 },
+      ],
+    });
+
+    const overview = await fetchBillingOverview();
+
+    expect(mockedApiGet).toHaveBeenCalledWith('/v1/billing/overview/dashboard');
+    expect(overview).toMatchInlineSnapshot(`
+      {
+        "kpi": {
+          "avg_confirm_ms": 120.5,
+          "contracts": {
+            "disabled": 1,
+            "enabled": 3,
+            "mainnet": 3,
+            "testnet": 1,
+            "total": 4,
+          },
+          "errors": 2,
+          "pending": 0,
+          "success": 5,
+          "volume_cents": 5500,
+        },
+        "revenue": [
+          {
+            "amount": 42.5,
+            "day": "2024-01-01",
+          },
+        ],
+        "subscriptions": {
+          "active_subs": 12,
+          "arpu": 20.0625,
+          "churn_30d": 0.15,
+          "mrr": 240.75,
+          "networks": [
+            {
+              "chain_id": "1",
+              "network": "ethereum",
+              "total": 6,
+            },
+          ],
+          "tokens": [
+            {
+              "mrr_usd": 160.5,
+              "token": "usdc",
+              "total": 8,
+            },
+          ],
+        },
+      }
+    `);
+  });
+
+  it('returns normalized KPI', async () => {
+    mockedApiGet.mockResolvedValue({
+      kpi: {
+        success: '3',
+        errors: '1',
+        pending: '4',
+        volume_cents: '3200',
+        avg_confirm_ms: 98,
+      },
+    });
+
+    const kpi = await fetchBillingKpi();
+
+    expect(mockedApiGet).toHaveBeenCalledWith('/v1/billing/overview/dashboard');
+    expect(kpi).toMatchInlineSnapshot(`
+      {
+        "avg_confirm_ms": 98,
+        "contracts": {
+          "disabled": 0,
+          "enabled": 0,
+          "mainnet": 0,
+          "testnet": 0,
+          "total": 0,
+        },
+        "errors": 1,
+        "pending": 4,
+        "success": 3,
+        "volume_cents": 3200,
+      }
+    `);
+  });
+
+  it('returns normalized subscription metrics', async () => {
+    mockedApiGet.mockResolvedValue({
+      subscriptions: {
+        active_subs: '7',
+        mrr: '100',
+        arpu: '14.2857',
+        churn_30d: '0.2',
+        tokens: [{ token: 'usd', total: '5', mrr_usd: '70' }],
+        networks: [{ network: 'polygon', chain_id: 137, total: '2' }],
+      },
+    });
+
+    const metrics = await fetchBillingMetrics();
+
+    expect(mockedApiGet).toHaveBeenCalledWith('/v1/billing/overview/dashboard');
+    expect(metrics).toMatchInlineSnapshot(`
+      {
+        "active_subs": 7,
+        "arpu": 14.2857,
+        "churn_30d": 0.2,
+        "mrr": 100,
+        "networks": [
+          {
+            "chain_id": "137",
+            "network": "polygon",
+            "total": 2,
+          },
+        ],
+        "tokens": [
+          {
+            "mrr_usd": 70,
+            "token": "usd",
+            "total": 5,
+          },
+        ],
+      }
+    `);
+  });
+});
+
 describe('management integrations api', () => {
   it('normalizes integrations overview and filters invalid items', async () => {
     mockedApiGet.mockResolvedValue({
@@ -224,6 +389,49 @@ describe('management integrations api', () => {
       '/v1/notifications/send',
       { channel: 'webhook', payload: { ok: true } },
       { signal: undefined },
+    );
+  });
+
+  it('loads overview payouts with filters', async () => {
+    mockedApiGet.mockResolvedValue({
+      items: [
+        { id: '1', status: 'failed', gross_cents: 4200 },
+        { id: '2', status: 'pending', gross_cents: 2000 },
+      ],
+    });
+
+    const payouts = await fetchBillingOverviewPayouts({ status: 'failed', limit: 15 });
+
+    expect(mockedApiGet).toHaveBeenCalledWith('/v1/billing/overview/payouts?status=failed&limit=15');
+    expect(payouts).toMatchInlineSnapshot(`
+      [
+        {
+          "gross_cents": 4200,
+          "id": "1",
+          "status": "failed",
+        },
+        {
+          "gross_cents": 2000,
+          "id": "2",
+          "status": "pending",
+        },
+      ]
+    `);
+  });
+
+  it('fetches transactions with filters', async () => {
+    mockedApiGet.mockResolvedValue({ items: [] });
+
+    await fetchBillingTransactions({
+      status: 'succeeded',
+      provider: 'main',
+      contract: 'vault',
+      network: 'polygon',
+      limit: 50,
+    });
+
+    expect(mockedApiGet).toHaveBeenCalledWith(
+      '/v1/billing/admin/transactions?limit=50&status=succeeded&provider=main&contract=vault&network=polygon',
     );
   });
 });

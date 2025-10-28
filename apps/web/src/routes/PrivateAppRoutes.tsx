@@ -59,6 +59,7 @@ const ManagementSiteEditorDetail = React.lazy(() => import('../pages/management/
 const ManagementSiteGlobalBlockEditor = React.lazy(() => import('../pages/management/SiteGlobalBlockEditorDetail'));
 const ManagementDevBlog = React.lazy(() => import('../pages/management/DevBlog'));
 const ManagementPayments = React.lazy(() => import('../pages/management/Payments'));
+const ManagementBillingOverview = React.lazy(() => import('../pages/management/BillingOverview'));
 const PaymentsMonitoring = React.lazy(() => import('../pages/management/PaymentsMonitoring'));
 const ManagementTariffs = React.lazy(() => import('../pages/management/Tariffs'));
 const ManagementFlags = React.lazy(() => import('../pages/management/Flags'));
@@ -87,11 +88,15 @@ function PrivateProviders({ children }: { children: React.ReactNode }) {
 
 type GuardedElementOptions = {
   requireAdmin?: boolean;
+  allowedRoles?: string[];
 };
 
-function withLayout(element: React.ReactElement, options: GuardedElementOptions = {}): React.ReactElement {
+function withLayout(
+  element: React.ReactElement,
+  options: GuardedElementOptions = {},
+): React.ReactElement {
   return (
-    <Guard requireAdmin={options.requireAdmin}>
+    <Guard requireAdmin={options.requireAdmin} allowedRoles={options.allowedRoles}>
       <AppLayout>
         <React.Suspense fallback={<RouteFallback />}>{element}</React.Suspense>
       </AppLayout>
@@ -157,16 +162,20 @@ export default function PrivateAppRoutes(): React.ReactElement {
 
         <Route path="/billing" element={withLayout(<BillingPage />)} />
         <Route
-          path="/billing/payments"
-          element={withLayout(<ManagementPayments />, { requireAdmin: true })}
+          path="/finance/billing/overview"
+          element={withLayout(<ManagementBillingOverview />, { allowedRoles: ['finance_ops', 'admin'] })}
         />
         <Route
-          path="/billing/payments/monitoring"
-          element={withLayout(<PaymentsMonitoring />, { requireAdmin: true })}
+          path="/finance/billing/payments"
+          element={withLayout(<ManagementPayments />, { allowedRoles: ['finance_ops', 'admin'] })}
         />
         <Route
-          path="/billing/tariffs"
-          element={withLayout(<ManagementTariffs />, { requireAdmin: true })}
+          path="/finance/billing/payments/monitoring"
+          element={withLayout(<PaymentsMonitoring />, { allowedRoles: ['finance_ops', 'admin'] })}
+        />
+        <Route
+          path="/finance/billing/tariffs"
+          element={withLayout(<ManagementTariffs />, { allowedRoles: ['finance_ops', 'admin'] })}
         />
 
         <Route path="/platform/ai" element={withLayout(<ManagementAI />)} />
@@ -215,12 +224,18 @@ export default function PrivateAppRoutes(): React.ReactElement {
         <Route path="/settings/notifications" element={withLayout(<NotificationSettingsPage />)} />
 
         <Route path="/management/notifications" element={<Navigate to="/notifications" replace />} />
-        <Route path="/management/payments" element={<Navigate to="/billing/payments" replace />} />
+        <Route path="/management/payments" element={<Navigate to="/finance/billing/payments" replace />} />
         <Route
           path="/management/payments/monitoring"
-          element={<Navigate to="/billing/payments/monitoring" replace />}
+          element={<Navigate to="/finance/billing/payments/monitoring" replace />}
         />
-        <Route path="/management/tariffs" element={<Navigate to="/billing/tariffs" replace />} />
+        <Route path="/management/tariffs" element={<Navigate to="/finance/billing/tariffs" replace />} />
+        <Route path="/billing/payments" element={<Navigate to="/finance/billing/payments" replace />} />
+        <Route
+          path="/billing/payments/monitoring"
+          element={<Navigate to="/finance/billing/payments/monitoring" replace />}
+        />
+        <Route path="/billing/tariffs" element={<Navigate to="/finance/billing/tariffs" replace />} />
         <Route path="/management/ai" element={<Navigate to="/platform/ai" replace />} />
         <Route path="/management/flags" element={<Navigate to="/platform/flags" replace />} />
         <Route path="/management/integrations" element={<Navigate to="/platform/integrations" replace />} />
