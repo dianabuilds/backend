@@ -56,7 +56,6 @@ const ManagementAI = React.lazy(() => import('../pages/management/AI'));
 const ManagementSiteEditor = React.lazy(() => import('../pages/management/SiteEditor'));
 const ManagementSiteBlockLibrary = React.lazy(() => import('../pages/management/SiteBlockLibrary'));
 const ManagementSiteEditorDetail = React.lazy(() => import('../pages/management/SitePageEditorDetail'));
-const ManagementSiteGlobalBlockEditor = React.lazy(() => import('../pages/management/SiteGlobalBlockEditorDetail'));
 const ManagementDevBlog = React.lazy(() => import('../pages/management/DevBlog'));
 const ManagementPayments = React.lazy(() => import('../pages/management/Payments'));
 const ManagementBillingOverview = React.lazy(() => import('../pages/management/BillingOverview'));
@@ -153,10 +152,6 @@ export default function PrivateAppRoutes(): React.ReactElement {
         <Route
           path="/management/site-editor/pages/:pageId"
           element={withLayout(<ManagementSiteEditorDetail />, { requireAdmin: true })}
-        />
-        <Route
-          path="/management/site-editor/global-blocks/:blockId"
-          element={withLayout(<ManagementSiteGlobalBlockEditor />, { requireAdmin: true })}
         />
         <Route path="/management/dev-blog" element={withLayout(<ManagementDevBlog />, { requireAdmin: true })} />
 

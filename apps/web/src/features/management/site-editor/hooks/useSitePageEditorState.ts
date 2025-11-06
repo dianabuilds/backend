@@ -5,6 +5,8 @@ import type { HomeHistoryEntry } from '@shared/types/home';
 import type {
   SiteAuditEntry,
   SitePageDraft,
+  SitePageAttachedBlock,
+  SitePageBlockReference,
   SitePageSummary,
   SitePageVersion,
   SiteDraftValidationResult,
@@ -33,9 +35,68 @@ export type UseSitePageEditorStateOptions = {
 
 const DEFAULT_AUTOSAVE_MS = 1500;
 
+const SHARED_SECTIONS = ['header', 'footer'] as const;
+
+type SharedAssignments = Record<string, string | null>;
+type SharedBindingsMap = Record<string, SitePageAttachedBlock | null>;
+
+function createEmptySharedAssignments(): SharedAssignments {
+  return SHARED_SECTIONS.reduce<SharedAssignments>((acc, section) => {
+    acc[section] = null;
+    return acc;
+  }, {});
+}
+
+function sanitizeAssignment(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function ensureSharedAssignmentDefaults(assignments: SharedAssignments): SharedAssignments {
+  const result: SharedAssignments = { ...assignments };
+  for (const section of SHARED_SECTIONS) {
+    if (!(section in result)) {
+      result[section] = null;
+    }
+  }
+  return result;
+}
+
+function applySharedAssignment(
+  previous: SharedAssignments | undefined,
+  section: string,
+  value: string | null | undefined,
+): SharedAssignments {
+  const result: SharedAssignments = { ...(previous ?? {}) };
+  if (value !== undefined) {
+    result[section] = sanitizeAssignment(value);
+  }
+  return ensureSharedAssignmentDefaults(result);
+}
+
+function ensureSharedBindingDefaults(bindings: SharedBindingsMap): SharedBindingsMap {
+  const result: SharedBindingsMap = { ...bindings };
+  for (const section of SHARED_SECTIONS) {
+    if (!(section in result)) {
+      result[section] = null;
+    }
+  }
+  return result;
+}
+
+function createEmptySharedBindings(): SharedBindingsMap {
+  return ensureSharedBindingDefaults({});
+}
+
 const DEFAULT_DATA: HomeDraftData = {
   blocks: [],
   meta: null,
+  shared: {
+    assignments: createEmptySharedAssignments(),
+  },
 };
 
 const DEFAULT_SNAPSHOT: HomeDraftSnapshot = {
@@ -134,11 +195,40 @@ function normalizeBlock(raw: unknown, index: number): HomeBlock | null {
   return block;
 }
 
-function normalizeDraftData(raw: unknown): HomeDraftData {
-  if (!isRecord(raw)) {
-    return DEFAULT_DATA;
+function extractAssignmentsFromDataRecord(raw: AnyRecord | null): SharedAssignments {
+  if (!raw) {
+    return {};
   }
-  const rawBlocks = Array.isArray(raw.blocks) ? raw.blocks : [];
+  const shared = isRecord(raw.shared) ? (raw.shared as AnyRecord) : null;
+  if (!shared) {
+    return {};
+  }
+  const assignmentsSource = isRecord(shared.assignments)
+    ? (shared.assignments as AnyRecord)
+    : isRecord(shared.globalAssignments)
+      ? (shared.globalAssignments as AnyRecord)
+      : isRecord(shared.global_assignments)
+        ? (shared.global_assignments as AnyRecord)
+        : null;
+  if (!assignmentsSource) {
+    return {};
+  }
+  const assignments: SharedAssignments = {};
+  Object.entries(assignmentsSource).forEach(([section, value]) => {
+    assignments[section] = sanitizeAssignment(value as string | null | undefined);
+  });
+  return assignments;
+}
+
+function normalizeDraftData(
+  raw: unknown,
+  options: {
+    meta?: Record<string, unknown> | null;
+    assignments?: SharedAssignments | null;
+  } = {},
+): HomeDraftData {
+  const rawRecord = isRecord(raw) ? (raw as AnyRecord) : {};
+  const rawBlocks = Array.isArray(rawRecord.blocks) ? rawRecord.blocks : [];
   const blocks: HomeBlock[] = [];
   rawBlocks.forEach((item, index) => {
     const block = normalizeBlock(item, index);
@@ -146,22 +236,41 @@ function normalizeDraftData(raw: unknown): HomeDraftData {
       blocks.push(block);
     }
   });
-  const meta = isRecord(raw.meta) ? { ...raw.meta } : null;
+  const meta = options.meta ? { ...options.meta } : null;
+  let assignments = createEmptySharedAssignments();
+  assignments = mergeAssignments(assignments, extractAssignmentsFromDataRecord(rawRecord));
+  assignments = mergeAssignments(assignments, options.assignments ?? undefined);
   return {
     blocks,
     meta,
+    shared: {
+      assignments,
+    },
   };
 }
 
-function cloneMeta(meta: HomeDraftData['meta']): Record<string, unknown> | undefined {
+function mergeAssignments(
+  base: SharedAssignments,
+  next: SharedAssignments | undefined,
+): SharedAssignments {
+  if (!next) {
+    return ensureSharedAssignmentDefaults(base);
+  }
+  const result: SharedAssignments = { ...base };
+  for (const [section, value] of Object.entries(next)) {
+    if (value === undefined) {
+      continue;
+    }
+    result[section] = sanitizeAssignment(value);
+  }
+  return ensureSharedAssignmentDefaults(result);
+}
+
+function cloneMeta(meta: HomeDraftData['meta']): Record<string, unknown> {
   if (!meta) {
-    return undefined;
+    return {};
   }
-  const entries = Object.entries(meta);
-  if (!entries.length) {
-    return undefined;
-  }
-  return entries.reduce<Record<string, unknown>>((acc, [key, value]) => {
+  return Object.entries(meta).reduce<Record<string, unknown>>((acc, [key, value]) => {
     acc[key] = value;
     return acc;
   }, {});
@@ -171,14 +280,129 @@ function buildDraftPayload(data: HomeDraftData): { data: Record<string, unknown>
   const normalizedData: Record<string, unknown> = {
     blocks: Array.isArray(data.blocks) ? data.blocks : [],
   };
+
+  const assignments = ensureSharedAssignmentDefaults(data.shared?.assignments ?? createEmptySharedAssignments());
+  const effectiveAssignments = Object.entries(assignments).reduce<Record<string, string>>((acc, [section, key]) => {
+    if (typeof key === 'string' && key.trim().length > 0) {
+      acc[section] = key.trim();
+    }
+    return acc;
+  }, {});
+
+  if (Object.keys(effectiveAssignments).length > 0) {
+    normalizedData.shared = {
+      assignments: effectiveAssignments,
+    };
+  }
+
   const meta = cloneMeta(data.meta ?? null);
+
   const payload: { data: Record<string, unknown>; meta?: Record<string, unknown> } = {
     data: normalizedData,
   };
-  if (meta) {
+  if (Object.keys(meta).length > 0) {
     payload.meta = meta;
   }
   return payload;
+}
+
+function deriveAssignmentsFromBindings(bindings: SharedBindingsMap): SharedAssignments {
+  const result: SharedAssignments = {};
+  Object.entries(bindings).forEach(([section, binding]) => {
+    result[section] = binding?.key ?? null;
+  });
+  return result;
+}
+
+function normalizeBindingSection(section: string | null | undefined): string {
+  if (typeof section !== 'string') {
+    return 'other';
+  }
+  const normalized = section.trim().toLowerCase();
+  return normalized || 'other';
+}
+
+function mergeBinding(
+  previous: SitePageAttachedBlock | null | undefined,
+  next: Partial<SitePageAttachedBlock> | null | undefined,
+): SitePageAttachedBlock | null {
+  if (!next) {
+    return previous ?? null;
+  }
+  const sectionKey = normalizeBindingSection(
+    (next.section as string | null | undefined) ?? previous?.section ?? null,
+  );
+  const merged: SitePageAttachedBlock = {
+    ...(previous ?? {}),
+    ...(next as SitePageAttachedBlock),
+    section: sectionKey,
+  };
+  if (merged.has_draft_binding == null && merged.has_draft != null) {
+    merged.has_draft_binding = merged.has_draft;
+  }
+  const prevExtras =
+    previous && previous.extras && typeof previous.extras === 'object'
+      ? (previous.extras as Record<string, unknown>)
+      : undefined;
+  const nextExtras =
+    next && (next as SitePageAttachedBlock).extras && typeof (next as SitePageAttachedBlock).extras === 'object'
+      ? ((next as SitePageAttachedBlock).extras as Record<string, unknown>)
+      : undefined;
+  const combinedExtras =
+    prevExtras || nextExtras
+      ? {
+          ...(prevExtras ?? {}),
+          ...(nextExtras ?? {}),
+        }
+      : undefined;
+  if (merged.active === false) {
+    merged.extras = {
+      ...(combinedExtras ?? {}),
+      is_missing: true,
+    };
+  } else if (combinedExtras) {
+    merged.extras = combinedExtras;
+  }
+  return merged;
+}
+
+function createSharedBindingMap(
+  summaryBindings: SitePageAttachedBlock[] | null | undefined,
+  draftRefs: SitePageBlockReference[] | null | undefined,
+  draftBindings?: SitePageAttachedBlock[] | null | undefined,
+): SharedBindingsMap {
+  const map: SharedBindingsMap = {};
+  if (Array.isArray(summaryBindings)) {
+    summaryBindings.forEach((binding) => {
+      if (!binding) {
+        return;
+      }
+      const sectionKey = normalizeBindingSection(binding.section);
+      map[sectionKey] = mergeBinding(map[sectionKey], binding);
+    });
+  }
+  if (Array.isArray(draftBindings)) {
+    draftBindings.forEach((binding) => {
+      if (!binding) {
+        return;
+      }
+      const sectionKey = normalizeBindingSection(binding.section);
+      map[sectionKey] = mergeBinding(map[sectionKey], binding);
+    });
+  }
+  if (Array.isArray(draftRefs)) {
+    draftRefs.forEach((ref) => {
+      if (!ref) {
+        return;
+      }
+      const sectionKey = normalizeBindingSection(ref.section);
+      map[sectionKey] = mergeBinding(map[sectionKey], {
+        ...ref,
+        section: sectionKey,
+      } as SitePageAttachedBlock);
+    });
+  }
+  return ensureSharedBindingDefaults(map);
 }
 
 function makeSnapshot(draft: SitePageDraft | null): HomeDraftSnapshot {
@@ -240,6 +464,17 @@ export type SitePageEditorState = {
   slug: string;
   validation: ValidationSummary;
   revalidate: () => ValidationSummary;
+  sharedBindings: SharedBindingsMap;
+  sharedAssignments: SharedAssignments;
+  setSharedAssignment: (section: string, key: string | null, binding?: SitePageAttachedBlock | null) => void;
+  clearSharedAssignment: (section: string) => void;
+  updateSharedBindingInfo: (section: string, binding: SitePageAttachedBlock | null) => void;
+  assignSharedBinding: (
+    section: string,
+    blockId: string,
+    options?: { key?: string | null; locale?: string | null },
+  ) => Promise<void>;
+  removeSharedBinding: (section: string, options?: { locale?: string | null }) => Promise<void>;
   serverValidation: SiteDraftValidationResult | null;
   serverValidationLoading: boolean;
   serverValidationError: string | null;
@@ -287,6 +522,7 @@ export function useSitePageEditorState(
   const [snapshot, setSnapshot] = React.useState<HomeDraftSnapshot>(DEFAULT_SNAPSHOT);
   const [validation, setValidation] = React.useState<ValidationSummary>(validateHomeDraft(DEFAULT_DATA));
   const [restoringVersion, setRestoringVersion] = React.useState<number | null>(null);
+  const [sharedBindings, setSharedBindings] = React.useState<SharedBindingsMap>(createEmptySharedBindings());
 
   const [siteHistory, setSiteHistory] = React.useState<SitePageVersion[]>([]);
   const [siteHistoryLoading, setSiteHistoryLoading] = React.useState(false);
@@ -305,6 +541,7 @@ export function useSitePageEditorState(
   const [diffError, setDiffError] = React.useState<string | null>(null);
 
   const dataRef = React.useRef<HomeDraftData>(DEFAULT_DATA);
+  const pageRef = React.useRef<SitePageSummary | null>(null);
   const draftVersionRef = React.useRef<number>(0);
   const reviewStatusRef = React.useRef<SitePageDraft['review_status']>('none');
   const savingRef = React.useRef(false);
@@ -457,7 +694,19 @@ export function useSitePageEditorState(
       draftVersionRef.current = draft?.version ?? pageSummary.draft_version ?? 1;
       reviewStatusRef.current = draft?.review_status ?? 'none';
       setReviewStatusState(reviewStatusRef.current);
-      const normalized = normalizeDraftData(draft?.data ?? null);
+      const baselineBindings: SitePageAttachedBlock[] = Array.isArray(pageSummary.shared_bindings)
+        ? [...pageSummary.shared_bindings]
+        : [];
+      const bindingMap = createSharedBindingMap(
+        baselineBindings.length ? baselineBindings : null,
+        draft?.block_refs ?? null,
+        draft?.shared_bindings ?? null,
+      );
+      setSharedBindings(bindingMap);
+      const normalized = normalizeDraftData(draft?.data ?? null, {
+        meta: draft?.meta ?? null,
+        assignments: deriveAssignmentsFromBindings(bindingMap),
+      });
       dataRef.current = normalized;
       setDataState(normalized);
       setSelectedBlockId(normalized.blocks[0]?.id ?? null);
@@ -517,13 +766,31 @@ export function useSitePageEditorState(
           review_status: reviewStatusRef.current,
         },
       );
+      const currentPage = pageRef.current;
+      const baselineBindings: SitePageAttachedBlock[] = Array.isArray(currentPage?.shared_bindings)
+        ? [...currentPage.shared_bindings]
+        : [];
+      const bindingMap = createSharedBindingMap(
+        baselineBindings.length ? baselineBindings : null,
+        draft.block_refs ?? null,
+        draft.shared_bindings ?? null,
+      );
+      setSharedBindings(bindingMap);
       draftVersionRef.current = draft.version;
       reviewStatusRef.current = draft.review_status;
       setReviewStatusState(draft.review_status);
       setSnapshot(makeSnapshot(draft));
       setDirty(false);
       setLastSavedAt(draft.updated_at ?? new Date().toISOString());
-      setPage((prev) => (prev ? ({ ...prev, draft_version: draft.version }) : prev));
+      setPage((prev) =>
+        prev
+          ? {
+              ...prev,
+              draft_version: draft.version,
+              shared_bindings: draft.shared_bindings ?? prev.shared_bindings,
+            }
+          : prev,
+      );
       runServerValidation().catch(() => undefined);
       refreshDiff().catch(() => undefined);
     } catch (error) {
@@ -621,6 +888,106 @@ export function useSitePageEditorState(
     setSelectedBlockId(blockId);
   }, []);
 
+  const sharedAssignments = React.useMemo(
+    () => ensureSharedAssignmentDefaults(dataState.shared?.assignments ?? createEmptySharedAssignments()),
+    [dataState.shared?.assignments],
+  );
+
+  const setSharedAssignment = React.useCallback(
+    (section: string, key: string | null, binding?: SitePageAttachedBlock | null) => {
+      const normalizedSection = typeof section === 'string' ? section : String(section);
+      const nextValue = sanitizeAssignment(key);
+      setSharedBindings((prev) =>
+        ensureSharedBindingDefaults({
+          ...prev,
+          [normalizedSection]: binding ?? null,
+        }),
+      );
+      if ((sharedAssignments[normalizedSection] ?? null) === nextValue) {
+        return;
+      }
+      setData((prev) => {
+        const prevShared = prev.shared ?? { assignments: createEmptySharedAssignments() };
+        const baseAssignments = prevShared.assignments ?? createEmptySharedAssignments();
+        const nextAssignments = applySharedAssignment(baseAssignments, normalizedSection, nextValue);
+        return {
+          ...prev,
+          shared: {
+            ...prevShared,
+            assignments: nextAssignments,
+          },
+        };
+      });
+    },
+    [setData, sharedAssignments],
+  );
+
+  const clearSharedAssignment = React.useCallback(
+    (section: string) => {
+      setSharedAssignment(section, null, null);
+    },
+    [setSharedAssignment],
+  );
+
+  const updateSharedBindingInfo = React.useCallback((section: string, binding: SitePageAttachedBlock | null) => {
+    const normalizedSection = typeof section === 'string' ? section : String(section);
+    setSharedBindings((prev) =>
+      ensureSharedBindingDefaults({
+        ...prev,
+        [normalizedSection]: binding,
+      }),
+    );
+  }, []);
+
+  const resolveBindingLocale = React.useCallback(
+    (candidate?: string | null) => {
+      const normalizedCandidate = typeof candidate === 'string' ? candidate.trim() : '';
+      if (normalizedCandidate) {
+        return normalizedCandidate;
+      }
+      const snapshot = pageRef.current;
+      const fallback =
+        (snapshot?.default_locale ?? snapshot?.locale ?? metricsLocaleRef.current ?? 'ru') || 'ru';
+      return typeof fallback === 'string' && fallback.trim().length > 0 ? fallback : 'ru';
+    },
+    [],
+  );
+
+  const assignSharedBindingRemote = React.useCallback(
+    async (section: string, blockId: string, options?: { key?: string | null; locale?: string | null }) => {
+      const normalizedSection = normalizeBindingSection(section);
+      const response = await managementSiteEditorApi.assignSharedBinding(pageId, normalizedSection, {
+        block_id: blockId,
+        locale: resolveBindingLocale(options?.locale ?? null),
+      });
+      const binding = response ?? null;
+      const bindingKey = binding?.key ?? options?.key ?? blockId;
+      if (!bindingKey) {
+        throw new Error('site_page_shared_binding_missing_key');
+      }
+      const effectiveBinding =
+        binding ??
+        ({
+          block_id: blockId,
+          key: bindingKey,
+          section: normalizedSection,
+        } as SitePageAttachedBlock);
+      setSharedAssignment(normalizedSection, bindingKey, effectiveBinding);
+    },
+    [pageId, resolveBindingLocale, setSharedAssignment],
+  );
+
+  const removeSharedBindingRemote = React.useCallback(
+    async (section: string, options?: { locale?: string | null }) => {
+      const normalizedSection = normalizeBindingSection(section);
+      await managementSiteEditorApi.deleteSharedBinding(pageId, normalizedSection, {
+        locale: resolveBindingLocale(options?.locale ?? null),
+      });
+      clearSharedAssignment(normalizedSection);
+    },
+    [clearSharedAssignment, pageId, resolveBindingLocale],
+  );
+
   const restoreVersion = React.useCallback(async (version: number) => {
     if (!Number.isFinite(version)) {
       throw new Error('site_page_restore_invalid_version');
@@ -636,7 +1003,19 @@ export function useSitePageEditorState(
       draftVersionRef.current = draft.version;
       reviewStatusRef.current = draft.review_status;
       setReviewStatusState(draft.review_status);
-      const normalized = normalizeDraftData(draft.data);
+      const baselineBindings: SitePageAttachedBlock[] = Array.isArray(page?.shared_bindings)
+        ? [...page.shared_bindings]
+        : [];
+      const bindingMap = createSharedBindingMap(
+        baselineBindings.length ? baselineBindings : null,
+        draft.block_refs ?? null,
+        draft.shared_bindings ?? null,
+      );
+      setSharedBindings(bindingMap);
+      const normalized = normalizeDraftData(draft.data, {
+        meta: draft.meta ?? null,
+        assignments: deriveAssignmentsFromBindings(bindingMap),
+      });
       dataRef.current = normalized;
       setDataState(normalized);
       setSelectedBlockId(normalized.blocks[0]?.id ?? null);
@@ -694,6 +1073,10 @@ export function useSitePageEditorState(
       setPublishing(false);
     }
   }, [clearAutosaveTimer, dirty, fetchMetrics, loadDraft, pageId, refreshAudit, refreshDiff, refreshHistory, revalidate, saveDraft]);
+
+  React.useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   React.useEffect(() => {
     setValidation(validateHomeDraft(dataState));
@@ -755,9 +1138,16 @@ export function useSitePageEditorState(
   publishing,
   publishDraft,
   snapshot,
-  slug: page?.slug ?? '',
+    slug: page?.slug ?? '',
     validation,
     revalidate,
+    sharedBindings,
+    sharedAssignments,
+    setSharedAssignment,
+    clearSharedAssignment,
+    updateSharedBindingInfo,
+    assignSharedBinding: assignSharedBindingRemote,
+    removeSharedBinding: removeSharedBindingRemote,
     serverValidation,
     serverValidationLoading,
     serverValidationError,

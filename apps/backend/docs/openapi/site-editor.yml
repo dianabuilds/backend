@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Site Editor API
-  description: Endpoints for managing site pages and global blocks.
+  description: Endpoints for managing site pages, block library, and shared bindings.
   version: 1.0.0
 paths:
   /v1/site/pages:
@@ -320,6 +320,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/shared-bindings:
+    get:
+      tags:
+      - site
+      summary: List Shared Bindings
+      operationId: list_shared_bindings_v1_site_pages__page_id__shared_bindings_get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: locale
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+      - name: include_inactive
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Inactive
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Shared Bindings V1 Site Pages  Page Id  Shared
+                  Bindings Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/shared-bindings/{section}:
+    put:
+      tags:
+      - site
+      summary: Assign Shared Binding
+      operationId: assign_shared_binding_v1_site_pages__page_id__shared_bindings__section__put
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: section
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Section
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Assign Shared Binding V1 Site Pages  Page Id  Shared
+                  Bindings  Section  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - site
+      summary: Delete Shared Binding
+      operationId: delete_shared_binding_v1_site_pages__page_id__shared_bindings__section__delete
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: section
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Section
+      - name: locale
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/site/pages/{page_id}/preview:
     post:
       tags:
@@ -510,12 +634,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks:
+  /v1/site/blocks:
     get:
       tags:
       - site
-      summary: List Global Blocks
-      operationId: list_global_blocks_v1_site_global_blocks_get
+      summary: List Blocks
+      operationId: list_blocks_v1_site_blocks_get
       parameters:
       - name: page
         in: query
@@ -530,10 +654,18 @@ paths:
         required: false
         schema:
           type: integer
-          maximum: 100
+          maximum: 200
           minimum: 1
           default: 20
           title: Page Size
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scope
       - name: section
         in: query
         required: false
@@ -547,7 +679,7 @@ paths:
         required: false
         schema:
           anyOf:
-          - $ref: '#/components/schemas/GlobalBlockStatus'
+          - $ref: '#/components/schemas/SiteBlockStatus'
           - type: 'null'
           title: Status
       - name: locale
@@ -565,7 +697,7 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          title: Q
+          title: Query
       - name: has_draft
         in: query
         required: false
@@ -574,6 +706,22 @@ paths:
           - type: boolean
           - type: 'null'
           title: Has Draft
+      - name: requires_publisher
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Requires Publisher
+      - name: review_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Status
       - name: sort
         in: query
         required: false
@@ -581,15 +729,38 @@ paths:
           type: string
           default: updated_at_desc
           title: Sort
+      - name: include_data
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Include Data
+      - name: is_template
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Template
+      - name: origin_block_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Origin Block Id
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response List Global Blocks V1 Site Global Blocks Get
+                $ref: '#/components/schemas/SiteBlockListResponse'
         '422':
           description: Validation Error
           content:
@@ -599,35 +770,33 @@ paths:
     post:
       tags:
       - site
-      summary: Create Global Block
-      operationId: create_global_block_v1_site_global_blocks_post
+      summary: Create Block
+      operationId: create_block_v1_site_blocks_post
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GlobalBlockCreatePayload'
+              $ref: '#/components/schemas/BlockCreatePayload'
       responses:
         '201':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Create Global Block V1 Site Global Blocks Post
+                $ref: '#/components/schemas/SiteBlock'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks/{block_id}:
+  /v1/site/blocks/{block_id}:
     get:
       tags:
       - site
-      summary: Get Global Block
-      operationId: get_global_block_v1_site_global_blocks__block_id__get
+      summary: Get Block
+      operationId: get_block_v1_site_blocks__block_id__get
       parameters:
       - name: block_id
         in: path
@@ -636,15 +805,21 @@ paths:
           type: string
           format: uuid
           title: Block Id
+      - name: scope
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scope
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Get Global Block V1 Site Global Blocks  Block Id  Get
+                $ref: '#/components/schemas/SiteBlockDetailResponse'
         '422':
           description: Validation Error
           content:
@@ -654,8 +829,8 @@ paths:
     put:
       tags:
       - site
-      summary: Save Global Block
-      operationId: save_global_block_v1_site_global_blocks__block_id__put
+      summary: Save Block
+      operationId: save_block_v1_site_blocks__block_id__put
       parameters:
       - name: block_id
         in: path
@@ -669,28 +844,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GlobalBlockSavePayload'
+              $ref: '#/components/schemas/BlockSavePayload'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Save Global Block V1 Site Global Blocks  Block Id  Put
+                $ref: '#/components/schemas/SiteBlock'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks/{block_id}/publish:
+  /v1/site/blocks/{block_id}/publish:
     post:
       tags:
       - site
-      summary: Publish Global Block
-      operationId: publish_global_block_v1_site_global_blocks__block_id__publish_post
+      summary: Publish Block
+      operationId: publish_block_v1_site_blocks__block_id__publish_post
       parameters:
       - name: block_id
         in: path
@@ -700,34 +873,63 @@ paths:
           format: uuid
           title: Block Id
       requestBody:
+        required: false
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GlobalBlockPublishPayload'
-              default:
-                acknowledge_usage: false
+              $ref: '#/components/schemas/BlockPublishPayload'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Publish Global Block V1 Site Global Blocks  Block
-                  Id  Publish Post
+                $ref: '#/components/schemas/SiteBlockPublishResponse'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks/{block_id}/history:
+  /v1/site/blocks/{block_id}/archive:
+    post:
+      tags:
+      - site
+      summary: Archive Block
+      operationId: archive_block_v1_site_blocks__block_id__archive_post
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockArchivePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/blocks/{block_id}/history:
     get:
       tags:
       - site
-      summary: List Global Block History
-      operationId: list_global_block_history_v1_site_global_blocks__block_id__history_get
+      summary: List Block History
+      operationId: list_block_history_v1_site_blocks__block_id__history_get
       parameters:
       - name: block_id
         in: path
@@ -741,7 +943,6 @@ paths:
         required: false
         schema:
           type: integer
-          maximum: 100
           minimum: 1
           default: 10
           title: Limit
@@ -759,22 +960,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response List Global Block History V1 Site Global Blocks  Block
-                  Id  History Get
+                $ref: '#/components/schemas/SiteBlockHistoryResponse'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks/{block_id}/history/{version}:
+  /v1/site/blocks/{block_id}/history/{version}:
     get:
       tags:
       - site
-      summary: Get Global Block Version
-      operationId: get_global_block_version_v1_site_global_blocks__block_id__history__version__get
+      summary: Get Block Version
+      operationId: get_block_version_v1_site_blocks__block_id__history__version__get
       parameters:
       - name: block_id
         in: path
@@ -788,6 +986,8 @@ paths:
         required: true
         schema:
           type: integer
+          minimum: 1
+          default: 1
           title: Version
       responses:
         '200':
@@ -795,22 +995,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Get Global Block Version V1 Site Global Blocks  Block
-                  Id  History  Version  Get
+                $ref: '#/components/schemas/SiteBlockHistoryItem'
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/site/global-blocks/{block_id}/history/{version}/restore:
+  /v1/site/blocks/{block_id}/history/{version}/restore:
     post:
       tags:
       - site
-      summary: Restore Global Block Version
-      operationId: restore_global_block_version_v1_site_global_blocks__block_id__history__version__restore_post
+      summary: Restore Block Version
+      operationId: restore_block_version_v1_site_blocks__block_id__history__version__restore_post
       parameters:
       - name: block_id
         in: path
@@ -824,6 +1021,8 @@ paths:
         required: true
         schema:
           type: integer
+          minimum: 1
+          default: 1
           title: Version
       responses:
         '200':
@@ -831,10 +1030,233 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Restore Global Block Version V1 Site Global Blocks  Block
-                  Id  History  Version  Restore Post
+                $ref: '#/components/schemas/SiteBlockDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/blocks/{block_id}/preview:
+    get:
+      tags:
+      - site
+      summary: Preview Block
+      operationId: preview_block_v1_site_blocks__block_id__preview_get
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      - name: locale
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 10
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockPreviewResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/block-templates:
+    get:
+      tags:
+      - site
+      summary: List Block Templates
+      operationId: list_block_templates_v1_site_block_templates_get
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: section
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Section
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Query
+      - name: include_data
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Include Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockTemplateListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - site
+      summary: Create Block Template
+      operationId: create_block_template_v1_site_block_templates_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockTemplateCreatePayload'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockTemplate'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/block-templates/{template_id}:
+    get:
+      tags:
+      - site
+      summary: Get Block Template
+      operationId: get_block_template_v1_site_block_templates__template_id__get
+      parameters:
+      - name: template_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Template Id
+      - name: include_data
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Include Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockTemplate'
+        '404':
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - site
+      summary: Update Block Template
+      operationId: update_block_template_v1_site_block_templates__template_id__put
+      parameters:
+      - name: template_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Template Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockTemplateUpdatePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockTemplate'
+        '404':
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/block-templates/by-key/{template_key}:
+    get:
+      tags:
+      - site
+      summary: Get Block Template By Key
+      operationId: get_block_template_by_key_v1_site_block_templates_by_key__template_key__get
+      parameters:
+      - name: template_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Template Key
+      - name: include_data
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Include Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SiteBlockTemplate'
+        '404':
+          description: Not Found
         '422':
           description: Validation Error
           content:
@@ -1830,7 +2252,7 @@ components:
       required:
       - token
       title: EmailConfirmPayload
-    GlobalBlockCreatePayload:
+    BlockCreatePayload:
       properties:
         key:
           type: string
@@ -1848,12 +2270,37 @@ components:
           minLength: 1
           title: Section
           default: promo
-        locale:
+        scope:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Scope
+        template_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Template Id
+        template_key:
+          anyOf:
+          - type: string
+            maxLength: 128
+          - type: 'null'
+          title: Template Key
+        default_locale:
           anyOf:
           - type: string
             maxLength: 10
           - type: 'null'
-          title: Locale
+          title: Default Locale
+          default: ru
+        available_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Available Locales
         requires_publisher:
           type: boolean
           title: Requires Publisher
@@ -1866,12 +2313,21 @@ components:
           additionalProperties: true
           type: object
           title: Meta
+        is_template:
+          type: boolean
+          title: Is Template
+          default: false
+        origin_block_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Origin Block Id
       type: object
       required:
-      - key
       - title
-      title: GlobalBlockCreatePayload
-    GlobalBlockPublishPayload:
+      title: BlockCreatePayload
+    BlockPublishPayload:
       properties:
         comment:
           anyOf:
@@ -1898,8 +2354,8 @@ components:
           title: Acknowledge Usage
           default: false
       type: object
-      title: GlobalBlockPublishPayload
-    GlobalBlockSavePayload:
+      title: BlockPublishPayload
+    BlockSavePayload:
       properties:
         version:
           anyOf:
@@ -1924,15 +2380,995 @@ components:
         review_status:
           $ref: '#/components/schemas/PageReviewStatus'
           default: none
+        title:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Title
+        section:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Section
+        default_locale:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Default Locale
+        available_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Available Locales
+        requires_publisher:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Requires Publisher
       type: object
-      title: GlobalBlockSavePayload
-    GlobalBlockStatus:
+      title: BlockSavePayload
+    BlockArchivePayload:
+      properties:
+        restore:
+          type: boolean
+          title: Restore
+          default: false
+      type: object
+      title: BlockArchivePayload
+    BlockTemplateCreatePayload:
+      properties:
+        key:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Key
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Title
+        section:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Section
+          default: general
+        description:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Description
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          default: available
+        default_locale:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Default Locale
+          default: ru
+        available_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Available Locales
+        block_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Block Type
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        sources:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Sources
+        surfaces:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Surfaces
+        owners:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Owners
+        catalog_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Catalog Locales
+        documentation_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Documentation Url
+        keywords:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Keywords
+        preview_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Preview Kind
+        status_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status Note
+        requires_publisher:
+          type: boolean
+          title: Requires Publisher
+          default: false
+        allow_shared_scope:
+          type: boolean
+          title: Allow Shared Scope
+          default: true
+        allow_page_scope:
+          type: boolean
+          title: Allow Page Scope
+          default: true
+        shared_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shared Note
+        key_prefix:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key Prefix
+        default_data:
+          additionalProperties: true
+          type: object
+          title: Default Data
+        default_meta:
+          additionalProperties: true
+          type: object
+          title: Default Meta
+      type: object
+      required:
+      - key
+      - title
+      title: BlockTemplateCreatePayload
+    BlockTemplateUpdatePayload:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Title
+        section:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Section
+        description:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Description
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        default_locale:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Default Locale
+        available_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Available Locales
+        block_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Block Type
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        sources:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Sources
+        surfaces:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Surfaces
+        owners:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Owners
+        catalog_locales:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Catalog Locales
+        documentation_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Documentation Url
+        keywords:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Keywords
+        preview_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Preview Kind
+        status_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status Note
+        requires_publisher:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Requires Publisher
+        allow_shared_scope:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Allow Shared Scope
+        allow_page_scope:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Allow Page Scope
+        shared_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shared Note
+        key_prefix:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key Prefix
+        default_data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Default Data
+        default_meta:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Default Meta
+      type: object
+      title: BlockTemplateUpdatePayload
+    SiteBlockStatus:
       type: string
       enum:
       - draft
       - published
       - archived
-      title: GlobalBlockStatus
+      title: SiteBlockStatus
+    SiteBlock:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        template_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Template Id
+        template_key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Key
+        section:
+          type: string
+          title: Section
+        scope:
+          $ref: '#/components/schemas/BlockScope'
+        default_locale:
+          type: string
+          title: Default Locale
+        available_locales:
+          items:
+            type: string
+          type: array
+          title: Available Locales
+        status:
+          $ref: '#/components/schemas/SiteBlockStatus'
+        review_status:
+          $ref: '#/components/schemas/PageReviewStatus'
+        requires_publisher:
+          type: boolean
+          title: Requires Publisher
+        published_version:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Published Version
+        draft_version:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Draft Version
+        version:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Version
+        usage_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Usage Count
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+        has_pending_publish:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Pending Publish
+        extras:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Extras
+        locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+        is_template:
+          type: boolean
+          title: Is Template
+        origin_block_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Origin Block Id
+      type: object
+      required:
+      - id
+      - section
+      - scope
+      - default_locale
+      - available_locales
+      - status
+      - review_status
+      - requires_publisher
+      - data
+      - meta
+      - updated_at
+      title: SiteBlock
+    SiteBlockUsage:
+      properties:
+        block_id:
+          type: string
+          format: uuid
+          title: Block Id
+        page_id:
+          type: string
+          format: uuid
+          title: Page Id
+        slug:
+          type: string
+          title: Slug
+        title:
+          type: string
+          title: Title
+        status:
+          $ref: '#/components/schemas/PageStatus'
+        section:
+          type: string
+          title: Section
+        locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+        has_draft:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Draft
+        has_draft_binding:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Draft Binding
+        last_published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Published At
+        owner:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owner
+        position:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Position
+        scope:
+          anyOf:
+          - $ref: '#/components/schemas/BlockScope'
+          - type: 'null'
+          title: Scope
+      type: object
+      required:
+      - block_id
+      - page_id
+      - slug
+      - title
+      - status
+      - section
+      title: SiteBlockUsage
+    SiteBlockWarning:
+      properties:
+        code:
+          type: string
+          title: Code
+        page_id:
+          type: string
+          title: Page Id
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - code
+      - page_id
+      - message
+      title: SiteBlockWarning
+    SiteBlockDetailResponse:
+      properties:
+        block:
+          $ref: '#/components/schemas/SiteBlock'
+        usage:
+          items:
+            $ref: '#/components/schemas/SiteBlockUsage'
+          type: array
+          title: Usage
+        warnings:
+          items:
+            $ref: '#/components/schemas/SiteBlockWarning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - block
+      - usage
+      - warnings
+      title: SiteBlockDetailResponse
+    SiteBlockListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SiteBlock'
+          type: array
+          title: Items
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+      type: object
+      required:
+      - items
+      - page
+      - page_size
+      title: SiteBlockListResponse
+    SiteBlockHistoryItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        block_id:
+          type: string
+          format: uuid
+          title: Block Id
+        version:
+          type: integer
+          title: Version
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        diff:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Diff
+        published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Published At
+        published_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Published By
+      type: object
+      required:
+      - id
+      - block_id
+      - version
+      - data
+      - meta
+      title: SiteBlockHistoryItem
+    SiteBlockHistoryResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SiteBlockHistoryItem'
+          type: array
+          title: Items
+        total:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+      type: object
+      required:
+      - items
+      - limit
+      - offset
+      title: SiteBlockHistoryResponse
+    SiteBlockPublishJob:
+      properties:
+        job_id:
+          type: string
+          title: Job Id
+        type:
+          type: string
+          title: Type
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - job_id
+      - type
+      - status
+      title: SiteBlockPublishJob
+    SiteBlockAffectedPage:
+      properties:
+        page_id:
+          type: string
+          format: uuid
+          title: Page Id
+        slug:
+          type: string
+          title: Slug
+        title:
+          type: string
+          title: Title
+        status:
+          $ref: '#/components/schemas/PageStatus'
+        republish_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Republish Status
+      type: object
+      required:
+      - page_id
+      - slug
+      - title
+      - status
+      title: SiteBlockAffectedPage
+    SiteBlockPublishResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        published_version:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Published Version
+        affected_pages:
+          items:
+            $ref: '#/components/schemas/SiteBlockAffectedPage'
+          type: array
+          title: Affected Pages
+        jobs:
+          items:
+            $ref: '#/components/schemas/SiteBlockPublishJob'
+          type: array
+          title: Jobs
+        audit_id:
+          type: string
+          title: Audit Id
+        block:
+          $ref: '#/components/schemas/SiteBlock'
+        usage:
+          items:
+            $ref: '#/components/schemas/SiteBlockUsage'
+          type: array
+          title: Usage
+      type: object
+      required:
+      - id
+      - affected_pages
+      - jobs
+      - audit_id
+      - block
+      - usage
+      title: SiteBlockPublishResponse
+    SiteBlockPreviewItem:
+      properties:
+        id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Id
+        title:
+          type: string
+          title: Title
+        subtitle:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subtitle
+        href:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Href
+        badge:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Badge
+        provider:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider
+        score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Score
+        probability:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Probability
+      type: object
+      required:
+      - title
+      title: SiteBlockPreviewItem
+    SiteBlockPreviewResponse:
+      properties:
+        block:
+          type: string
+          title: Block
+        locale:
+          type: string
+          title: Locale
+        items:
+          items:
+            $ref: '#/components/schemas/SiteBlockPreviewItem'
+          type: array
+          title: Items
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        fetched_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Fetched At
+        meta:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Meta
+        warnings:
+          items:
+            $ref: '#/components/schemas/SiteBlockWarning'
+          type: array
+          title: Warnings
+      type: object
+      required:
+      - block
+      - locale
+      - items
+      title: SiteBlockPreviewResponse
+    SiteBlockTemplate:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        key:
+          type: string
+          title: Key
+        title:
+          type: string
+          title: Title
+        section:
+          type: string
+          title: Section
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        status:
+          type: string
+          title: Status
+        default_locale:
+          type: string
+          title: Default Locale
+        available_locales:
+          items:
+            type: string
+          type: array
+          title: Available Locales
+        default_data:
+          additionalProperties: true
+          type: object
+          title: Default Data
+        default_meta:
+          additionalProperties: true
+          type: object
+          title: Default Meta
+        block_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Block Type
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        sources:
+          items:
+            type: string
+          type: array
+          title: Sources
+        surfaces:
+          items:
+            type: string
+          type: array
+          title: Surfaces
+        owners:
+          items:
+            type: string
+          type: array
+          title: Owners
+        catalog_locales:
+          items:
+            type: string
+          type: array
+          title: Catalog Locales
+        documentation_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Documentation Url
+        keywords:
+          items:
+            type: string
+          type: array
+          title: Keywords
+        preview_kind:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Preview Kind
+        status_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status Note
+        requires_publisher:
+          type: boolean
+          title: Requires Publisher
+        allow_shared_scope:
+          type: boolean
+          title: Allow Shared Scope
+        allow_page_scope:
+          type: boolean
+          title: Allow Page Scope
+        shared_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Shared Note
+        key_prefix:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key Prefix
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+        created_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+      type: object
+      required:
+      - id
+      - key
+      - title
+      - section
+      - status
+      - default_locale
+      - available_locales
+      - default_data
+      - default_meta
+      - requires_publisher
+      - allow_shared_scope
+      - allow_page_scope
+      title: SiteBlockTemplate
+    SiteBlockTemplateListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/SiteBlockTemplate'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: SiteBlockTemplateListResponse
+    BlockScope:
+      type: string
+      enum:
+      - page
+      - shared
+      title: BlockScope
     HTTPValidationError:
       properties:
         detail:

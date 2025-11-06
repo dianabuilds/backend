@@ -7,7 +7,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
 
 from domains.product.site.domain.models import (
-    GlobalBlockStatus,
+    BlockScope,
+    BlockStatus,
     PageReviewStatus,
     PageStatus,
     PageType,
@@ -34,8 +35,9 @@ REVIEW_STATUS_ENUM = _enum(
     [member.value for member in PageReviewStatus], "site_page_review_status"
 )
 BLOCK_STATUS_ENUM = _enum(
-    [member.value for member in GlobalBlockStatus], "site_global_block_status"
+    [member.value for member in BlockStatus], "site_global_block_status"
 )
+BLOCK_SCOPE_ENUM = _enum([member.value for member in BlockScope], "site_block_scope")
 
 JSON_TYPE = sa.JSON().with_variant(pg.JSONB(astext_type=sa.Text()), "postgresql")
 
@@ -53,8 +55,10 @@ SITE_PAGES_TABLE = sa.Table(
     sa.Column("slug", sa.Text(), nullable=False, unique=True),
     sa.Column("type", PAGE_TYPE_ENUM, nullable=False),
     sa.Column("status", PAGE_STATUS_ENUM, nullable=False, default=PageStatus.DRAFT),
-    sa.Column("title", sa.Text(), nullable=False),
-    sa.Column("locale", sa.Text(), nullable=False, default="ru"),
+    sa.Column("title", sa.Text(), nullable=True),
+    sa.Column("default_locale", sa.Text(), nullable=False, default="ru"),
+    sa.Column("available_locales", JSON_TYPE, nullable=False, default=list),
+    sa.Column("slug_localized", JSON_TYPE, nullable=False, default=dict),
     sa.Column("owner", sa.Text(), nullable=True),
     sa.Column(
         "created_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
@@ -136,8 +140,8 @@ sa.Index(
     unique=True,
 )
 
-SITE_GLOBAL_BLOCKS_TABLE = sa.Table(
-    "site_global_blocks",
+SITE_BLOCKS_TABLE = sa.Table(
+    "site_blocks",
     metadata,
     sa.Column(
         "id",
@@ -146,40 +150,88 @@ SITE_GLOBAL_BLOCKS_TABLE = sa.Table(
         nullable=False,
         default=uuid.uuid4,
     ),
-    sa.Column("key", sa.Text(), nullable=False, unique=True),
+    sa.Column("key", sa.Text(), nullable=True),
     sa.Column("title", sa.Text(), nullable=False),
-    sa.Column("section", sa.Text(), nullable=False, default="general"),
-    sa.Column("locale", sa.Text(), nullable=True),
     sa.Column(
-        "status", BLOCK_STATUS_ENUM, nullable=False, default=GlobalBlockStatus.DRAFT
+        "template_id",
+        sa.Uuid(as_uuid=True),
+        sa.ForeignKey(
+            "site_block_templates.id",
+            ondelete="SET NULL",
+            name="fk_site_blocks_template",
+        ),
+        nullable=True,
     ),
+    sa.Column("scope", BLOCK_SCOPE_ENUM, nullable=False, default=BlockScope.PAGE),
+    sa.Column("section", sa.Text(), nullable=False, default="general"),
+    sa.Column("default_locale", sa.Text(), nullable=False, default="ru"),
+    sa.Column("available_locales", JSON_TYPE, nullable=False, default=list),
+    sa.Column("status", BLOCK_STATUS_ENUM, nullable=False, default=BlockStatus.DRAFT),
+    sa.Column("is_template", sa.Boolean(), nullable=False, default=False),
+    sa.Column(
+        "origin_block_id",
+        sa.Uuid(as_uuid=True),
+        sa.ForeignKey(
+            "site_blocks.id",
+            ondelete="SET NULL",
+            name="fk_site_blocks_origin_block",
+        ),
+        nullable=True,
+    ),
+    sa.Column("version", sa.BigInteger(), nullable=True, default=0),
+    sa.Column("data", JSON_TYPE, nullable=False, default=dict),
+    sa.Column("meta", JSON_TYPE, nullable=False, default=dict),
     sa.Column(
         "review_status",
         REVIEW_STATUS_ENUM,
         nullable=False,
         default=PageReviewStatus.NONE,
     ),
-    sa.Column("data", JSON_TYPE, nullable=False, default=dict),
-    sa.Column("meta", JSON_TYPE, nullable=False, default=dict),
-    sa.Column(
-        "updated_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
-    ),
-    sa.Column("updated_by", sa.Text(), nullable=True),
     sa.Column("published_version", sa.BigInteger(), nullable=True),
     sa.Column("draft_version", sa.BigInteger(), nullable=True),
     sa.Column("requires_publisher", sa.Boolean(), nullable=False, default=False),
     sa.Column("comment", sa.Text(), nullable=True),
-    sa.Column("usage_count", sa.BigInteger(), nullable=False, default=0),
+    sa.Column(
+        "created_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+    sa.Column(
+        "updated_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+    sa.Column("updated_by", sa.Text(), nullable=True),
 )
 
 sa.Index(
-    "ix_site_global_blocks_section_status",
-    SITE_GLOBAL_BLOCKS_TABLE.c.section,
-    SITE_GLOBAL_BLOCKS_TABLE.c.status,
+    "ix_site_blocks_scope_status",
+    SITE_BLOCKS_TABLE.c.scope,
+    SITE_BLOCKS_TABLE.c.status,
 )
 
-SITE_GLOBAL_BLOCK_VERSIONS_TABLE = sa.Table(
-    "site_global_block_versions",
+sa.Index(
+    "ix_site_blocks_scope_section",
+    SITE_BLOCKS_TABLE.c.scope,
+    SITE_BLOCKS_TABLE.c.section,
+)
+
+sa.Index(
+    "ix_site_blocks_template_scope",
+    SITE_BLOCKS_TABLE.c.template_id,
+    SITE_BLOCKS_TABLE.c.scope,
+)
+
+sa.Index(
+    "ux_site_blocks_key",
+    SITE_BLOCKS_TABLE.c.key,
+    unique=True,
+    postgresql_where=SITE_BLOCKS_TABLE.c.key.isnot(None),  # type: ignore[attr-defined]
+)
+
+sa.Index(
+    "ix_site_blocks_origin_block",
+    SITE_BLOCKS_TABLE.c.origin_block_id,
+)
+
+SITE_BLOCK_VERSIONS_TABLE = sa.Table(
+    "site_block_versions",
     metadata,
     sa.Column(
         "id",
@@ -192,9 +244,7 @@ SITE_GLOBAL_BLOCK_VERSIONS_TABLE = sa.Table(
         "block_id",
         sa.Uuid(as_uuid=True),
         sa.ForeignKey(
-            "site_global_blocks.id",
-            ondelete="CASCADE",
-            name="fk_site_global_block_versions_block",
+            "site_blocks.id", ondelete="CASCADE", name="fk_site_block_versions_block"
         ),
         nullable=False,
     ),
@@ -203,43 +253,132 @@ SITE_GLOBAL_BLOCK_VERSIONS_TABLE = sa.Table(
     sa.Column("meta", JSON_TYPE, nullable=False, default=dict),
     sa.Column("comment", sa.Text(), nullable=True),
     sa.Column("diff", JSON_TYPE, nullable=True),
-    sa.Column(
-        "published_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
-    ),
+    sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
     sa.Column("published_by", sa.Text(), nullable=True),
 )
 
 sa.Index(
-    "ix_site_global_block_versions_block_version",
-    SITE_GLOBAL_BLOCK_VERSIONS_TABLE.c.block_id,
-    SITE_GLOBAL_BLOCK_VERSIONS_TABLE.c.version,
+    "ix_site_block_versions_block_version",
+    SITE_BLOCK_VERSIONS_TABLE.c.block_id,
+    SITE_BLOCK_VERSIONS_TABLE.c.version,
+    unique=True,
+)
+SITE_BLOCK_TEMPLATES_TABLE = sa.Table(
+    "site_block_templates",
+    metadata,
+    sa.Column(
+        "id",
+        sa.Uuid(as_uuid=True),
+        primary_key=True,
+        nullable=False,
+        default=uuid.uuid4,
+    ),
+    sa.Column("key", sa.Text(), nullable=False),
+    sa.Column("title", sa.Text(), nullable=False),
+    sa.Column("section", sa.Text(), nullable=False, default="general"),
+    sa.Column("description", sa.Text(), nullable=True),
+    sa.Column("status", sa.Text(), nullable=False, default="available"),
+    sa.Column("default_locale", sa.Text(), nullable=False, default="ru"),
+    sa.Column("available_locales", JSON_TYPE, nullable=False, default=list),
+    sa.Column("default_data", JSON_TYPE, nullable=False, default=dict),
+    sa.Column("default_meta", JSON_TYPE, nullable=False, default=dict),
+    sa.Column("block_type", sa.Text(), nullable=True),
+    sa.Column("category", sa.Text(), nullable=True),
+    sa.Column("sources", JSON_TYPE, nullable=True),
+    sa.Column("surfaces", JSON_TYPE, nullable=True),
+    sa.Column("owners", JSON_TYPE, nullable=True),
+    sa.Column("catalog_locales", JSON_TYPE, nullable=True),
+    sa.Column("documentation_url", sa.Text(), nullable=True),
+    sa.Column("keywords", JSON_TYPE, nullable=True),
+    sa.Column("preview_kind", sa.Text(), nullable=True),
+    sa.Column("status_note", sa.Text(), nullable=True),
+    sa.Column(
+        "requires_publisher",
+        sa.Boolean(),
+        nullable=False,
+        server_default=sa.text("false"),
+    ),
+    sa.Column(
+        "allow_shared_scope",
+        sa.Boolean(),
+        nullable=False,
+        server_default=sa.text("true"),
+    ),
+    sa.Column(
+        "allow_page_scope",
+        sa.Boolean(),
+        nullable=False,
+        server_default=sa.text("true"),
+    ),
+    sa.Column("shared_note", sa.Text(), nullable=True),
+    sa.Column("key_prefix", sa.Text(), nullable=True),
+    sa.Column(
+        "created_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+    sa.Column("created_by", sa.Text(), nullable=True),
+    sa.Column(
+        "updated_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+    sa.Column("updated_by", sa.Text(), nullable=True),
+)
+
+sa.Index(
+    "ux_site_block_templates_key",
+    SITE_BLOCK_TEMPLATES_TABLE.c.key,
     unique=True,
 )
 
-SITE_GLOBAL_BLOCK_USAGE_TABLE = sa.Table(
-    "site_global_block_usage",
+SITE_BLOCK_BINDINGS_TABLE = sa.Table(
+    "site_block_bindings",
     metadata,
+    sa.Column(
+        "id",
+        sa.Uuid(as_uuid=True),
+        nullable=False,
+        primary_key=True,
+        default=uuid.uuid4,
+    ),
     sa.Column(
         "block_id",
         sa.Uuid(as_uuid=True),
         sa.ForeignKey(
-            "site_global_blocks.id",
-            ondelete="CASCADE",
-            name="fk_site_global_block_usage_block",
+            "site_blocks.id", ondelete="CASCADE", name="fk_site_block_bindings_block"
         ),
-        primary_key=True,
         nullable=False,
     ),
     sa.Column(
         "page_id",
         sa.Uuid(as_uuid=True),
         sa.ForeignKey(
-            "site_pages.id", ondelete="CASCADE", name="fk_site_global_block_usage_page"
+            "site_pages.id", ondelete="CASCADE", name="fk_site_block_bindings_page"
         ),
-        primary_key=True,
         nullable=False,
     ),
-    sa.Column("section", sa.Text(), primary_key=True, nullable=False),
+    sa.Column("section", sa.Text(), nullable=False),
+    sa.Column("locale", sa.Text(), nullable=False),
+    sa.Column("position", sa.Integer(), nullable=False, default=0),
+    sa.Column("active", sa.Boolean(), nullable=False, default=True),
+    sa.Column("has_draft", sa.Boolean(), nullable=False, default=False),
+    sa.Column("last_published_at", sa.DateTime(timezone=True), nullable=True),
+    sa.Column(
+        "created_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+    sa.Column(
+        "updated_at", sa.DateTime(timezone=True), nullable=False, default=_utcnow
+    ),
+)
+
+sa.Index(
+    "ix_site_block_bindings_page_locale",
+    SITE_BLOCK_BINDINGS_TABLE.c.page_id,
+    SITE_BLOCK_BINDINGS_TABLE.c.locale,
+    SITE_BLOCK_BINDINGS_TABLE.c.section,
+    SITE_BLOCK_BINDINGS_TABLE.c.position,
+)
+
+sa.Index(
+    "ix_site_block_bindings_block",
+    SITE_BLOCK_BINDINGS_TABLE.c.block_id,
 )
 
 SITE_PAGE_METRICS_TABLE = sa.Table(
@@ -289,16 +428,14 @@ sa.Index(
     SITE_PAGE_METRICS_TABLE.c.range_end,
 )
 
-SITE_GLOBAL_BLOCK_METRICS_TABLE = sa.Table(
-    "site_global_block_metrics",
+SITE_BLOCK_METRICS_TABLE = sa.Table(
+    "site_block_metrics",
     metadata,
     sa.Column(
         "block_id",
         sa.Uuid(as_uuid=True),
         sa.ForeignKey(
-            "site_global_blocks.id",
-            ondelete="CASCADE",
-            name="fk_site_global_block_metrics_block",
+            "site_blocks.id", ondelete="CASCADE", name="fk_site_block_metrics_block"
         ),
         primary_key=True,
         nullable=False,
@@ -329,12 +466,20 @@ SITE_GLOBAL_BLOCK_METRICS_TABLE = sa.Table(
 )
 
 sa.Index(
-    "ix_site_global_block_metrics_range_desc",
-    SITE_GLOBAL_BLOCK_METRICS_TABLE.c.block_id,
-    SITE_GLOBAL_BLOCK_METRICS_TABLE.c.period,
-    SITE_GLOBAL_BLOCK_METRICS_TABLE.c.locale,
-    SITE_GLOBAL_BLOCK_METRICS_TABLE.c.range_end,
+    "ix_site_block_metrics_range_desc",
+    SITE_BLOCK_METRICS_TABLE.c.block_id,
+    SITE_BLOCK_METRICS_TABLE.c.period,
+    SITE_BLOCK_METRICS_TABLE.c.locale,
+    SITE_BLOCK_METRICS_TABLE.c.range_end,
 )
+
+# ---------------------------------------------------------------------------
+# Legacy aliases for compatibility during the migration window.
+
+SITE_GLOBAL_BLOCKS_TABLE = SITE_BLOCKS_TABLE
+SITE_GLOBAL_BLOCK_VERSIONS_TABLE = SITE_BLOCK_VERSIONS_TABLE
+SITE_GLOBAL_BLOCK_USAGE_TABLE = SITE_BLOCK_BINDINGS_TABLE
+SITE_GLOBAL_BLOCK_METRICS_TABLE = SITE_BLOCK_METRICS_TABLE
 
 SITE_AUDIT_LOG_TABLE = sa.Table(
     "site_audit_log",
@@ -369,14 +514,21 @@ __all__ = [
     "SITE_PAGES_TABLE",
     "SITE_PAGE_DRAFTS_TABLE",
     "SITE_PAGE_VERSIONS_TABLE",
-    "SITE_GLOBAL_BLOCKS_TABLE",
-    "SITE_GLOBAL_BLOCK_VERSIONS_TABLE",
-    "SITE_GLOBAL_BLOCK_USAGE_TABLE",
+    "SITE_BLOCKS_TABLE",
+    "SITE_BLOCK_TEMPLATES_TABLE",
+    "SITE_BLOCK_VERSIONS_TABLE",
+    "SITE_BLOCK_BINDINGS_TABLE",
     "SITE_PAGE_METRICS_TABLE",
-    "SITE_GLOBAL_BLOCK_METRICS_TABLE",
+    "SITE_BLOCK_METRICS_TABLE",
     "SITE_AUDIT_LOG_TABLE",
     "PAGE_TYPE_ENUM",
     "PAGE_STATUS_ENUM",
     "REVIEW_STATUS_ENUM",
     "BLOCK_STATUS_ENUM",
+    "BLOCK_SCOPE_ENUM",
+    # Legacy exports maintained for backwards compatibility
+    "SITE_GLOBAL_BLOCKS_TABLE",
+    "SITE_GLOBAL_BLOCK_VERSIONS_TABLE",
+    "SITE_GLOBAL_BLOCK_USAGE_TABLE",
+    "SITE_GLOBAL_BLOCK_METRICS_TABLE",
 ]

@@ -1,5 +1,6 @@
 import type { ValidationSummary } from './validation';
 import type { HomeHistoryEntry } from '@shared/types/home';
+import type { SitePageAttachedBlock, SitePageSummary } from '@shared/types/management';
 export type HomeBlockType =
   | 'hero'
   | 'dev_blog_list'
@@ -31,9 +32,14 @@ export type HomeBlock = {
   dataSource?: HomeBlockDataSource | null;
 };
 
+export type HomeSharedState = {
+  assignments: Record<string, string | null>;
+};
+
 export type HomeDraftData = {
   blocks: HomeBlock[];
   meta?: Record<string, unknown> | null;
+  shared?: HomeSharedState;
 };
 
 export type HomeDraftSnapshot = {
@@ -43,6 +49,7 @@ export type HomeDraftSnapshot = {
 };
 
 export type HomeEditorContextValue = {
+  page: SitePageSummary | null;
   loading: boolean;
   data: HomeDraftData;
   setData: (updater: (prev: HomeDraftData) => HomeDraftData) => void;
@@ -61,8 +68,18 @@ export type HomeEditorContextValue = {
   publishing: boolean;
   restoringVersion: number | null;
   publishDraft: (options?: { comment?: string }) => Promise<void>;
-  restoreVersion: (version: number, options?: { comment?: string }) => Promise<void>;
+  restoreVersion: (version: number) => Promise<void>;
   validation: ValidationSummary;
   revalidate: () => ValidationSummary;
+  sharedBindings: Record<string, SitePageAttachedBlock | null>;
+  sharedAssignments: Record<string, string | null>;
+  setSharedAssignment: (section: string, key: string | null, binding?: SitePageAttachedBlock | null) => void;
+  clearSharedAssignment: (section: string) => void;
+  updateSharedBindingInfo: (section: string, binding: SitePageAttachedBlock | null) => void;
+  assignSharedBinding: (
+    section: string,
+    blockId: string,
+    options?: { key?: string | null; locale?: string | null },
+  ) => Promise<void>;
+  removeSharedBinding: (section: string, options?: { locale?: string | null }) => Promise<void>;
 };
-

@@ -152,7 +152,7 @@ const PAGE_DETAILS: Record<string, SitePageSummary> = {
     draft_version: 14,
     has_pending_review: false,
     pinned: true,
-    global_blocks: [
+    shared_bindings: [
       {
         key: 'header-nav',
         block_id: 'block-header',
@@ -182,7 +182,7 @@ const PAGE_DETAILS: Record<string, SitePageSummary> = {
     draft_version: 7,
     has_pending_review: true,
     pinned: false,
-    global_blocks: [],
+    shared_bindings: [],
   },
 };
 
@@ -231,7 +231,6 @@ describe('SitePagesCatalog', () => {
     expect(detailCard).toHaveTextContent('/');
     expect(detailCard).toHaveTextContent('marketing');
     expect(detailCard).toHaveTextContent('Закреплена');
-    expect(detailCard).toHaveTextContent('Header Nav');
     expect(pageItems[0]).toHaveTextContent('Главная страница');
     expect(pageItems[0]).toHaveTextContent('Закреплена');
     const actionButton = within(pageItems[0]).getByRole('link', { name: 'Открыть' });
@@ -243,7 +242,6 @@ describe('SitePagesCatalog', () => {
     });
     expect(detailCard).toHaveTextContent('support');
     expect(detailCard).toHaveTextContent('/help');
-    expect(detailCard).toHaveTextContent('Нет связанных глобальных блоков.');
   });
 
   it('applies status filter and refetches data', async () => {
@@ -283,6 +281,5 @@ describe('SitePagesCatalog', () => {
     await waitFor(() => expect(mockedFetchPages).toHaveBeenCalledTimes(2));
   });
 });
-
 
 

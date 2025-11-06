@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.caves.dev/product/site/shared-blocks/header.schema.json",
+  "title": "SiteGlobalHeader",
+  "description": "Конфигурация глобального хедера публичного сайта (навигация, бренд, CTA).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["branding", "navigation"],
+  "properties": {
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "href"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "subtitle": {
+          "type": ["string", "null"],
+          "maxLength": 96
+        },
+        "href": {
+          "$ref": "#/definitions/linkHref"
+        },
+        "logo": {
+          "$ref": "#/definitions/logoAsset"
+        }
+      }
+    },
+    "navigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": {
+          "$ref": "#/definitions/menuGroup"
+        },
+        "secondary": {
+          "$ref": "#/definitions/menuGroup"
+        },
+        "utility": {
+          "$ref": "#/definitions/menuGroup"
+        },
+        "cta": {
+          "$ref": "#/definitions/cta"
+        },
+        "mobile": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "menu": {
+              "$ref": "#/definitions/menuGroup"
+            },
+            "cta": {
+              "$ref": "#/definitions/cta"
+            }
+          }
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "variant": {
+          "type": "string",
+          "enum": ["default", "compact", "mega"]
+        },
+        "sticky": {
+          "type": "boolean",
+          "default": true
+        },
+        "hideOnScroll": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["boolean", "string", "number", "null"]
+      }
+    },
+    "localization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fallbackLocale": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 8
+        },
+        "available": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 8
+          },
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "linkHref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(\\/[^\\s]*)|(https?:\\/\\/[^\\s]+)$"
+    },
+    "linkTarget": {
+      "type": "string",
+      "enum": ["_self", "_blank"],
+      "default": "_self"
+    },
+    "menuGroup": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/menuItem"
+      },
+      "minItems": 0,
+      "maxItems": 12
+    },
+    "menuItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "href"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "href": {
+          "$ref": "#/definitions/linkHref"
+        },
+        "description": {
+          "type": ["string", "null"],
+          "maxLength": 160
+        },
+        "badge": {
+          "type": ["string", "null"],
+          "maxLength": 24
+        },
+        "icon": {
+          "type": ["string", "null"],
+          "maxLength": 48
+        },
+        "target": {
+          "$ref": "#/definitions/linkTarget"
+        },
+        "analytics": {
+          "$ref": "#/definitions/analytics"
+        }
+      }
+    },
+    "cta": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "href": {
+          "$ref": "#/definitions/linkHref"
+        },
+        "target": {
+          "$ref": "#/definitions/linkTarget"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["primary", "secondary", "link"]
+        },
+        "analytics": {
+          "$ref": "#/definitions/analytics"
+        }
+      },
+      "required": ["label", "href"]
+    },
+    "logoAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "type": "string",
+          "format": "uri"
+        },
+        "dark": {
+          "type": ["string", "null"],
+          "format": "uri"
+        },
+        "alt": {
+          "type": ["string", "null"],
+          "maxLength": 72
+        }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean", "null"]
+          }
+        }
+      }
+    }
+  }
+}

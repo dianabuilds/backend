@@ -34,7 +34,7 @@ const pageResponse = {
   draft_version: 3,
   has_pending_review: false,
   pinned: true,
-  global_blocks: [],
+  shared_bindings: [],
 };
 
 const draftResponse = {
@@ -46,7 +46,7 @@ const draftResponse = {
   review_status: 'none',
   updated_at: '2025-10-27T09:05:00Z',
   updated_by: 'admin@caves.dev',
-  global_blocks: [],
+  shared_bindings: [],
 };
 
 const previewPayload = {

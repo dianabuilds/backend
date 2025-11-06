@@ -33,7 +33,15 @@ def load_settings() -> Any:  # placeholder to keep template self-contained
 def build_container(env: str = "dev") -> Container:
     settings = load_settings()
     repo = ProductSQLRepo(str(settings.database_url))
-    outbox: OutboxPublisher | None = None  # resolve via container_registry in real code
+
+    class _NoopOutbox:
+        def publish(
+            self, topic: str, payload: dict[str, Any], key: str | None = None
+        ) -> None:
+            """Placeholder outbox implementation used in the template."""
+            pass
+
+    outbox: OutboxPublisher = _NoopOutbox()
     iam = ProductIamClient(str(settings.iam_url))
     svc = ProductService(repo=repo, outbox=outbox, iam=iam, flags=Flags())
     return Container(settings=settings, product_service=svc)

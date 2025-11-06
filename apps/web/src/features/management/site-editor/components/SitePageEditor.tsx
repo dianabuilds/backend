@@ -27,8 +27,6 @@ import { SitePageMetricsPanel } from './SitePageMetricsPanel';
 import { SitePageHeader } from './SitePageHeader';
 import { SitePageReviewPanel } from './SitePageReviewPanel';
 import { SitePageInfoPanel } from './SitePageInfoPanel';
-import { SitePageGlobalBlocksPanel, type SitePageGlobalBlockOption } from './SitePageGlobalBlocksPanel';
-import { applyGlobalBlockAssignments, extractGlobalBlockAssignments } from '../utils/globalBlocks';
 import { SitePageHistoryPanel } from './PageHistoryPanel';
 
 const REVIEW_STATUS_OPTIONS: Array<{ value: SitePageReviewStatus; label: string }> = [
@@ -73,6 +71,39 @@ function buildSiteDraftPayload(data: HomeDraftData): {
   const normalizedData: Record<string, unknown> = {
     blocks: Array.isArray(data.blocks) ? data.blocks : [],
   };
+  const sharedState = data.shared && typeof data.shared === 'object' ? data.shared : null;
+  let assignmentsSource =
+    (sharedState && typeof sharedState.assignments === 'object'
+      ? (sharedState.assignments as Record<string, string | null>)
+      : null) ?? null;
+  if (!assignmentsSource && sharedState) {
+    const legacy = sharedState as Record<string, unknown>;
+    const legacyAssignments = legacy['globalAssignments'] ?? legacy['global_assignments'];
+    if (legacyAssignments && typeof legacyAssignments === 'object') {
+      assignmentsSource = legacyAssignments as Record<string, string | null>;
+    }
+  }
+  if (assignmentsSource && typeof assignmentsSource === 'object') {
+    const normalizedAssignments = Object.entries(assignmentsSource).reduce<Record<string, string>>(
+      (acc, [section, value]) => {
+        if (typeof value !== 'string') {
+          return acc;
+        }
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return acc;
+        }
+        acc[section] = trimmed;
+        return acc;
+      },
+      {},
+    );
+    if (Object.keys(normalizedAssignments).length > 0) {
+      normalizedData.shared = {
+        assignments: normalizedAssignments,
+      };
+    }
+  }
   const payload: { data: Record<string, unknown>; meta?: Record<string, unknown> } = {
     data: normalizedData,
   };
@@ -182,6 +213,13 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
     auditError,
     refreshAudit,
     historyForContext,
+    sharedBindings,
+    sharedAssignments,
+    setSharedAssignment,
+    clearSharedAssignment,
+    updateSharedBindingInfo,
+    assignSharedBinding,
+    removeSharedBinding,
   } = useSitePageEditorState({ pageId });
   const { user } = useAuth();
   const [publishDialogOpen, setPublishDialogOpen] = React.useState(false);
@@ -189,34 +227,6 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
   const [workspaceTab, setWorkspaceTab] = React.useState<'layout' | 'settings' | 'preview'>('layout');
 
   const previewLocale = React.useMemo(() => page?.locale ?? getLocale(), [page?.locale]);
-
-  const globalBlockAssignments = React.useMemo(
-    () => extractGlobalBlockAssignments(data.meta ?? null),
-    [data.meta],
-  );
-
-  const handleGlobalBlockSelection = React.useCallback(
-    (section: string, block: SitePageGlobalBlockOption | null) => {
-      const normalizedSection = section.trim() || 'other';
-      setData((prev) => {
-        const currentAssignments = { ...extractGlobalBlockAssignments(prev.meta ?? null) };
-        if (block) {
-          currentAssignments[normalizedSection] = {
-            key: block.key,
-            section: normalizedSection,
-          };
-        } else {
-          delete currentAssignments[normalizedSection];
-        }
-        const nextMeta = applyGlobalBlockAssignments(prev.meta ?? null, currentAssignments);
-        return {
-          ...prev,
-          meta: nextMeta,
-        };
-      });
-    },
-    [setData],
-  );
 
   const fetchSitePreview = React.useCallback(
     async ({ layout, signal }: { layout?: string; signal: AbortSignal }): Promise<PreviewFetchResult> => {
@@ -275,7 +285,8 @@ const handleUpdatePageInfo = React.useCallback(
   [pushToast, updatePageInfo],
 );
 
-const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
+  const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
+    page,
     loading,
     data,
     setData,
@@ -297,26 +308,41 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
     restoringVersion,
     validation,
     revalidate,
+    sharedBindings,
+    sharedAssignments,
+    setSharedAssignment,
+    clearSharedAssignment,
+    updateSharedBindingInfo,
+    assignSharedBinding,
+    removeSharedBinding,
   }), [
+    assignSharedBinding,
+    clearSharedAssignment,
     data,
     dirty,
     historyForContext,
     lastSavedAt,
     loadDraft,
+    page,
     publishDraft,
     publishing,
+    revalidate,
+    removeSharedBinding,
     restoreVersion,
     restoringVersion,
-    revalidate,
     saving,
     savingError,
     saveDraft,
     selectedBlockId,
     setBlocks,
     setData,
+    setSharedAssignment,
     selectBlock,
+    sharedAssignments,
+    sharedBindings,
     slug,
     snapshot,
+    updateSharedBindingInfo,
     validation,
     loading,
   ]);
@@ -512,12 +538,6 @@ const contextValue = React.useMemo<HomeEditorContextValue>(() => ({
                       error={pageInfoError}
                       onSubmit={handleUpdatePageInfo}
                       onClearError={clearPageInfoError}
-                    />
-                    <SitePageGlobalBlocksPanel
-                      locale={page?.locale}
-                      assignments={globalBlockAssignments}
-                      onChange={handleGlobalBlockSelection}
-                      disabled={loading || saving || publishing}
                     />
                   </div>
                 ) : null}

@@ -19,11 +19,12 @@ from apps.backend.domains.platform.notifications.application.interactors.command
 
 
 def _require_db_url() -> str:
-    for key in ("NOTIFICATIONS_TEST_DATABASE_URL", "APP_DATABASE_URL", "DATABASE_URL"):
-        value = os.getenv(key)
-        if value:
-            return value
-    pytest.skip("Notifications migration test requires NOTIFICATIONS_TEST_DATABASE_URL")
+    value = os.getenv("NOTIFICATIONS_TEST_DATABASE_URL")
+    if value:
+        return value
+    pytest.skip(
+        "Notifications migration test requires NOTIFICATIONS_TEST_DATABASE_URL for an isolated database."
+    )
     raise RuntimeError  # pragma: no cover - pytest.skip stops execution
 
 
@@ -86,7 +87,7 @@ async def test_notifications_migration_round_trip() -> None:
             "script_location",
             str(Path(__file__).resolve().parents[3] / "apps/backend/migrations"),
         )
-        cfg.set_main_option("sqlalchemy.url", sync_schema_url)
+        cfg.set_main_option("sqlalchemy.url", sync_schema_url.replace("%", "%%"))
 
         previous_url = os.environ.get("APP_DATABASE_URL")
         os.environ["APP_DATABASE_URL"] = sync_schema_url

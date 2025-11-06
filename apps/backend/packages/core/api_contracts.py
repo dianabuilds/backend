@@ -10,17 +10,25 @@ jsonschema_validate: Callable[..., None] | None
 
 try:  # optional deps
     import yaml as _yaml
+    from jsonschema import FormatChecker
     from jsonschema import validate as _jsonschema_validate
 except Exception:  # pragma: no cover
     yaml = None
     jsonschema_validate = None
 else:
     yaml = _yaml
-    jsonschema_validate = _jsonschema_validate
+    _format_checker = FormatChecker()
+
+    def _validator(instance, schema, **kwargs):
+        return _jsonschema_validate(
+            instance=instance, schema=schema, format_checker=_format_checker
+        )
+
+    jsonschema_validate = _validator
 
 
 def _load_openapi_yaml(rel_path: str) -> dict[str, Any] | None:
-    base = Path("apps/backend/packages/schemas/api")
+    base = Path(__file__).resolve().parent.parent / "schemas" / "api"
     p = base / rel_path
     if not p.exists() or yaml is None:
         return None

@@ -6,6 +6,9 @@ from typing import Any
 
 import pytest
 
+from domains.platform.notifications.application.interactors.commands import (
+    NotificationCreateCommand,
+)
 from domains.platform.notifications.application.messages_exceptions import (
     NotificationError,
 )
@@ -69,7 +72,7 @@ class StubRepo:
 
 class StubNotify:
     def __init__(self) -> None:
-        self.calls: list[dict[str, Any]] = []
+        self.calls: list[NotificationCreateCommand] = []
         self.result = {
             "id": "n-1",
             "user_id": "user-1",
@@ -77,7 +80,9 @@ class StubNotify:
             "created_at": datetime(2025, 1, 1, tzinfo=UTC),
         }
 
-    async def create_notification(self, command: Any) -> dict[str, Any]:
+    async def create_notification(
+        self, command: NotificationCreateCommand
+    ) -> dict[str, Any]:
         self.calls.append(command)
         return dict(self.result)
 
@@ -211,7 +216,7 @@ async def test_send_notification_parses_string_meta() -> None:
 
     result = await send_notification(service, payload)
 
-    assert service.calls[0]["meta"] == {"foo": 1}
+    assert service.calls[0].meta == {"foo": 1}
     assert result["notification"]["id"] == "n-1"
 
 

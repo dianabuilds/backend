@@ -78,7 +78,7 @@ class ProvidersAdminUseCase:
             cfg = data.get("config") or {}
             if not isinstance(cfg, dict):
                 cfg = {}
-                cfg["default_network"] = default_network
+            cfg["default_network"] = default_network
             data["config"] = cfg
         item = await self.gateways.upsert(data)
         await safe_audit_log(

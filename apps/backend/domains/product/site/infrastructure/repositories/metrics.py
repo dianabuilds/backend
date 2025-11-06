@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from domains.product.site.domain import (
-    GlobalBlockMetrics,
+    BlockMetrics,
     MetricAlert,
     MetricSeverity,
     MetricValue,
@@ -16,10 +16,7 @@ from domains.product.site.domain import (
     SiteRepositoryError,
 )
 
-from ..tables import (
-    SITE_GLOBAL_BLOCK_METRICS_TABLE,
-    SITE_PAGE_METRICS_TABLE,
-)
+from ..tables import SITE_BLOCK_METRICS_TABLE, SITE_PAGE_METRICS_TABLE
 from . import helpers
 
 if TYPE_CHECKING:
@@ -52,11 +49,19 @@ class MetricsRepositoryMixin:
         trend_rows = list(reversed(rows[: min(len(rows), helpers._TREND_POINTS)]))
 
         views_value = helpers.normalize_numeric(current.get("views"))
-        prev_views = helpers.normalize_numeric(previous.get("views")) if previous else None
+        prev_views = (
+            helpers.normalize_numeric(previous.get("views")) if previous else None
+        )
         unique_value = helpers.normalize_numeric(current.get("unique_users"))
-        prev_unique = helpers.normalize_numeric(previous.get("unique_users")) if previous else None
+        prev_unique = (
+            helpers.normalize_numeric(previous.get("unique_users"))
+            if previous
+            else None
+        )
         clicks_value = helpers.normalize_numeric(current.get("cta_clicks"))
-        prev_clicks = helpers.normalize_numeric(previous.get("cta_clicks")) if previous else None
+        prev_clicks = (
+            helpers.normalize_numeric(previous.get("cta_clicks")) if previous else None
+        )
         conversions_value = helpers.normalize_numeric(current.get("conversions"))
         prev_conversions = (
             helpers.normalize_numeric(previous.get("conversions")) if previous else None
@@ -83,7 +88,9 @@ class MetricsRepositoryMixin:
             ),
         }
 
-        ctr_value = helpers.compute_ratio(current.get("cta_clicks"), current.get("views"))
+        ctr_value = helpers.compute_ratio(
+            current.get("cta_clicks"), current.get("views")
+        )
         ctr_prev = (
             helpers.compute_ratio(previous.get("cta_clicks"), previous.get("views"))
             if previous
@@ -97,7 +104,9 @@ class MetricsRepositoryMixin:
 
         avg_time = helpers.normalize_numeric(current.get("avg_time_on_page"))
         prev_avg_time = (
-            helpers.normalize_numeric(previous.get("avg_time_on_page")) if previous else None
+            helpers.normalize_numeric(previous.get("avg_time_on_page"))
+            if previous
+            else None
         )
         metrics["avg_time_on_page"] = MetricValue(
             value=avg_time,
@@ -111,7 +120,9 @@ class MetricsRepositoryMixin:
         alerts: list[MetricAlert] = []
 
         if status != "ok":
-            severity = MetricSeverity.WARNING if status == "stale" else MetricSeverity.CRITICAL
+            severity = (
+                MetricSeverity.WARNING if status == "stale" else MetricSeverity.CRITICAL
+            )
             alerts.append(
                 MetricAlert(
                     code=f"status_{status}",
@@ -169,18 +180,18 @@ class MetricsRepositoryMixin:
             previous_range_end=previous_range_end,
         )
 
-    async def get_global_block_metrics(
+    async def get_block_metrics(
         self,
         block_id: UUID,
         *,
         period: str = "7d",
         locale: str = helpers._DEFAULT_METRIC_LOCALE,
-    ) -> GlobalBlockMetrics | None:
+    ) -> BlockMetrics | None:
         if period not in helpers._SUPPORTED_METRIC_PERIODS:
             raise SiteRepositoryError("site_metrics_unsupported_period")
         engine = await self._require_engine()
         async with engine.connect() as conn:
-            rows = await self._load_global_block_metric_rows(
+            rows = await self._load_block_metric_rows(
                 conn, block_id, period, locale, helpers._MAX_METRIC_ROWS
             )
         if not rows:
@@ -194,13 +205,17 @@ class MetricsRepositoryMixin:
             helpers.normalize_numeric(previous.get("impressions")) if previous else None
         )
         clicks_value = helpers.normalize_numeric(current.get("clicks"))
-        prev_clicks = helpers.normalize_numeric(previous.get("clicks")) if previous else None
+        prev_clicks = (
+            helpers.normalize_numeric(previous.get("clicks")) if previous else None
+        )
         conversions_value = helpers.normalize_numeric(current.get("conversions"))
         prev_conversions = (
             helpers.normalize_numeric(previous.get("conversions")) if previous else None
         )
         revenue_value = helpers.normalize_numeric(current.get("revenue"))
-        prev_revenue = helpers.normalize_numeric(previous.get("revenue")) if previous else None
+        prev_revenue = (
+            helpers.normalize_numeric(previous.get("revenue")) if previous else None
+        )
 
         impressions_trend = helpers.extract_trend(trend_rows, "impressions")
         metrics: dict[str, MetricValue] = {
@@ -224,7 +239,9 @@ class MetricsRepositoryMixin:
             ),
         }
 
-        ctr_value = helpers.compute_ratio(current.get("clicks"), current.get("impressions"))
+        ctr_value = helpers.compute_ratio(
+            current.get("clicks"), current.get("impressions")
+        )
         ctr_prev = (
             helpers.compute_ratio(previous.get("clicks"), previous.get("impressions"))
             if previous
@@ -254,7 +271,9 @@ class MetricsRepositoryMixin:
         alerts: list[MetricAlert] = []
 
         if status != "ok":
-            severity = MetricSeverity.WARNING if status == "stale" else MetricSeverity.CRITICAL
+            severity = (
+                MetricSeverity.WARNING if status == "stale" else MetricSeverity.CRITICAL
+            )
             alerts.append(
                 MetricAlert(
                     code=f"status_{status}",
@@ -277,7 +296,10 @@ class MetricsRepositoryMixin:
             )
 
         impressions_delta = metrics["impressions"].delta
-        if impressions_delta is not None and impressions_delta <= helpers._VIEWS_DROP_THRESHOLD:
+        if (
+            impressions_delta is not None
+            and impressions_delta <= helpers._VIEWS_DROP_THRESHOLD
+        ):
             alerts.append(
                 MetricAlert(
                     code="impressions_drop",
@@ -301,7 +323,7 @@ class MetricsRepositoryMixin:
 
         top_pages = helpers.parse_top_pages(current.get("top_pages"))
 
-        return GlobalBlockMetrics(
+        return BlockMetrics(
             block_id=block_id,
             period=period,
             range_start=current["range_start"],
@@ -343,7 +365,7 @@ class MetricsRepositoryMixin:
             rows = (await conn.execute(stmt)).mappings().all()
         return rows
 
-    async def _load_global_block_metric_rows(
+    async def _load_block_metric_rows(
         self,
         conn: AsyncConnection,
         block_id: UUID,
@@ -352,20 +374,20 @@ class MetricsRepositoryMixin:
         limit: int,
     ) -> list[Mapping[str, Any]]:
         stmt = (
-            sa.select(SITE_GLOBAL_BLOCK_METRICS_TABLE)
-            .where(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.block_id == block_id)
-            .where(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.period == period)
+            sa.select(SITE_BLOCK_METRICS_TABLE)
+            .where(SITE_BLOCK_METRICS_TABLE.c.block_id == block_id)
+            .where(SITE_BLOCK_METRICS_TABLE.c.period == period)
         )
         if locale is not None:
-            stmt = stmt.where(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.locale == locale)
-        stmt = stmt.order_by(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.range_end.desc()).limit(limit)
+            stmt = stmt.where(SITE_BLOCK_METRICS_TABLE.c.locale == locale)
+        stmt = stmt.order_by(SITE_BLOCK_METRICS_TABLE.c.range_end.desc()).limit(limit)
         rows = (await conn.execute(stmt)).mappings().all()
         if not rows and locale is not None:
             stmt = (
-                sa.select(SITE_GLOBAL_BLOCK_METRICS_TABLE)
-                .where(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.block_id == block_id)
-                .where(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.period == period)
-                .order_by(SITE_GLOBAL_BLOCK_METRICS_TABLE.c.range_end.desc())
+                sa.select(SITE_BLOCK_METRICS_TABLE)
+                .where(SITE_BLOCK_METRICS_TABLE.c.block_id == block_id)
+                .where(SITE_BLOCK_METRICS_TABLE.c.period == period)
+                .order_by(SITE_BLOCK_METRICS_TABLE.c.range_end.desc())
                 .limit(limit)
             )
             rows = (await conn.execute(stmt)).mappings().all()

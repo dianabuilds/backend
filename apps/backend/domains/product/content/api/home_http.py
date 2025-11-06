@@ -155,7 +155,6 @@ async def _load_site_home_config(container, slug: str) -> HomeConfig | None:
                 SITE_PAGES_TABLE.c.id,
                 SITE_PAGES_TABLE.c.slug,
                 SITE_PAGES_TABLE.c.title,
-                SITE_PAGES_TABLE.c.locale,
                 SITE_PAGES_TABLE.c.created_at,
                 SITE_PAGES_TABLE.c.updated_at,
                 SITE_PAGES_TABLE.c.published_version,

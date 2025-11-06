@@ -7,6 +7,20 @@ import { createBlockInstance, listBlockDefinitions } from '../blockDefinitions';
 
 const BLOCK_DEFINITIONS = listBlockDefinitions();
 
+type LibraryDisplayItem = {
+  id: string;
+  type: (typeof BLOCK_DEFINITIONS)[number]['type'];
+  label: string;
+  description: string;
+};
+
+const LIBRARY_ITEMS: LibraryDisplayItem[] = BLOCK_DEFINITIONS.map((definition) => ({
+  id: definition.type,
+  type: definition.type,
+  label: definition.label,
+  description: definition.description,
+}));
+
 export function BlockLibraryPanel(): React.ReactElement {
   const { data, setBlocks, selectBlock, saving } = useHomeEditorContext();
   const [query, setQuery] = React.useState('');
@@ -14,20 +28,16 @@ export function BlockLibraryPanel(): React.ReactElement {
   const filteredDefinitions = React.useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
-      return BLOCK_DEFINITIONS;
+      return LIBRARY_ITEMS;
     }
-    return BLOCK_DEFINITIONS.filter((definition) => {
-      const haystack = [
-        definition.label,
-        definition.description,
-        definition.type,
-      ].join(' ').toLowerCase();
+    return LIBRARY_ITEMS.filter((definition) => {
+      const haystack = `${definition.label} ${definition.description} ${definition.type}`.toLowerCase();
       return haystack.includes(normalized);
     });
   }, [query]);
 
   const handleAdd = React.useCallback(
-    (type: (typeof BLOCK_DEFINITIONS)[number]['type']) => {
+    (type: LibraryDisplayItem['type']) => {
       const freshBlock = createBlockInstance(type, data.blocks);
       setBlocks([...data.blocks, freshBlock]);
       selectBlock(freshBlock.id);
@@ -51,8 +61,10 @@ export function BlockLibraryPanel(): React.ReactElement {
         placeholder="Поиск по названию или описанию"
         prefix={<Search className="h-4 w-4 text-gray-400" />}
       />
-      <div className="text-xs text-gray-500">
-        Найдено {filteredDefinitions.length} из {BLOCK_DEFINITIONS.length}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>
+          Найдено {filteredDefinitions.length} из {LIBRARY_ITEMS.length}
+        </span>
       </div>
       <div className="scrollbar-thin -mr-2 flex-1 space-y-2 overflow-y-auto pr-1">
         {filteredDefinitions.map((definition) => (
@@ -94,3 +106,6 @@ export function BlockLibraryPanel(): React.ReactElement {
     </Card>
   );
 }
+
+export default BlockLibraryPanel;
+

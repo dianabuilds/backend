@@ -1,21 +1,28 @@
-﻿import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React from 'react';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+
 import { SiteBlockLibraryPanel } from '../components/SiteBlockLibraryPanel';
 import { HomeEditorContext } from '../../home/HomeEditorContext';
+import { listBlockDefinitions } from '../../home/blockDefinitions';
 import type { HomeEditorContextValue, HomeBlock, HomeDraftData, HomeDraftSnapshot } from '../../home/types';
 import type { ValidationSummary } from '../../home/validation';
+import type { SitePageAttachedBlock } from '@shared/types/management';
 
-
+const BLOCK_DEFINITIONS = listBlockDefinitions();
 
 function makeContext(overrides: Partial<HomeEditorContextValue> = {}): HomeEditorContextValue {
   const data: HomeDraftData = overrides.data ?? { blocks: [] };
   const validation: ValidationSummary = overrides.validation ?? { valid: true, general: [], blocks: {} };
   const snapshot: HomeDraftSnapshot = overrides.snapshot ?? { version: null, updatedAt: null, publishedAt: null };
+  const sharedAssignments = overrides.sharedAssignments ?? { header: null, footer: null };
+  const sharedBindings: Record<string, SitePageAttachedBlock | null> =
+    overrides.sharedBindings ?? { header: null, footer: null };
 
   return {
+    page: overrides.page ?? null,
     loading: false,
     data,
     setData: overrides.setData ?? vi.fn(),
@@ -37,6 +44,13 @@ function makeContext(overrides: Partial<HomeEditorContextValue> = {}): HomeEdito
     restoringVersion: overrides.restoringVersion ?? null,
     validation,
     revalidate: overrides.revalidate ?? vi.fn(() => validation),
+    sharedBindings,
+    sharedAssignments,
+    setSharedAssignment: overrides.setSharedAssignment ?? vi.fn(),
+    clearSharedAssignment: overrides.clearSharedAssignment ?? vi.fn(),
+    updateSharedBindingInfo: overrides.updateSharedBindingInfo ?? vi.fn(),
+    assignSharedBinding: overrides.assignSharedBinding ?? vi.fn(() => Promise.resolve()),
+    removeSharedBinding: overrides.removeSharedBinding ?? vi.fn(() => Promise.resolve()),
   };
 }
 
@@ -54,47 +68,40 @@ function renderPanel(overrides: Partial<HomeEditorContextValue> = {}) {
 }
 
 describe('SiteBlockLibraryPanel', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('добавляет доступный блок и выбирает его', async () => {
+  it('отображает статичный список и добавляет выбранный блок', async () => {
     const setBlocks = vi.fn();
     const selectBlock = vi.fn();
-    const { user, contextValue } = renderPanel({
-      setBlocks,
-      selectBlock,
-    });
+    const { user, contextValue } = renderPanel({ setBlocks, selectBlock });
 
-    const addHeroButton = await screen.findByRole('button', { name: /Hero-блок/ });
-    await user.click(addHeroButton);
+    const heroDefinition = BLOCK_DEFINITIONS.find((definition) => definition.type === 'hero');
+    expect(heroDefinition).toBeDefined();
+    const heroButton = screen.getByRole('button', { name: new RegExp(heroDefinition!.label, 'i') });
+    await user.click(heroButton);
 
     expect(setBlocks).toHaveBeenCalledTimes(1);
     const updatedBlocks = setBlocks.mock.calls[0][0] as HomeBlock[];
-    expect(Array.isArray(updatedBlocks)).toBe(true);
-    expect(updatedBlocks.some((block) => block.type === 'hero')).toBe(true);
+    expect(updatedBlocks.some((block) => block.type === heroDefinition!.type)).toBe(true);
 
     expect(selectBlock).toHaveBeenCalledTimes(1);
-    expect(selectBlock.mock.calls[0][0]).toBe('hero-1');
-
-    // исходный список блоков в контексте не изменяется автоматически
     expect(contextValue.data.blocks).toHaveLength(0);
   });
 
-  it('фильтрует блоки по поиску и сбрасывает фильтры', async () => {
+  it('фильтрует список по поиску', async () => {
     const { user } = renderPanel();
-
     const searchInput = screen.getByPlaceholderText('Поиск по названию или описанию');
-    await user.type(searchInput, 'Dev');
 
-    const devBlogButton = await screen.findByRole('button', { name: /Dev Blog/ });
-    expect(devBlogButton).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Hero-блок/ })).toBeNull();
+    await user.type(searchInput, 'dev');
+
+    const devDefinition = BLOCK_DEFINITIONS.find((definition) => definition.type === 'dev_blog_list');
+    expect(devDefinition).toBeDefined();
+    expect(screen.getByRole('button', { name: new RegExp(devDefinition!.label, 'i') })).toBeInTheDocument();
+
+    const heroDefinition = BLOCK_DEFINITIONS.find((definition) => definition.type === 'hero');
+    expect(heroDefinition).toBeDefined();
+    expect(screen.queryByRole('button', { name: new RegExp(heroDefinition!.label, 'i') })).toBeNull();
 
     await user.clear(searchInput);
-
-    expect(await screen.findByRole('button', { name: /Hero-блок/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: new RegExp(heroDefinition!.label, 'i') })).toBeInTheDocument();
   });
-
 });
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -17,6 +17,20 @@ _TREND_POINTS = 14
 _SLA_WARNING_LAG_MS = 30 * 60 * 1000  # 30 minutes
 _VIEWS_DROP_THRESHOLD = -0.25
 _CTR_DROP_THRESHOLD = -0.3
+_OWNER_ALIASES = {
+    "Маркетинг": "team_marketing",
+    "Продукт": "team_product",
+    "Продакт": "team_product",
+    "Продакт Quests": "team_quests_product",
+    "Продакт Nodes": "team_nodes_product",
+    "DevRel": "team_devrel",
+    "Контент": "team_content",
+    "Редакция контента": "team_content",
+    "Саппорт": "team_support",
+    "Аналитика": "team_analytics",
+    "Data/ML": "team_data_ml",
+    "team_public_site": "team_public_site",
+}
 
 
 def utcnow() -> datetime:
@@ -36,6 +50,90 @@ def as_mapping(value: Any) -> dict[str, Any]:
         except json.JSONDecodeError:
             return {}
     return dict(value)
+
+
+def _normalize_owner_text(value: Any) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    return _OWNER_ALIASES.get(text, text)
+
+
+def _normalize_owner_list(value: Any) -> list[str]:
+    owners: list[str] = []
+    if value is None:
+        return owners
+    items: Iterable[Any]
+    if isinstance(value, (list, tuple, set)):
+        items = value
+    else:
+        items = (value,)
+    for item in items:
+        normalized = _normalize_owner_text(item)
+        if normalized and normalized not in owners:
+            owners.append(normalized)
+    return owners
+
+
+def sanitize_block_meta(meta: Mapping[str, Any] | None) -> dict[str, Any]:
+    """
+    Normalize block meta:
+    - ensure owners stored as list of slugs (supports legacy `owner` string);
+    - normalize documentation key to `documentation_url`;
+    - remove empty values while keeping other keys untouched.
+    """
+    mapping = as_mapping(meta)
+    if not mapping:
+        return {}
+    sanitized: dict[str, Any] = {}
+    owners: list[str] = []
+    for key, value in mapping.items():
+        if key == "owner":
+            owners.extend(_normalize_owner_list(value))
+            continue
+        if key == "owners":
+            owners.extend(_normalize_owner_list(value))
+            continue
+        if key == "documentation":
+            if value is not None:
+                sanitized["documentation_url"] = str(value)
+            continue
+        if key == "documentation_url":
+            if value is not None:
+                sanitized["documentation_url"] = str(value)
+            continue
+        sanitized[key] = value
+    if owners:
+        sanitized["owners"] = owners
+    return sanitized
+
+
+def as_locale_list(value: Any) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (list, tuple)):
+        locales: list[str] = []
+        for item in value:
+            if item is None:
+                continue
+            text = str(item).strip()
+            if not text:
+                continue
+            if text not in locales:
+                locales.append(text)
+        return tuple(locales)
+    if isinstance(value, str):
+        parts = [
+            part.strip()
+            for part in value.split(",")
+            if isinstance(part, str) and part.strip()
+        ]
+        unique_locales: list[str] = []
+        for part in parts:
+            if part not in unique_locales:
+                unique_locales.append(part)
+        return tuple(unique_locales)
+    return ()
 
 
 def normalize_numeric(value: Any) -> float | int | None:
@@ -295,7 +393,7 @@ def _coerce_block_key(candidate: Any, *, allow_id: bool = False) -> str | None:
     return None
 
 
-def _iter_global_block_candidates(
+def _iter_block_reference_candidates(
     value: Any,
     *,
     section_hint: str | None = None,
@@ -313,7 +411,7 @@ def _iter_global_block_candidates(
             refs.append((key, section_hint))
         for item in value.values():
             refs.extend(
-                _iter_global_block_candidates(
+                _iter_block_reference_candidates(
                     item,
                     section_hint=section_hint,
                     allow_id=allow_id,
@@ -322,10 +420,8 @@ def _iter_global_block_candidates(
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         for item in value:
             refs.extend(
-                _iter_global_block_candidates(
-                    item,
-                    section_hint=section_hint,
-                    allow_id=allow_id,
+                _iter_block_reference_candidates(
+                    item, section_hint=section_hint, allow_id=allow_id
                 )
             )
     else:
@@ -335,7 +431,7 @@ def _iter_global_block_candidates(
     return refs
 
 
-def extract_global_block_refs(
+def extract_shared_block_refs(
     data: Mapping[str, Any] | None,
     meta: Mapping[str, Any] | None,
 ) -> list[tuple[str, str | None]]:
@@ -359,12 +455,12 @@ def extract_global_block_refs(
             refs.append(pair)
 
     for field in ("globalBlocks", "global_blocks"):
-        for key, section in _iter_global_block_candidates(meta_map.get(field)):
+        for key, section in _iter_block_reference_candidates(meta_map.get(field)):
             add_reference(key, section)
 
     for fallback_key in ("header", "footer"):
         if fallback_key in meta_map:
-            for key, section in _iter_global_block_candidates(
+            for key, section in _iter_block_reference_candidates(
                 meta_map.get(fallback_key),
                 section_hint=fallback_key,
             ):
@@ -378,22 +474,40 @@ def extract_global_block_refs(
             block_type = str(block.get("type") or "").lower()
             source = str(block.get("source") or "").lower()
             allow_id = block_type in {"global", "global_block"} or source == "global"
-            for key, section in _iter_global_block_candidates(
+            for key, section in _iter_block_reference_candidates(
                 block,
                 section_hint=block.get("section") or block.get("zone"),
                 allow_id=allow_id,
             ):
                 add_reference(key, section)
 
+    shared = data_map.get("shared")
+    if isinstance(shared, Mapping):
+        assignments = None
+        candidate = shared.get("assignments")
+        if isinstance(candidate, Mapping):
+            assignments = candidate
+        else:
+            legacy = shared.get("globalAssignments") or shared.get("global_assignments")
+            if isinstance(legacy, Mapping):
+                assignments = legacy
+        if isinstance(assignments, Mapping):
+            for section, value in assignments.items():
+                resolved_key = _coerce_block_key(value)
+                if resolved_key:
+                    add_reference(
+                        resolved_key, str(section) if section is not None else None
+                    )
+
     return refs
 
 
-def format_global_block_refs(
+def format_shared_block_refs(
     data: Mapping[str, Any] | None,
     meta: Mapping[str, Any] | None,
 ) -> list[dict[str, str]]:
     formatted: list[dict[str, str]] = []
-    for key, section in extract_global_block_refs(data, meta):
+    for key, section in extract_shared_block_refs(data, meta):
         entry = {"key": key}
         if section:
             entry["section"] = section
@@ -466,6 +580,8 @@ __all__ = [
     "compute_mapping_diff",
     "compute_page_diff",
     "compute_global_block_diff",
-    "extract_global_block_refs",
-    "format_global_block_refs",
+    "extract_shared_block_refs",
+    "format_shared_block_refs",
+    "sanitize_block_meta",
+    "as_locale_list",
 ]

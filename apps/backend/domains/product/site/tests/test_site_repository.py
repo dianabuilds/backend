@@ -3,10 +3,12 @@ from collections.abc import Mapping
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
 
 from domains.product.site.application import SiteService
 from domains.product.site.domain import (
-    GlobalBlockStatus,
+    BlockScope,
+    BlockStatus,
     PageReviewStatus,
     PageStatus,
     PageType,
@@ -14,6 +16,8 @@ from domains.product.site.domain import (
     SiteRepositoryError,
     SiteValidationError,
 )
+from domains.product.site.infrastructure import SiteRepository
+from domains.product.site.infrastructure.tables import SITE_BLOCK_BINDINGS_TABLE
 
 
 def _snapshot_to_dict(snapshot: Any) -> dict[str, Any]:
@@ -150,11 +154,16 @@ async def test_delete_page_removes_usage(service: SiteService):
     await service.save_page_draft(
         page_id=page.id,
         payload={"blocks": []},
-        meta={"globalBlocks": {"header": block.key}},
+        meta={},
         comment=None,
         review_status=PageReviewStatus.NONE,
         expected_version=1,
         actor="tester",
+    )
+    await service.assign_shared_block(
+        page_id=page.id,
+        section="header",
+        block_id=block.id,
     )
 
     usage_before = await service.list_block_usage(block.id)
@@ -211,11 +220,16 @@ async def test_page_global_block_usage_updates_with_draft(service: SiteService):
     await service.save_page_draft(
         page_id=page.id,
         payload={"blocks": []},
-        meta={"globalBlocks": {"header": header_block.key}},
+        meta={},
         comment=None,
         review_status=PageReviewStatus.NONE,
         expected_version=draft.version,
         actor="editor@example.com",
+    )
+    await service.assign_shared_block(
+        page_id=page.id,
+        section="header",
+        block_id=header_block.id,
     )
     links = await service.list_page_global_blocks(page.id)
     assert links
@@ -226,12 +240,13 @@ async def test_page_global_block_usage_updates_with_draft(service: SiteService):
     await service.save_page_draft(
         page_id=page.id,
         payload={"blocks": []},
-        meta={"globalBlocks": {}},
+        meta={},
         comment=None,
         review_status=PageReviewStatus.NONE,
         expected_version=draft.version,
         actor="editor@example.com",
     )
+    await service.remove_shared_block(page.id, section="header")
     links_after = await service.list_page_global_blocks(page.id)
     assert links_after == []
 
@@ -548,7 +563,7 @@ async def test_global_block_lifecycle(service: SiteService, notify_stub):
         data={"links": []},
         meta={},
     )
-    assert block.status == GlobalBlockStatus.DRAFT
+    assert block.status == BlockStatus.DRAFT
     assert block.section == "header"
     assert block.requires_publisher is True
 
@@ -572,14 +587,14 @@ async def test_global_block_lifecycle(service: SiteService, notify_stub):
         diff=None,
     )
     assert audit_id
-    assert published.status == GlobalBlockStatus.PUBLISHED
+    assert published.status == BlockStatus.PUBLISHED
     assert published.review_status == PageReviewStatus.NONE
     assert published.comment == "initial"
     assert usage_after == []
     assert jobs == []
 
     audit_rows, total = await service.list_audit(
-        entity_type="global_block", entity_id=block.id
+        entity_type="block", entity_id=block.id
     )
     assert total >= 3
     actions = {row["action"] for row in audit_rows}
@@ -616,19 +631,16 @@ async def test_publish_global_block_notifies_page_owner(
     await service.save_page_draft(
         page_id=page.id,
         payload={"blocks": []},
-        meta={
-            "globalBlocks": [
-                {
-                    "type": "global_block",
-                    "reference": block.key,
-                    "section": "header",
-                }
-            ]
-        },
+        meta={},
         expected_version=page.draft_version or 1,
         comment=None,
         review_status=PageReviewStatus.NONE,
         actor="editor@example.com",
+    )
+    await service.assign_shared_block(
+        page_id=page.id,
+        section="header",
+        block_id=block.id,
     )
 
     published, audit_id, usage_after, _ = await service.publish_global_block(
@@ -638,7 +650,7 @@ async def test_publish_global_block_notifies_page_owner(
         diff=None,
     )
 
-    assert published.status == GlobalBlockStatus.PUBLISHED
+    assert published.status == BlockStatus.PUBLISHED
     assert usage_after and usage_after[0].owner == "marketing"
     assert notify_stub.commands
     command = notify_stub.commands[0]
@@ -647,9 +659,7 @@ async def test_publish_global_block_notifies_page_owner(
     pages_meta = command.meta["pages"]
     assert any(entry["slug"] == "/owner-page" for entry in pages_meta)
 
-    audit_rows, _ = await service.list_audit(
-        entity_type="global_block", entity_id=block.id
-    )
+    audit_rows, _ = await service.list_audit(entity_type="block", entity_id=block.id)
     publish_snapshot = _snapshot_to_dict(
         next(row["snapshot"] for row in audit_rows if row["action"] == "publish")
     )
@@ -772,11 +782,36 @@ async def test_global_block_history_and_restore(service: SiteService):
     assert restored_block.comment == "Restore version 1"
     assert restored_block.review_status == PageReviewStatus.NONE
 
-    audit_rows, _ = await service.list_audit(
-        entity_type="global_block", entity_id=block.id
-    )
+    audit_rows, _ = await service.list_audit(entity_type="block", entity_id=block.id)
     actions = {row["action"] for row in audit_rows}
     assert "restore" in actions
+
+
+@pytest.mark.asyncio()
+async def test_archive_block_and_restore(service: SiteService):
+    block = await service.create_global_block(
+        key="archive-test",
+        title="Archive Test",
+        section="promo",
+        locale="ru",
+        requires_publisher=False,
+        data={},
+        meta={},
+    )
+    archived_block, usage = await service.archive_block(
+        block_id=block.id,
+        actor="archiver@example.com",
+        restore=False,
+    )
+    assert archived_block.status == BlockStatus.ARCHIVED
+    assert usage == []
+
+    restored_block, _ = await service.archive_block(
+        block_id=block.id,
+        actor="archiver@example.com",
+        restore=True,
+    )
+    assert restored_block.status == BlockStatus.DRAFT
 
 
 @pytest.mark.asyncio()
@@ -851,3 +886,191 @@ async def test_list_pages_respects_viewer_access(service: SiteService):
         "/team-draft",
         "/team-published",
     } <= elevated_slugs
+
+
+@pytest.mark.asyncio()
+async def test_shared_block_binding_flow(
+    service: SiteService, repository: SiteRepository
+) -> None:
+    page = await service.create_page(
+        slug="/binding-test",
+        page_type=PageType.LANDING,
+        title="Binding Test",
+        locale="ru",
+        owner=None,
+    )
+    block = await service.create_block(
+        key="shared-header-binding",
+        title="Shared Header",
+        section="header",
+        scope=BlockScope.SHARED,
+        default_locale="ru",
+        data={},
+        meta={},
+    )
+    assert block.is_template is False
+    assert block.version == 1
+
+    binding = await service.assign_shared_block(
+        page.id,
+        section="header",
+        block_id=block.id,
+        locale=None,
+    )
+    assert binding.block_id == block.id
+    assert binding.section == "header"
+    assert binding.locale == "ru"
+    assert binding.has_draft is True
+    assert binding.active is True
+
+    bindings = await service.list_page_shared_bindings(page.id)
+    assert len(bindings) == 1
+    assert bindings[0].block_id == block.id
+
+    engine = await repository._require_engine()
+    async with engine.connect() as conn:
+        initial_rows = (
+            (await conn.execute(sa.select(SITE_BLOCK_BINDINGS_TABLE))).mappings().all()
+        )
+    assert len(initial_rows) == 1
+
+    draft = await service.get_page_draft(page.id)
+    await service.save_page_draft(
+        page_id=page.id,
+        payload=draft.data,
+        meta=draft.meta,
+        comment=None,
+        review_status=PageReviewStatus.NONE,
+        expected_version=draft.version,
+        actor="tester@example.com",
+    )
+    async with engine.connect() as conn:
+        before_rows = (
+            (await conn.execute(sa.select(SITE_BLOCK_BINDINGS_TABLE))).mappings().all()
+        )
+    assert len(before_rows) == 1
+    await service.publish_page(
+        page_id=page.id,
+        actor="tester@example.com",
+        comment=None,
+        diff=None,
+    )
+    async with engine.connect() as conn:
+        rows = (
+            (await conn.execute(sa.select(SITE_BLOCK_BINDINGS_TABLE))).mappings().all()
+        )
+    assert len(rows) == 1
+    raw_bindings = await repository.list_block_bindings(page.id, include_inactive=True)
+    assert len(raw_bindings) == 1
+    published_bindings = await service.list_page_shared_bindings(page.id)
+    assert len(published_bindings) == 1
+    assert published_bindings[0].has_draft is False
+    assert published_bindings[0].last_published_at is not None
+
+    await service.remove_shared_block(page.id, section="header", locale=None)
+    bindings_after_removal = await service.list_page_shared_bindings(page.id)
+    assert bindings_after_removal == []
+
+
+@pytest.mark.asyncio()
+async def test_block_template_catalog_fields(service: SiteService) -> None:
+    template = await service.create_block_template(
+        key="promo-card",
+        title="Promo Card",
+        section="promo",
+        description="Promo description",
+        status="available",
+        default_locale="ru",
+        available_locales=["ru", "en"],
+        block_type="promo",
+        category="marketing",
+        sources=["manual"],
+        surfaces=["desktop", "mobile"],
+        owners=["team_marketing"],
+        catalog_locales=["ru"],
+        documentation_url="https://example.org/docs/promo-card",
+        keywords=["promo", "card"],
+        preview_kind="image",
+        status_note="beta",
+        requires_publisher=True,
+        allow_shared_scope=True,
+        allow_page_scope=False,
+        shared_note="Shared by marketing",
+        key_prefix="promo",
+        default_data={"layout": {"variant": "full"}},
+        default_meta={"requires_publisher": True},
+        actor="tester@example.com",
+    )
+
+    assert template.block_type == "promo"
+    assert template.category == "marketing"
+    assert template.sources == ("manual",)
+    assert template.surfaces == ("desktop", "mobile")
+    assert template.owners == ("team_marketing",)
+    assert template.catalog_locales == ("ru",)
+    assert template.allow_page_scope is False
+    assert template.requires_publisher is True
+    assert template.shared_note == "Shared by marketing"
+    assert template.default_data["layout"]["variant"] == "full"
+    assert template.default_meta["requires_publisher"] is True
+
+    fetched = await service.get_block_template(template.id)
+    assert fetched.documentation_url == "https://example.org/docs/promo-card"
+    assert fetched.preview_kind == "image"
+
+    updated = await service.update_block_template(
+        template.id,
+        category="content",
+        owners=["team_content"],
+        keywords=["promo", "updated"],
+        allow_page_scope=True,
+        default_meta={"note": "updated"},
+        actor="tester@example.com",
+    )
+    assert updated.category == "content"
+    assert updated.owners == ("team_content",)
+    assert updated.allow_page_scope is True
+    assert updated.default_meta["note"] == "updated"
+
+    templates = await service.list_block_templates()
+    matching = [item for item in templates if item.id == template.id]
+    assert matching and matching[0].category == "content"
+
+
+@pytest.mark.asyncio()
+async def test_block_template_flags(service: SiteService) -> None:
+    template_block = await service.create_block(
+        key="hero-template",
+        title="Hero Template",
+        section="hero",
+        scope=BlockScope.SHARED,
+        default_locale="ru",
+        data={"title": {"ru": "Template"}},
+        meta={},
+        is_template=True,
+    )
+
+    assert template_block.is_template is True
+    assert template_block.version == 1
+    assert template_block.origin_block_id is None
+
+    derived_block = await service.create_block(
+        key="hero-instance",
+        title="Hero Instance",
+        section="hero",
+        scope=BlockScope.PAGE,
+        default_locale="ru",
+        data={"title": {"ru": "Instance"}},
+        meta={},
+        origin_block_id=template_block.id,
+    )
+
+    assert derived_block.is_template is False
+    assert derived_block.origin_block_id == template_block.id
+
+    template_items, _ = await service.list_blocks(is_template=True)
+    assert any(item.id == template_block.id for item in template_items)
+
+    derived_items, total = await service.list_blocks(origin_block_id=template_block.id)
+    assert total >= 1
+    assert any(item.id == derived_block.id for item in derived_items)

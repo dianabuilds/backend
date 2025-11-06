@@ -124,6 +124,7 @@ async def test_list_history_returns_entries(repository: HomeConfigRepository) ->
     assert len(history) >= 2
 
 
+@pytest.mark.asyncio()
 async def test_update_missing_draft(repository: HomeConfigRepository) -> None:
     with pytest.raises(HomeConfigDraftNotFound):
         await repository.update_draft(

@@ -4,6 +4,9 @@ export {
   fetchSitePages,
   fetchSitePage,
   fetchSitePageDraft,
+  fetchSitePageSharedBindings,
+  assignSharedBinding,
+  deleteSharedBinding,
   createSitePage,
   updateSitePage,
   deleteSitePage,
@@ -18,18 +21,24 @@ export {
 } from './pages';
 
 export {
-  fetchSiteGlobalBlocks,
-  fetchSiteGlobalBlock,
-  createSiteGlobalBlock,
-  saveSiteGlobalBlock,
-  publishSiteGlobalBlock,
-  fetchSiteGlobalBlockHistory,
-  fetchSiteGlobalBlockVersion,
-  restoreSiteGlobalBlockVersion,
+  fetchSiteBlocks,
+  fetchSiteBlock,
+  createSiteBlock,
+  saveSiteBlock,
+  publishSiteBlock,
+  archiveSiteBlock,
+  fetchSiteBlockHistory,
+  fetchSiteBlockVersion,
+  restoreSiteBlockVersion,
+  fetchBlockTemplates,
+  fetchBlockTemplate,
+  fetchBlockTemplateByKey,
+  createBlockTemplate,
+  updateBlockTemplate,
   previewSiteBlock,
 } from './blocks';
 
-export { fetchSitePageMetrics, fetchSiteGlobalBlockMetrics } from './metrics';
+export { fetchSitePageMetrics, fetchSiteBlockMetrics } from './metrics';
 
 export { fetchSiteAudit } from './audit';
 
@@ -37,6 +46,9 @@ import {
   fetchSitePages,
   fetchSitePage,
   fetchSitePageDraft,
+  fetchSitePageSharedBindings,
+  assignSharedBinding,
+  deleteSharedBinding,
   createSitePage,
   updateSitePage,
   deleteSitePage,
@@ -50,23 +62,32 @@ import {
   restoreSitePageVersion,
 } from './pages';
 import {
-  fetchSiteGlobalBlocks,
-  fetchSiteGlobalBlock,
-  createSiteGlobalBlock,
-  saveSiteGlobalBlock,
-  publishSiteGlobalBlock,
-  fetchSiteGlobalBlockHistory,
-  fetchSiteGlobalBlockVersion,
-  restoreSiteGlobalBlockVersion,
+  fetchSiteBlocks,
+  fetchSiteBlock,
+  createSiteBlock,
+  saveSiteBlock,
+  publishSiteBlock,
+  archiveSiteBlock,
+  fetchSiteBlockHistory,
+  fetchSiteBlockVersion,
+  restoreSiteBlockVersion,
+  fetchBlockTemplates,
+  fetchBlockTemplate,
+  fetchBlockTemplateByKey,
+  createBlockTemplate,
+  updateBlockTemplate,
   previewSiteBlock,
 } from './blocks';
-import { fetchSitePageMetrics, fetchSiteGlobalBlockMetrics } from './metrics';
+import { fetchSitePageMetrics, fetchSiteBlockMetrics } from './metrics';
 import { fetchSiteAudit } from './audit';
 
 export const managementSiteEditorApi = {
   fetchSitePages,
   fetchSitePage,
   fetchSitePageDraft,
+  fetchSitePageSharedBindings,
+  assignSharedBinding,
+  deleteSharedBinding,
   createSitePage,
   updateSitePage,
   deleteSitePage,
@@ -79,15 +100,23 @@ export const managementSiteEditorApi = {
   diffSitePageDraft,
   previewSitePage,
   restoreSitePageVersion,
-  fetchSiteGlobalBlocks,
-  fetchSiteGlobalBlock,
-  createSiteGlobalBlock,
-  saveSiteGlobalBlock,
-  publishSiteGlobalBlock,
-  fetchSiteGlobalBlockHistory,
-  fetchSiteGlobalBlockVersion,
-  fetchSiteGlobalBlockMetrics,
-  restoreSiteGlobalBlockVersion,
+  fetchSiteBlocks,
+  fetchSiteBlock,
+  createSiteBlock,
+  saveSiteBlock,
+  publishSiteBlock,
+  archiveSiteBlock,
+  fetchSiteBlockHistory,
+  fetchSiteBlockVersion,
+  fetchSiteBlockMetrics,
+  restoreSiteBlockVersion,
   previewSiteBlock,
+  fetchBlockTemplates,
+  fetchBlockTemplate,
+  fetchBlockTemplateByKey,
+  createBlockTemplate,
+  updateBlockTemplate,
   fetchSiteAudit,
 };
+
+

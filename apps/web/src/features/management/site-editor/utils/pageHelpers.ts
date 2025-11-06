@@ -1,9 +1,4 @@
-import type {
-  SiteGlobalBlockStatus,
-  SitePageReviewStatus,
-  SitePageStatus,
-  SitePageType,
-} from '@shared/types/management';
+import type { SitePageReviewStatus, SitePageStatus, SitePageType } from '@shared/types/management';
 
 export type StatusAppearance = {
   label: string;
@@ -55,25 +50,5 @@ export function reviewAppearance(
       return { label: 'Ревью не требуется', color: 'neutral' };
     default:
       return { label: 'Ревью не задано', color: 'neutral' };
-  }
-}
-
-export type GlobalBlockStatusAppearance = {
-  label: string;
-  color: 'success' | 'warning' | 'error' | 'neutral';
-};
-
-export function globalBlockStatusAppearance(
-  status: SiteGlobalBlockStatus | string | null | undefined,
-): GlobalBlockStatusAppearance {
-  switch (status) {
-    case 'published':
-      return { label: 'Опубликован', color: 'success' };
-    case 'draft':
-      return { label: 'Черновик', color: 'warning' };
-    case 'archived':
-      return { label: 'Архив', color: 'neutral' };
-    default:
-      return { label: 'Неизвестно', color: 'neutral' };
   }
 }

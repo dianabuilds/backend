@@ -32,9 +32,13 @@ def _in_anyio_worker() -> bool:
     try:
         anyio.from_thread.run(_probe_anyio_worker)
     except RuntimeError as exc:
-        if str(exc) != "This function can only be run from an AnyIO worker thread":
+        message = str(exc)
+        if message == "This function can only be run from an AnyIO worker thread":
+            cached = False
+        elif "Not running inside an AnyIO worker thread" in message:
+            cached = False
+        else:
             raise
-        cached = False
     else:
         cached = True
     _THREAD_STATE.anyio_worker = cached

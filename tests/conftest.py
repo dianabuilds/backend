@@ -6,16 +6,12 @@ import time
 import os
 from collections.abc import Generator
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import jwt
 import pytest
 from fastapi.testclient import TestClient
 
-
-os.environ.setdefault("APP_DATABASE_SSL_CA", "")
-os.environ.setdefault(
-    "APP_DATABASE_URL", "postgresql://app:app@localhost:5432/app?ssl=disable"
-)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _BACKEND_ROOT = _PROJECT_ROOT / "apps/backend"
@@ -23,6 +19,72 @@ for candidate in (_PROJECT_ROOT, _BACKEND_ROOT):
     candidate_str = str(candidate)
     if candidate_str not in sys.path:
         sys.path.insert(0, candidate_str)
+
+
+def _load_backend_env() -> None:
+    env_path = _BACKEND_ROOT / ".env"
+    if not env_path.exists():
+        return
+
+    wanted_keys = {"APP_DATABASE_URL", "APP_DATABASE_SSL_CA"}
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key not in wanted_keys:
+            continue
+        value = value.strip().strip('"').strip("'")
+        if not value:
+            continue
+        if key == "APP_DATABASE_SSL_CA" and not Path(value).is_absolute():
+            value_path = (_BACKEND_ROOT / value).resolve()
+            value = str(value_path)
+        os.environ.setdefault(key, value)
+
+
+def _normalize_database_url(url: str) -> str:
+    parsed = urlparse(url)
+    if not parsed.query:
+        return url
+    query = parse_qs(parsed.query, keep_blank_values=True)
+    changed = False
+    cert_values = query.get("sslrootcert")
+    if cert_values:
+        current = cert_values[0]
+        if current and not Path(current).is_absolute():
+            resolved = (_BACKEND_ROOT / current).resolve().as_posix()
+            query["sslrootcert"] = [resolved]
+            changed = True
+    if not changed:
+        return url
+    parts: list[str] = []
+    for key, values in query.items():
+        for value in values:
+            parts.append(f"{key}={value}")
+    normalized_query = "&".join(parts)
+    base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+    if parsed.params:
+        base = f"{base};{parsed.params}"
+    if normalized_query:
+        base = f"{base}?{normalized_query}"
+    if parsed.fragment:
+        base = f"{base}#{parsed.fragment}"
+    return base
+
+
+_load_backend_env()
+os.environ.setdefault("APP_DATABASE_SSL_CA", "")
+
+database_url = os.environ.get("APP_DATABASE_URL")
+if not database_url:
+    raise RuntimeError(
+        "APP_DATABASE_URL is not configured. Set it to the dev PostgreSQL DSN before running tests."
+    )
+
+os.environ["APP_DATABASE_URL"] = _normalize_database_url(database_url)
+
 pytest_plugins = [
     "domains.platform.moderation.tests.fixtures",
 ]

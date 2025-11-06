@@ -8,10 +8,16 @@ from typing import Any
 
 def _load_jsonschema_validator() -> Callable[..., None] | None:
     try:  # optional dependency for JSON Schema
+        from jsonschema import FormatChecker
         from jsonschema import validate as _validate
     except Exception:  # pragma: no cover
         return None
-    return _validate
+    format_checker = FormatChecker()
+
+    def _validator(instance: Any, schema: dict[str, Any], **kwargs: Any) -> None:
+        _validate(instance=instance, schema=schema, format_checker=format_checker)
+
+    return _validator
 
 
 jsonschema_validate: Callable[..., None] | None = _load_jsonschema_validator()
@@ -24,7 +30,8 @@ def read_schema(path: str) -> str:
 def event_schema_path(topic: str) -> Path:
     # events/<domain>/<topic>.json; e.g., profile.updated.v1 -> events/profile/profile.updated.v1.json
     domain = topic.split(".", 1)[0]
-    return Path("apps/backend/packages/schemas/events") / domain / f"{topic}.json"
+    base = Path(__file__).resolve().parent.parent / "schemas" / "events"
+    return base / domain / f"{topic}.json"
 
 
 def load_event_schema(topic: str) -> dict[str, Any] | None:

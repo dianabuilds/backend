@@ -18,7 +18,7 @@ export type BlockCategory =
   | 'catalog'
   | 'promo'
   | 'personalization'
-  | 'global'
+  | 'shared'
   | 'metrics';
 
 export type BlockSourceMode = 'manual' | 'auto' | 'mixed';
@@ -33,7 +33,7 @@ export type BlockSurface =
   | 'collection'
   | 'article'
   | 'help'
-  | 'global';
+  | 'shared';
 
 export type BlockPreviewKind =
   | 'hero'
@@ -62,16 +62,6 @@ type SharedMetadata = {
   keywords?: string[];
   preview: BlockPreviewKind;
   statusNote?: string;
-  globalTemplate?: {
-    section: string;
-    keyPrefix?: string;
-    title?: string;
-    defaultLocale?: BlockLocale;
-    requiresPublisher?: boolean;
-    data?: Record<string, unknown>;
-    meta?: Record<string, unknown>;
-    note?: string;
-  };
 };
 
 type AvailableBlockMetadata = SharedMetadata & {
@@ -210,84 +200,17 @@ export const SITE_BLOCK_LIBRARY: SiteBlockLibraryEntry[] = [
     preview: 'custom',
   },
   {
-    id: 'global_header',
+    id: 'footer',
     status: 'design',
-    label: 'Глобальный хедер',
-    description: 'Единая навигация по публичному сайту с локализованными ссылками и CTA.',
-    category: 'global',
-    sources: ['manual'],
-    surfaces: ['global'],
-    owners: ['Маркетинг', 'Продукт'],
-    locales: ['ru', 'en'],
-    documentationUrl: `${DOC_LIBRARY_URL}#global_header`,
-    keywords: ['навигация', 'header'],
-    preview: 'header',
-    statusNote: 'Дизайн и API в разработке',
-    globalTemplate: {
-      section: 'header',
-      keyPrefix: 'header',
-      title: 'Глобальный хедер',
-      defaultLocale: 'ru',
-      requiresPublisher: true,
-      data: {
-        branding: {
-          title: 'Caves World',
-          subtitle: 'Играй и создавай',
-          href: '/',
-          logo: {
-            light: '/assets/branding/logo-light.svg',
-            dark: '/assets/branding/logo-dark.svg',
-            alt: 'Caves World',
-          },
-        },
-        navigation: {
-          primary: [
-            { id: 'home', label: 'Главная', href: '/' },
-            { id: 'quests', label: 'Квесты', href: '/quests' },
-            { id: 'dev-blog', label: 'Dev Blog', href: '/dev-blog' },
-            { id: 'pricing', label: 'Тарифы', href: '/pricing' },
-          ],
-          utility: [
-            { id: 'help', label: 'Помощь', href: '/help' },
-            { id: 'blog', label: 'Блог', href: '/dev-blog' },
-          ],
-          cta: { id: 'signup', label: 'Присоединиться', href: '/auth/signup', style: 'primary' },
-          mobile: {
-            menu: [
-              { id: 'home', label: 'Главная', href: '/' },
-              { id: 'quests', label: 'Квесты', href: '/quests' },
-              { id: 'dev-blog', label: 'Dev Blog', href: '/dev-blog' },
-              { id: 'pricing', label: 'Тарифы', href: '/pricing' },
-              { id: 'help', label: 'Помощь', href: '/help' },
-            ],
-            cta: { id: 'signup', label: 'Присоединиться', href: '/auth/signup', style: 'primary' },
-          },
-        },
-        layout: { variant: 'default', sticky: true },
-        features: { language_switcher: true },
-        localization: { fallbackLocale: 'ru', available: ['ru', 'en'] },
-      },
-      meta: {
-        owner: 'team_public_site',
-        documentation: `${DOC_LIBRARY_URL}#global_header`,
-        template_id: 'global_header',
-        created_from_template: true,
-      },
-      note: 'Проверьте локализацию ссылок и договоритесь с владельцем перед публикацией.',
-    },
-  },
-  {
-    id: 'global_footer',
-    status: 'design',
-    label: 'Глобальный футер',
+    label: 'Футер',
     description: 'Контакты, юридическая информация и ссылки на разделы для всех страниц.',
-    category: 'global',
+    category: 'shared',
     sources: ['manual'],
-    surfaces: ['global'],
+    surfaces: ['shared'],
     owners: ['Маркетинг'],
     locales: ['ru', 'en'],
-    documentationUrl: `${DOC_LIBRARY_URL}#global_footer`,
-    keywords: ['footer', 'глобальный блок'],
+    documentationUrl: `${DOC_LIBRARY_URL}#footer`,
+    keywords: ['footer'],
     preview: 'footer',
     statusNote: 'Дизайн и контент в работе',
   },
@@ -359,7 +282,7 @@ export const CATEGORY_LABELS: Record<BlockCategory, string> = {
   catalog: 'Каталог',
   promo: 'Промо',
   personalization: 'Персонализация',
-  global: 'Глобальные блоки',
+  shared: 'Общие блоки',
   metrics: 'Метрики',
 };
 
@@ -382,7 +305,7 @@ export const SURFACE_LABELS: Record<BlockSurface, string> = {
   collection: 'Коллекции',
   article: 'Статьи',
   help: 'Справка',
-  global: 'Глобальные блоки',
+  shared: 'Общие слоты',
 };
 
 export const STATUS_LABELS: Record<BlockStatus, { label: string; color: 'success' | 'warning' | 'info' }> = {

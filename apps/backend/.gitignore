@@ -3,3 +3,5 @@
 .env.local
 .env.*.local
 var/
+apps/crypto/evm/
+apps/backend/logs

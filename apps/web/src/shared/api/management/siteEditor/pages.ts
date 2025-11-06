@@ -8,8 +8,11 @@ import type {
   SitePageHistoryResponse,
   SitePageListResponse,
   SitePagePreviewResponse,
+  SitePagePreviewDocument,
+  SitePagePreviewLayout,
   SitePageSummary,
   SitePageVersion,
+  SitePageAttachedBlock,
 } from '@shared/types/management';
 
 import { PAGE_STATUSES, PAGE_TYPES, SORT_ORDERS } from './constants';
@@ -20,6 +23,7 @@ import {
   normalizePreviewResponse,
   normalizeValidationResult,
   normalizePageVersion,
+  normalizePageAttachedBlock,
 } from './normalizers';
 import type {
   FetchOptions,
@@ -30,6 +34,9 @@ import type {
   PreviewSitePagePayload,
   PublishSitePagePayload,
   SaveSitePageDraftPayload,
+  ListSharedBindingsParams,
+  AssignSharedBindingPayload,
+  DeleteSharedBindingParams,
 } from './types';
 
 export async function fetchSitePages(
@@ -217,6 +224,80 @@ export async function fetchSitePageDraft(
   return normalizeDraft(response);
 }
 
+export async function fetchSitePageSharedBindings(
+  pageId: string,
+  params: ListSharedBindingsParams = {},
+  options: FetchOptions = {},
+): Promise<SitePageAttachedBlock[]> {
+  if (!pageId) {
+    return [];
+  }
+  const searchParams = new URLSearchParams();
+  const locale = params.locale?.trim();
+  if (locale) {
+    searchParams.set('locale', locale);
+  }
+  if (params.includeInactive) {
+    searchParams.set('include_inactive', 'true');
+  }
+  const query = searchParams.toString();
+  const response = await apiGet<Record<string, unknown>>(
+    `/v1/site/pages/${encodeURIComponent(pageId)}/shared-bindings${query ? `?${query}` : ''}`,
+    options,
+  );
+  return ensureArray(response?.items, normalizePageAttachedBlock).filter(
+    (item): item is SitePageAttachedBlock => item != null,
+  );
+}
+
+export async function assignSharedBinding(
+  pageId: string,
+  section: string,
+  payload: AssignSharedBindingPayload,
+  options: FetchOptions = {},
+): Promise<SitePageAttachedBlock | null> {
+  const blockId = payload.block_id?.trim();
+  if (!pageId || !section || !blockId) {
+    throw new Error('site_page_shared_binding_invalid_payload');
+  }
+  const body: Record<string, unknown> = {
+    block_id: blockId,
+  };
+  const locale = payload.locale?.trim();
+  if (locale) {
+    body.locale = locale;
+  }
+  const response = await apiPut<Record<string, unknown>>(
+    `/v1/site/pages/${encodeURIComponent(pageId)}/shared-bindings/${encodeURIComponent(section)}`,
+    body,
+    options,
+  );
+  return normalizePageAttachedBlock(response);
+}
+
+export async function deleteSharedBinding(
+  pageId: string,
+  section: string,
+  params: DeleteSharedBindingParams = {},
+  options: FetchOptions = {},
+): Promise<void> {
+  if (!pageId || !section) {
+    return;
+  }
+  const searchParams = new URLSearchParams();
+  const locale = params.locale?.trim();
+  if (locale) {
+    searchParams.set('locale', locale);
+  }
+  const query = searchParams.toString();
+  await apiDelete(
+    `/v1/site/pages/${encodeURIComponent(pageId)}/shared-bindings/${encodeURIComponent(section)}${
+      query ? `?${query}` : ''
+    }`,
+    options,
+  );
+}
+
 export async function saveSitePageDraft(
   pageId: string,
   payload: SaveSitePageDraftPayload,
@@ -401,4 +482,88 @@ export async function restoreSitePageVersion(
     options,
   );
   return normalizeDraft(response);
+}
+
+type MapPreviewOptions = {
+  layout?: string;
+};
+
+type HomePreviewPayload = {
+  blocks?: Array<Record<string, unknown>>;
+  fallbacks?: Array<Record<string, unknown>>;
+  meta?: Record<string, unknown>;
+  locale?: string | null;
+  version?: number | null;
+  [key: string]: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function extractPreviewPayload(document?: SitePagePreviewDocument | null): HomePreviewPayload | null {
+  if (!document) {
+    return null;
+  }
+  if (isRecord(document.payload)) {
+    return document.payload as HomePreviewPayload;
+  }
+  if (isRecord((document as Record<string, unknown>).data)) {
+    return (document as Record<string, unknown>).data as HomePreviewPayload;
+  }
+  return null;
+}
+
+function extractLayoutPayload(layout?: SitePagePreviewLayout | null): HomePreviewPayload | null {
+  if (!layout) {
+    return null;
+  }
+  if (isRecord(layout.payload)) {
+    return layout.payload as HomePreviewPayload;
+  }
+  if (isRecord(layout.data)) {
+    return layout.data as HomePreviewPayload;
+  }
+  return null;
+}
+
+export function mapPreviewResponseToHomeResponse(
+  response: SitePagePreviewResponse | null | undefined,
+  options: MapPreviewOptions = {},
+): HomePreviewPayload | null {
+  if (!response) {
+    return null;
+  }
+
+  const desiredLayout = options.layout?.trim();
+
+  if (desiredLayout && Array.isArray(response.preview_variants)) {
+    const variant = response.preview_variants.find((entry) => entry?.layout === desiredLayout);
+    const variantPayload = extractPreviewPayload(variant?.response);
+    if (variantPayload) {
+      return variantPayload;
+    }
+  }
+
+  const previewPayload = extractPreviewPayload(response.preview);
+  if (previewPayload) {
+    return previewPayload;
+  }
+
+  if (desiredLayout && response.layouts?.[desiredLayout]) {
+    const payload = extractLayoutPayload(response.layouts[desiredLayout]);
+    if (payload) {
+      return payload;
+    }
+  }
+
+  const [firstLayout] = Object.keys(response.layouts ?? {});
+  if (firstLayout) {
+    const payload = extractLayoutPayload(response.layouts[firstLayout]);
+    if (payload) {
+      return payload;
+    }
+  }
+
+  return null;
 }

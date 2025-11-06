@@ -1,82 +1,85 @@
-{
-  "compilerOptions": {
-    "target": "ES2021",
-    "useDefineForClassFields": true,
-    "lib": [
-      "ES2021",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "allowJs": false,
-    "esModuleInterop": true,
-    "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@ui": [
-        "src/shared/ui/index.ts"
-      ],
-      "@ui/*": [
-        "src/shared/ui/*"
-      ],
-      "@icons": [
-        "src/shared/icons/index.ts"
-      ],
-      "@icons/*": [
-        "src/shared/icons/*"
-      ],
-      "@shared/*": [
-        "src/shared/*"
-      ],
-      "@features/*": [
-        "src/features/*"
-      ]
-    },
-    "types": [
-      "vite/client",
-      "vitest/globals"
-    ],
-    "allowImportingTsExtensions": true
-  },
-  "include": [
-    "src/main.tsx",
-    "src/App.tsx",
-    "src/pages/**/*.tsx",
-    "src/shared/ui/**/*.ts",
-    "src/shared/ui/**/*.tsx",
-    "src/shared/auth/**/*.ts",
-    "src/shared/auth/**/*.tsx",
-    "src/vite-env.d.ts",
-    "src/features/**/*.ts",
-    "src/features/**/*.tsx",
-    "src/shared/api/**/*.ts",
-    "src/shared/types/**/*.ts",
-    "src/test/**/*.ts",
-    "src/test/**/*.tsx",
-    "src/test/**/*.d.ts",
-    "src/shared/schemas/**/*.ts",
-    "src/entry-server.tsx"
-  ],
-  "exclude": [
-    "vendor",
-    "ts/demo",
-    "node_modules",
-    "dist",
-    "src/app",
-    "src/components",
-    "src/assets",
-    "src/styles",
-    "src/i18n",
-    "src/configs",
-    "src/constants",
-    "src/hooks",
-    "src/utils",
-    "src/@types"
-  ]
+﻿{
+    "compilerOptions":  {
+                            "target":  "ES2021",
+                            "useDefineForClassFields":  true,
+                            "lib":  [
+                                        "ES2021",
+                                        "DOM",
+                                        "DOM.Iterable"
+                                    ],
+                            "module":  "ESNext",
+                            "skipLibCheck":  true,
+                            "allowJs":  false,
+                            "esModuleInterop":  true,
+                            "moduleResolution":  "Bundler",
+                            "resolveJsonModule":  true,
+                            "isolatedModules":  true,
+                            "noEmit":  true,
+                            "jsx":  "react-jsx",
+                            "strict":  true,
+                            "baseUrl":  ".",
+                            "paths":  {
+                                          "@ui":  [
+                                                      "src/shared/ui/index.ts"
+                                                  ],
+                                          "@ui/*":  [
+                                                        "src/shared/ui/*"
+                                                    ],
+                                          "@icons":  [
+                                                         "src/shared/icons/index.ts"
+                                                     ],
+                                          "@icons/*":  [
+                                                           "src/shared/icons/*"
+                                                       ],
+                                          "@shared/*":  [
+                                                            "src/shared/*"
+                                                        ],
+                                          "@features/*":  [
+                                                              "src/features/*"
+                                                          ],
+                                          "@caves/site-shared/*":  [
+                                                                       "../packages/site-shared/src/*"
+                                                                   ]
+                                      },
+                            "types":  [
+                                          "vite/client",
+                                          "vitest/globals"
+                                      ],
+                            "allowImportingTsExtensions":  true
+                        },
+    "include":  [
+                    "src/main.tsx",
+                    "src/App.tsx",
+                    "src/pages/**/*.tsx",
+                    "src/shared/ui/**/*.ts",
+                    "src/shared/ui/**/*.tsx",
+                    "src/shared/auth/**/*.ts",
+                    "src/shared/auth/**/*.tsx",
+                    "src/vite-env.d.ts",
+                    "src/features/**/*.ts",
+                    "src/features/**/*.tsx",
+                    "src/shared/api/**/*.ts",
+                    "src/shared/types/**/*.ts",
+                    "src/test/**/*.ts",
+                    "src/test/**/*.tsx",
+                    "src/test/**/*.d.ts",
+                    "src/shared/schemas/**/*.ts",
+                    "src/entry-server.tsx"
+                ],
+    "exclude":  [
+                    "vendor",
+                    "ts/demo",
+                    "node_modules",
+                    "dist",
+                    "src/app",
+                    "src/components",
+                    "src/assets",
+                    "src/styles",
+                    "src/i18n",
+                    "src/configs",
+                    "src/constants",
+                    "src/hooks",
+                    "src/utils",
+                    "src/@types"
+                ]
 }

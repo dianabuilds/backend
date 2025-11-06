@@ -1,424 +1,189 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Card, Input, Select, Tag } from '@ui';
-import { ExternalLink, Search } from '@icons';
-import { useAuth } from '@shared/auth';
-import type { CreateSiteGlobalBlockPayload } from '@shared/api/management/siteEditor/types';
+﻿import React from 'react';
+import { Search } from '@icons';
+import { Button, Card, Input, Select, Spinner, useToast } from '@ui';
+import { managementSiteEditorApi } from '@shared/api/management';
+import type { SiteBlock, SiteBlockStatus } from '@shared/types/management';
+import type { CreateSiteBlockPayload } from '@shared/api/management/siteEditor/types';
+import { extractErrorMessage } from '@shared/utils/errors';
 import {
-  CATEGORY_LABELS,
-  LOCALE_LABELS,
-  SITE_BLOCK_LIBRARY,
-  SOURCE_LABELS,
-  STATUS_LABELS,
-  SURFACE_LABELS,
-  type BlockCategory,
-  type BlockLocale,
-  type BlockSourceMode,
-  type BlockSurface,
-  type SiteBlockLibraryEntry,
-} from '../blockLibraryData';
-
-type FilterValue<T> = T | 'all';
-
-type FiltersState = {
-  search: string;
-  status: FilterValue<SiteBlockLibraryEntry['status']>;
-  category: FilterValue<BlockCategory>;
-  source: FilterValue<BlockSourceMode>;
-  surface: FilterValue<BlockSurface>;
-  owner: FilterValue<string>;
-  locale: FilterValue<SupportedLocale>;
-};
+  BLOCKS_PAGE_SIZE,
+  REVIEW_STATUS_OPTIONS,
+  SCOPE_LABELS,
+  STATUS_META,
+} from './SiteBlockLibraryPage.constants';
+import { SiteBlockCreateDialog } from './SiteBlockCreateDialog';
+import SiteBlockDetailPanel from './SiteBlockDetailPanel';
+import { SiteBlockListItem, sortBlocksForList } from './SiteBlockListItem';
+import { filterBlocks, pickOwner, collectLocales } from './SiteBlockLibrary.utils';
+import type { FiltersState } from './SiteBlockLibrary.types';
 
 const INITIAL_FILTERS: FiltersState = {
   search: '',
   status: 'all',
-  category: 'all',
-  source: 'all',
-  surface: 'all',
-  owner: 'all',
+  scope: 'all',
   locale: 'all',
+  owner: 'all',
+  requiresPublisher: 'all',
+  reviewStatus: 'all',
 };
-
-const statusOrder: Record<SiteBlockLibraryEntry['status'], number> = {
-  available: 0,
-  design: 1,
-  research: 2,
-};
-
-function collectOwners(entries: SiteBlockLibraryEntry[]): string[] {
-  const owners = new Set<string>();
-  entries.forEach((entry) => entry.owners.forEach((owner) => owners.add(owner)));
-  return Array.from(owners).sort((a, b) => a.localeCompare(b, 'ru'));
-}
-
-function collectSurfaces(entries: SiteBlockLibraryEntry[]): BlockSurface[] {
-  const surfaces = new Set<BlockSurface>();
-  entries.forEach((entry) => entry.surfaces.forEach((surface) => surfaces.add(surface)));
-  return Array.from(surfaces).sort((a, b) => SURFACE_LABELS[a].localeCompare(SURFACE_LABELS[b], 'ru'));
-}
-
-const SUPPORTED_LOCALES = ['ru', 'en'] as const;
-type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
-
-const OWNER_OPTIONS = collectOwners(SITE_BLOCK_LIBRARY);
-const SURFACE_OPTIONS = collectSurfaces(SITE_BLOCK_LIBRARY);
-const LOCALE_OPTIONS: Array<{ value: FilterValue<SupportedLocale>; label: string }> = [
-  { value: 'all', label: 'Любые локали' },
-  ...SUPPORTED_LOCALES.map((locale) => ({
-    value: locale,
-    label: LOCALE_LABELS[locale],
-  })),
-];
-const CATEGORY_OPTIONS = Array.from(new Set<BlockCategory>(SITE_BLOCK_LIBRARY.map((entry) => entry.category))).sort(
-  (a, b) => CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], 'ru'),
-);
-const SOURCE_OPTIONS = Array.from(
-  new Set<BlockSourceMode>(SITE_BLOCK_LIBRARY.flatMap((entry) => entry.sources)),
-).sort((a, b) => SOURCE_LABELS[a].localeCompare(SOURCE_LABELS[b], 'ru'));
-const STATUS_OPTIONS = (Object.keys(statusOrder) as SiteBlockLibraryEntry['status'][]).sort(
-  (a, b) => statusOrder[a] - statusOrder[b],
-);
-
-const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
-const ROLE_ALIASES: Record<string, string> = {
-  'site.viewer': 'user',
-  'site.editor': 'editor',
-  'site.publisher': 'editor',
-  'site.reviewer': 'moderator',
-  'site.admin': 'admin',
-  'platform.admin': 'admin',
-  'platform.moderator': 'moderator',
-  'finance_ops': 'support',
-};
-const CAN_CREATE_ROLES = ['editor', 'moderator', 'admin'];
-
-function normalizeLocale(locale: string | null | undefined): SupportedLocale {
-  const normalized = (locale ?? '').trim().toLowerCase();
-  if (normalized.startsWith('en')) {
-    return 'en';
-  }
-  return 'ru';
-}
-
-function pickSupportedLocale(locales: BlockLocale[]): SupportedLocale {
-  const match = locales.find((locale) => SUPPORTED_LOCALES.includes(locale as SupportedLocale));
-  return normalizeLocale(match);
-}
-
-function matchesFilter<T>(value: FilterValue<T>, list: T[], predicate: (item: T) => boolean): boolean {
-  if (value === 'all') return true;
-  return list.some((item) => predicate(item));
-}
-
-function normalize(text: string): string {
-  return text.normalize('NFKC').toLowerCase();
-}
-
-function blockMatchesSearch(entry: SiteBlockLibraryEntry, search: string): boolean {
-  if (!search.trim()) {
-    return true;
-  }
-  const normalized = normalize(search);
-  const haystack = [
-    entry.label,
-    entry.description,
-    entry.id,
-    'type' in entry ? entry.type : '',
-    ...entry.owners,
-    ...entry.surfaces.map((surface) => SURFACE_LABELS[surface]),
-    ...entry.sources.map((source) => SOURCE_LABELS[source]),
-    ...(entry.keywords ?? []),
-  ].map(normalize).join(' ');
-  return haystack.includes(normalized);
-}
-
-type TemplateNavigationState = {
-  id: string;
-  label: string;
-  locale: string | null;
-  documentationUrl: string | null;
-  note: string | null;
-  defaults: CreateSiteGlobalBlockPayload;
-};
-
-function makeGlobalBlockKey(prefix: string): string {
-  const normalized =
-    prefix
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'block';
-  const suffix = Date.now().toString(36);
-  return `${normalized}-${suffix}`;
-}
-
-type LibraryCardProps = {
-  entry: SiteBlockLibraryEntry;
-  canCreate: boolean;
-  onCreate?: (entry: SiteBlockLibraryEntry) => void;
-};
-
-function LibraryCard({ entry, canCreate, onCreate }: LibraryCardProps): React.ReactElement {
-  const statusMeta = STATUS_LABELS[entry.status];
-  const surfaces = entry.surfaces.map((surface) => SURFACE_LABELS[surface]).join(', ');
-  const sources = entry.sources.map((source) => SOURCE_LABELS[source]).join(', ');
-  const supportedLocales = entry.locales.filter((locale) =>
-    SUPPORTED_LOCALES.includes(locale as SupportedLocale),
-  ) as SupportedLocale[];
-  const locales =
-    supportedLocales.length > 0
-      ? supportedLocales.map((locale) => LOCALE_LABELS[locale]).join(', ')
-      : LOCALE_LABELS['ru'];
-  const showTemplateCta = Boolean(entry.globalTemplate && onCreate);
-  const templateMessage =
-    entry.globalTemplate?.note ?? entry.statusNote ?? 'Создайте глобальный блок на основе шаблона.';
-
-  return (
-    <Card padding="sm" className="flex flex-col gap-4 bg-white/95 shadow-sm dark:bg-dark-800/80">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-300">
-            {CATEGORY_LABELS[entry.category]}
-          </div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">{entry.label}</h3>
-          <p className="text-sm text-gray-600 dark:text-dark-200">{entry.description}</p>
-        </div>
-        <Badge color={statusMeta.color} variant="soft">
-          {statusMeta.label}
-        </Badge>
-      </div>
-
-      <div className="grid gap-3 text-xs text-gray-600 dark:text-dark-200 sm:grid-cols-2 lg:grid-cols-3">
-        {'type' in entry ? (
-          <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-            <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Тип блокa</div>
-            <div className="font-mono text-[11px] text-gray-700 dark:text-dark-50">{entry.type}</div>
-          </div>
-        ) : null}
-        <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Источники</div>
-          <div>{sources}</div>
-        </div>
-        <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Поверхности</div>
-          <div>{surfaces}</div>
-        </div>
-        <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Локали</div>
-          <div>{locales}</div>
-        </div>
-        <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-          <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Владельцы</div>
-          <div>{entry.owners.join(', ')}</div>
-        </div>
-        {entry.keywords?.length ? (
-          <div className="space-y-1 rounded-xl bg-gray-50/80 px-3 py-2 dark:bg-dark-700/50">
-            <div className="text-2xs font-semibold uppercase tracking-wide text-gray-400 dark:text-dark-300">Ключевые слова</div>
-            <div className="flex flex-wrap gap-1">
-              {entry.keywords.map((keyword) => (
-                <Tag key={keyword} color="gray">
-                  {keyword}
-                </Tag>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {entry.statusNote ? (
-        <div className="rounded-xl border border-amber-200/60 bg-amber-50/70 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
-          {entry.statusNote}
-        </div>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
-        {entry.documentationUrl ? (
-          <Button
-            as="a"
-            href={entry.documentationUrl}
-            target="_blank"
-            rel="noreferrer"
-            variant="outlined"
-            color="neutral"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Документация
-          </Button>
-        ) : null}
-        {'type' in entry ? (
-          <Tag color="primary">ID: {entry.id}</Tag>
-        ) : (
-          <Tag color="amber">Планируется: {entry.id}</Tag>
-        )}
-      </div>
-
-      {showTemplateCta ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-primary-200/70 bg-primary-50/70 px-3 py-2 text-xs text-primary-800 dark:border-primary-500/30 dark:bg-primary-500/10 dark:text-primary-100 md:flex-row md:items-center md:justify-between">
-          <div className="flex-1">{templateMessage}</div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              disabled={!canCreate}
-              onClick={() => onCreate?.(entry)}
-            >
-              Создать глобальный блок
-            </Button>
-            {!canCreate ? (
-              <span className="text-[11px] text-primary-500/70 dark:text-primary-200/70">Недостаточно прав</span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
 export default function SiteBlockLibraryPage(): React.ReactElement {
   const [filters, setFilters] = React.useState<FiltersState>(INITIAL_FILTERS);
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const [blocks, setBlocks] = React.useState<SiteBlock[]>([]);
+  const [total, setTotal] = React.useState<number | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const { pushToast } = useToast();
 
-  const roles = React.useMemo(() => {
-    const set = new Set<string>();
-    const collect = (value: unknown) => {
-      if (!value) return;
-      const text = String(value).trim().toLowerCase();
-      if (!text) return;
-      const normalized = ROLE_ALIASES[text] ?? text;
-      if (KNOWN_ROLES.has(normalized)) {
-        set.add(normalized);
+  React.useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    managementSiteEditorApi
+      .fetchSiteBlocks(
+        { pageSize: BLOCKS_PAGE_SIZE, sort: 'updated_at_desc', isTemplate: false },
+        { signal: controller.signal },
+      )
+      .then((response) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setBlocks(Array.isArray(response.items) ? response.items : []);
+        setTotal(typeof response.total === 'number' ? response.total : null);
+      })
+      .catch((err) => {
+        if ((err as { name?: string })?.name === 'AbortError') {
+          return;
+        }
+        setError(extractErrorMessage(err, 'Не удалось загрузить блоки'));
+        setBlocks([]);
+        setTotal(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [refreshKey]);
+  const ownerOptions = React.useMemo(() => {
+    const owners = new Set<string>();
+    blocks.forEach((block) => {
+      const owner = pickOwner(block);
+      if (owner) {
+        owners.add(owner);
       }
-    };
-    if (Array.isArray(user?.roles)) {
-      user.roles.forEach(collect);
+    });
+    return Array.from(owners).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [blocks]);
+
+  const localeOptions = React.useMemo(() => {
+    const locales = new Set<string>();
+    blocks.forEach((block) => {
+      collectLocales(block).forEach((locale) => locales.add(locale));
+    });
+    return Array.from(locales).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [blocks]);
+
+  const scopeOptions = React.useMemo(() => {
+    const scopes = new Set<string>();
+    blocks.forEach((block) => scopes.add(block.scope ?? 'unknown'));
+    return Array.from(scopes).sort((a, b) => a.localeCompare(b, 'ru'));
+  }, [blocks]);
+
+  const filteredBlocks = React.useMemo(() => {
+    const list = filterBlocks(blocks, filters);
+    return list.slice().sort(sortBlocksForList);
+  }, [blocks, filters]);
+
+  React.useEffect(() => {
+    if (!filteredBlocks.length) {
+      setSelectedBlockId(null);
+      return;
     }
-    collect(user?.role);
-    return set;
-  }, [user]);
+    if (!selectedBlockId || !filteredBlocks.some((block) => block.id === selectedBlockId)) {
+      setSelectedBlockId(filteredBlocks[0].id);
+    }
+  }, [filteredBlocks, selectedBlockId]);
+  const hasActiveFilters = React.useMemo(() => {
+    if (filters.search.trim().length > 0) {
+      return true;
+    }
+    return (Object.keys(filters) as Array<keyof FiltersState>).some((key) => filters[key] !== 'all');
+  }, [filters]);
 
-  const canCreateGlobalBlock = React.useMemo(
-    () =>
-      CAN_CREATE_ROLES.some((role) => roles.has(role)),
-    [roles],
+  const handleFilterChange = React.useCallback(
+    <Key extends keyof FiltersState>(key: Key, value: FiltersState[Key]) => {
+      setFilters((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+    },
+    [],
   );
-
-  const handleFilterChange = <Key extends keyof FiltersState>(key: Key, value: FiltersState[Key]) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
 
   const resetFilters = React.useCallback(() => {
     setFilters(INITIAL_FILTERS);
   }, []);
 
-  const buildTemplatePayload = React.useCallback(
-    (entry: SiteBlockLibraryEntry): TemplateNavigationState | null => {
-      const template = entry.globalTemplate;
-      if (!template) {
-        return null;
-      }
-      const key = makeGlobalBlockKey(template.keyPrefix || entry.id);
-      const resolvedLocale = normalizeLocale(template.defaultLocale ?? pickSupportedLocale(entry.locales));
-      const payload: CreateSiteGlobalBlockPayload = {
-        key,
-        title: template.title ?? entry.label,
-        section: template.section,
-        locale: resolvedLocale,
-        requires_publisher: template.requiresPublisher ?? true,
-      };
-      if (template.data) {
-        payload.data = JSON.parse(JSON.stringify(template.data));
-      }
-      const meta: Record<string, unknown> = {
-        template_entry_id: entry.id,
-        template_label: entry.label,
-      };
-      if (template.meta) {
-        Object.assign(meta, JSON.parse(JSON.stringify(template.meta)));
-      }
-      payload.meta = meta;
-      return {
-        id: entry.id,
-        label: entry.label,
-        locale: resolvedLocale,
-        documentationUrl: entry.documentationUrl ?? null,
-        note: template.note ?? entry.statusNote ?? null,
-        defaults: payload,
-      };
+  const handleRefresh = React.useCallback(() => {
+    setRefreshKey((key) => key + 1);
+  }, []);
+
+  const handleSelectBlock = React.useCallback((block: SiteBlock) => {
+    setSelectedBlockId(block.id);
+  }, []);
+
+  const openCreateDialog = React.useCallback(() => {
+    setCreateDialogOpen(true);
+  }, []);
+
+  const closeCreateDialog = React.useCallback(() => {
+    setCreateDialogOpen(false);
+  }, []);
+
+  const handleCreateBlock = React.useCallback(
+    async (payload: CreateSiteBlockPayload) => {
+      const created = await managementSiteEditorApi.createSiteBlock(payload);
+      setBlocks((prev) => [created, ...prev]);
+      setSelectedBlockId(created.id);
+      pushToast({ intent: 'success', description: 'Блок создан' });
     },
-    [],
+    [pushToast],
   );
 
-  const handleCreateGlobalBlock = React.useCallback(
-    (entry: SiteBlockLibraryEntry) => {
-      if (!canCreateGlobalBlock || !entry.globalTemplate) {
-        return;
-      }
-      const templateState = buildTemplatePayload(entry);
-      if (!templateState) {
-        return;
-      }
-      navigate('/management/site-editor/global-blocks/new', {
-        state: {
-          template: templateState,
-        },
-        replace: false,
-      });
-    },
-    [buildTemplatePayload, canCreateGlobalBlock, navigate],
-  );
+  const handleBlockMutated = React.useCallback((next: SiteBlock) => {
+    setBlocks((prev) => prev.map((item) => (item.id === next.id ? next : item)));
+    setSelectedBlockId(next.id);
+  }, []);
 
-  const filteredEntries = React.useMemo(() => {
-    return SITE_BLOCK_LIBRARY.filter((entry) => {
-      if (!blockMatchesSearch(entry, filters.search)) {
-        return false;
-      }
-      if (filters.status !== 'all' && entry.status !== filters.status) {
-        return false;
-      }
-      if (filters.category !== 'all' && entry.category !== filters.category) {
-        return false;
-      }
-      if (!matchesFilter(filters.source, entry.sources, (source) => source === filters.source)) {
-        return false;
-      }
-      if (!matchesFilter(filters.surface, entry.surfaces, (surface) => surface === filters.surface)) {
-        return false;
-      }
-      if (!matchesFilter(filters.owner, entry.owners, (owner) => owner === filters.owner)) {
-        return false;
-      }
-      if (!matchesFilter(filters.locale, entry.locales, (locale) => locale === filters.locale)) {
-        return false;
-      }
-      return true;
-    }).sort((a, b) => {
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-      if (statusDiff !== 0) {
-        return statusDiff;
-      }
-      return a.label.localeCompare(b.label, 'ru');
-    });
-  }, [filters]);
-
-  const hasActiveFilters = React.useMemo(() => {
-    if (filters.search.trim().length > 0) return true;
-    return ['status', 'category', 'source', 'surface', 'owner', 'locale'].some((key) => filters[key as keyof FiltersState] !== 'all');
-  }, [filters]);
-
+  const effectiveTotal = total ?? blocks.length;
   return (
     <div className="space-y-6" data-testid="site-block-library-page">
       <header className="space-y-2">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Библиотека блоков</h1>
-        <p className="text-sm text-gray-600 dark:text-dark-200">
-          Страница со всеми шаблонами блоков, статусами реализации и ответственными командами. Используйте фильтры,
-          чтобы подобрать подходящий блок для конкретной поверхности или аудитории.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Библиотека блоков</h1>
+            <p className="text-sm text-gray-600 dark:text-dark-200">
+              Управляйте общими блоками сайта: редактируйте, публикуйте и отслеживайте историю изменений.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={openCreateDialog} disabled={loading}>Создать блок</Button>
+            <Button
+              variant="ghost"
+              color="neutral"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              {loading ? 'Обновляем…' : 'Обновить'}
+            </Button>
+          </div>
+        </div>
       </header>
 
       <Card padding="sm" className="space-y-3 bg-white/95 shadow-sm dark:bg-dark-800/80">
@@ -426,60 +191,62 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
           <Input
             value={filters.search}
             onChange={(event) => handleFilterChange('search', event.target.value)}
-            placeholder="Поиск по названию, ID, владельцу или ключевому слову"
+            placeholder="Поиск по названию, ключу или секции"
             prefix={<Search className="h-4 w-4 text-gray-400" />}
             className="sm:col-span-2 xl:col-span-3"
           />
           <Select
             value={filters.status}
-            onChange={(event) => handleFilterChange('status', event.target.value as FilterValue<SiteBlockLibraryEntry['status']>)}
+            onChange={(event) => handleFilterChange('status', event.target.value as FiltersState['status'])}
+            aria-label="Фильтр по статусу"
           >
-            <option value="all">Любой статус</option>
-            {STATUS_OPTIONS.map((status) => (
+            <option value="all">Все статусы</option>
+            {(Object.keys(STATUS_META) as SiteBlockStatus[]).map((status) => (
               <option key={status} value={status}>
-                {STATUS_LABELS[status].label}
+                {STATUS_META[status].label}
               </option>
             ))}
           </Select>
           <Select
-            value={filters.category}
-            onChange={(event) => handleFilterChange('category', event.target.value as FilterValue<BlockCategory>)}
+            value={filters.reviewStatus}
+            onChange={(event) => handleFilterChange('reviewStatus', event.target.value as FiltersState['reviewStatus'])}
+            aria-label="Фильтр по статусу ревью"
           >
-            <option value="all">Все категории</option>
-            {CATEGORY_OPTIONS.map((category) => (
-              <option key={category} value={category}>
-                {CATEGORY_LABELS[category]}
+            <option value="all">Все статусы ревью</option>
+            {REVIEW_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>
           <Select
-            value={filters.source}
-            onChange={(event) => handleFilterChange('source', event.target.value as FilterValue<BlockSourceMode>)}
+            value={filters.scope}
+            onChange={(event) => handleFilterChange('scope', event.target.value as FiltersState['scope'])}
+            aria-label="Фильтр по области"
           >
-            <option value="all">Любой источник</option>
-            {SOURCE_OPTIONS.map((source) => (
-              <option key={source} value={source}>
-                {SOURCE_LABELS[source]}
+            <option value="all">Все области</option>
+            {scopeOptions.map((scope) => (
+              <option key={scope} value={scope}>
+                {SCOPE_LABELS[scope] ?? scope}
               </option>
             ))}
           </Select>
           <Select
-            value={filters.surface}
-            onChange={(event) => handleFilterChange('surface', event.target.value as FilterValue<BlockSurface>)}
+            value={filters.requiresPublisher}
+            onChange={(event) => handleFilterChange('requiresPublisher', event.target.value as FiltersState['requiresPublisher'])}
+            aria-label="Фильтр по requirement publisher"
           >
-            <option value="all">Любые поверхности</option>
-            {SURFACE_OPTIONS.map((surface) => (
-              <option key={surface} value={surface}>
-                {SURFACE_LABELS[surface]}
-              </option>
-            ))}
+            <option value="all">Publisher не важен</option>
+            <option value="true">Требует publisher</option>
+            <option value="false">Не требует publisher</option>
           </Select>
           <Select
             value={filters.owner}
-            onChange={(event) => handleFilterChange('owner', event.target.value as FilterValue<string>)}
+            onChange={(event) => handleFilterChange('owner', event.target.value as FiltersState['owner'])}
+            aria-label="Фильтр по владельцу"
           >
             <option value="all">Все владельцы</option>
-            {OWNER_OPTIONS.map((owner) => (
+            {ownerOptions.map((owner) => (
               <option key={owner} value={owner}>
                 {owner}
               </option>
@@ -487,43 +254,74 @@ export default function SiteBlockLibraryPage(): React.ReactElement {
           </Select>
           <Select
             value={filters.locale}
-            onChange={(event) =>
-              handleFilterChange('locale', event.target.value as FilterValue<SupportedLocale>)
-            }
+            onChange={(event) => handleFilterChange('locale', event.target.value as FiltersState['locale'])}
+            aria-label="Фильтр по локали"
           >
-            {LOCALE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="all">Все локали</option>
+            {localeOptions.map((locale) => (
+              <option key={locale} value={locale}>
+                {locale.toUpperCase()}
               </option>
             ))}
           </Select>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 dark:text-dark-200">
-          <span>Найдено {filteredEntries.length} блоков из {SITE_BLOCK_LIBRARY.length}</span>
-          {hasActiveFilters ? (
-            <Button variant="ghost" color="neutral" size="xs" onClick={resetFilters}>
-              Сбросить фильтры
-            </Button>
-          ) : null}
+          <span>
+            Найдено {filteredBlocks.length} блоков из {effectiveTotal}
+          </span>
+          <div className="flex items-center gap-2">
+            {loading ? <Spinner className="h-4 w-4 text-primary-400" /> : null}
+            {hasActiveFilters ? (
+              <Button variant="ghost" color="neutral" size="xs" onClick={resetFilters}>
+                Сбросить фильтры
+              </Button>
+            ) : null}
+          </div>
         </div>
+        {error ? (
+          <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            {error}
+          </div>
+        ) : null}
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {filteredEntries.length === 0 ? (
-          <div className="col-span-full flex h-48 items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-gray-50 text-center text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-800/60 dark:text-dark-200">
-            По выбранным условиям блоков не найдено. Попробуйте изменить фильтры или поиск.
+      <div className="grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
+        <Card className="space-y-3 border border-white/70 bg-white/95 p-4 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-dark-50">Список блоков</h2>
+            <span className="text-2xs text-gray-500 dark:text-dark-300">{blocks.length}</span>
           </div>
-        ) : (
-          filteredEntries.map((entry) => (
-            <LibraryCard
-              key={entry.id}
-              entry={entry}
-              canCreate={canCreateGlobalBlock}
-              onCreate={entry.globalTemplate ? handleCreateGlobalBlock : undefined}
-            />
-          ))
-        )}
+          <div className="space-y-2">
+            {filteredBlocks.length ? (
+              filteredBlocks.map((block) => (
+                <SiteBlockListItem
+                  key={block.id}
+                  block={block}
+                  selected={block.id === selectedBlockId}
+                  onSelect={handleSelectBlock}
+                />
+              ))
+            ) : (
+              <div className="space-y-2 rounded-xl border border-dashed border-gray-200 p-4 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
+                <div>Подходящих блоков не найдено.</div>
+                {hasActiveFilters ? (
+                  <Button variant="ghost" color="neutral" size="xs" onClick={resetFilters}>
+                    Сбросить фильтры
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <SiteBlockDetailPanel blockId={selectedBlockId} onBlockMutated={handleBlockMutated} />
       </div>
+
+      <SiteBlockCreateDialog
+        open={createDialogOpen}
+        onClose={closeCreateDialog}
+        onSubmit={handleCreateBlock}
+      />
     </div>
   );
 }

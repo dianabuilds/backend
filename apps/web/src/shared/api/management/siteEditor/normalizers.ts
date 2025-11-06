@@ -1,30 +1,34 @@
-import type {
+﻿import type {
   SiteAuditEntry,
-  SiteDraftValidationResult,
-  SiteGlobalBlock,
-  SiteGlobalBlockHistoryItem,
-  SiteGlobalBlockMetricsResponse,
-  SiteGlobalBlockPublishJob,
-  SiteGlobalBlockUsage,
-  SiteGlobalBlockWarning,
+  SiteBlock,
+  SiteBlockHistoryItem,
+  SiteBlockMetricsResponse,
   SiteBlockMetricsTopPage,
+  SiteBlockPublishJob,
+  SiteBlockTemplate,
+  SiteBlockUsage,
+  SiteBlockWarning,
+  SiteDraftValidationResult,
   SiteMetricAlert,
   SiteMetricValue,
   SiteMetricsRange,
+  SitePageAttachedBlock,
+  SitePageBlockReference,
   SitePageDiffEntry,
   SitePageDraft,
   SitePageMetricsResponse,
   SitePagePreviewLayout,
   SitePagePreviewResponse,
+  SitePagePreviewDocument,
+  SitePagePreviewVariant,
+  SitePagePreviewLocale,
   SitePageSummary,
   SitePageVersion,
   SiteValidationErrorEntry,
-  SitePageAttachedGlobalBlock,
-  SitePageGlobalBlockReference,
 } from '@shared/types/management';
 
 import {
-  GLOBAL_BLOCK_STATUSES,
+  BLOCK_STATUSES,
   PAGE_STATUSES,
   PAGE_TYPES,
   REVIEW_STATUSES,
@@ -65,10 +69,20 @@ export function normalizePage(value: unknown): SitePageSummary | null {
   const publishedVersion = pickNumber(value.published_version);
   const draftVersion = pickNumber(value.draft_version);
   const pinned = pickBoolean(value.pinned);
-  const globalBlocks = ensureArray(
-    value.global_blocks,
-    normalizePageAttachedGlobalBlock,
-  ).filter((item): item is SitePageAttachedGlobalBlock => item != null);
+  let sharedBindings = ensureArray(
+    value.shared_bindings,
+    normalizePageAttachedBlock,
+  ).filter((item): item is SitePageAttachedBlock => item != null);
+  if (!sharedBindings.length) {
+    sharedBindings = ensureArray(
+      (value as Record<string, unknown>).bindings,
+      normalizePageAttachedBlock,
+    ).filter((item): item is SitePageAttachedBlock => item != null);
+  }
+  const blockRefs = ensureArray(
+    (value as Record<string, unknown>).block_refs,
+    normalizePageBlockReference,
+  ).filter((item): item is SitePageBlockReference => item != null);
 
   return {
     id,
@@ -83,7 +97,9 @@ export function normalizePage(value: unknown): SitePageSummary | null {
     draft_version: draftVersion ?? null,
     has_pending_review: pickBoolean(value.has_pending_review) ?? null,
     pinned: pinned ?? null,
-    global_blocks: globalBlocks.length ? globalBlocks : undefined,
+    shared_bindings: sharedBindings.length ? sharedBindings : undefined,
+    bindings: sharedBindings.length ? sharedBindings : undefined,
+    block_refs: blockRefs.length ? blockRefs : undefined,
   };
 }
 
@@ -102,6 +118,20 @@ export function normalizeDraft(value: unknown): SitePageDraft | null {
   const reviewStatus = REVIEW_STATUSES.has(reviewStatusRaw)
     ? (reviewStatusRaw as SitePageDraft['review_status'])
     : 'none';
+  let sharedBindings = ensureArray(
+    value.shared_bindings,
+    normalizePageAttachedBlock,
+  ).filter((item): item is SitePageAttachedBlock => item != null);
+  if (!sharedBindings.length) {
+    sharedBindings = ensureArray(
+      (value as Record<string, unknown>).bindings,
+      normalizePageAttachedBlock,
+    ).filter((item): item is SitePageAttachedBlock => item != null);
+  }
+  const blockRefs = ensureArray(
+    (value as Record<string, unknown>).block_refs,
+    normalizePageBlockReference,
+  ).filter((item): item is SitePageBlockReference => item != null);
 
   return {
     page_id: pageId,
@@ -112,10 +142,9 @@ export function normalizeDraft(value: unknown): SitePageDraft | null {
     review_status: reviewStatus,
     updated_at: pickNullableString(value.updated_at),
     updated_by: pickNullableString(value.updated_by),
-    global_blocks: ensureArray(
-      value.global_blocks,
-      normalizePageGlobalBlockReference,
-    ).filter((item): item is SitePageGlobalBlockReference => item != null),
+    shared_bindings: sharedBindings.length ? sharedBindings : undefined,
+    bindings: sharedBindings.length ? sharedBindings : undefined,
+    block_refs: blockRefs.length ? blockRefs : undefined,
   };
 }
 
@@ -178,7 +207,7 @@ export function normalizeValidationResult(value: unknown): SiteDraftValidationRe
   };
 }
 
-export function normalizeGlobalBlock(value: unknown): SiteGlobalBlock | null {
+export function normalizeBlock(value: unknown): SiteBlock | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -188,49 +217,80 @@ export function normalizeGlobalBlock(value: unknown): SiteGlobalBlock | null {
   if (!id || !key || !title) {
     return null;
   }
+  const templateId =
+    pickNullableString(value.template_id) ?? pickNullableString((value as Record<string, unknown>).templateId) ?? null;
+  const templateKey =
+    pickNullableString(value.template_key) ?? pickNullableString((value as Record<string, unknown>).templateKey) ?? null;
   const section = pickString(value.section) ?? 'general';
   const locale = pickNullableString(value.locale) ?? null;
+  const scopeRaw = pickNullableString(value.scope) ?? null;
+  const scope = scopeRaw === 'shared' || scopeRaw === 'page' ? scopeRaw : null;
+  const defaultLocale = pickNullableString(value.default_locale) ?? null;
+  const availableLocales = Array.isArray(value.available_locales)
+    ? value.available_locales
+        .map((entry) => (typeof entry === 'string' && entry.trim() ? entry.trim() : null))
+        .filter((entry): entry is string => Boolean(entry))
+    : null;
   const statusRaw = pickString(value.status) ?? 'draft';
-  const status = GLOBAL_BLOCK_STATUSES.includes(statusRaw as typeof GLOBAL_BLOCK_STATUSES[number])
-    ? (statusRaw as typeof GLOBAL_BLOCK_STATUSES[number])
+  const status = BLOCK_STATUSES.includes(statusRaw as typeof BLOCK_STATUSES[number])
+    ? (statusRaw as typeof BLOCK_STATUSES[number])
     : 'draft';
   const reviewStatusRaw = pickString(value.review_status) ?? 'none';
   const reviewStatus = REVIEW_STATUSES.has(reviewStatusRaw)
-    ? (reviewStatusRaw as SiteGlobalBlock['review_status'])
+    ? (reviewStatusRaw as SiteBlock['review_status'])
     : 'none';
   const requiresPublisher = pickBoolean(value.requires_publisher) ?? false;
   const publishedVersion = pickNumber(value.published_version) ?? null;
   const draftVersion = pickNumber(value.draft_version) ?? null;
+  const version = pickNumber(value.version) ?? draftVersion ?? publishedVersion ?? null;
   const usageCount = pickNumber(value.usage_count) ?? null;
   const comment = pickNullableString(value.comment) ?? null;
   const data = isObjectRecord(value.data) ? (value.data as Record<string, unknown>) : undefined;
   const meta = isObjectRecord(value.meta) ? (value.meta as Record<string, unknown>) : undefined;
   const updatedAt = pickNullableString(value.updated_at) ?? null;
   const updatedBy = pickNullableString(value.updated_by) ?? null;
+  const createdAt = pickNullableString(value.created_at) ?? null;
+  const createdBy = pickNullableString(value.created_by) ?? null;
+  const lastUsedAt = pickNullableString(value.last_used_at) ?? null;
   const hasPendingPublish = pickBoolean(value.has_pending_publish);
+  const isTemplate = pickBoolean(value.is_template) ?? false;
+  const originBlockId = pickNullableString(value.origin_block_id) ?? null;
+  const extras = isObjectRecord(value.extras) ? (value.extras as Record<string, unknown>) : undefined;
 
   return {
     id,
     key,
     title,
+    template_id: templateId,
+    template_key: templateKey ?? undefined,
     section,
     locale,
+    scope,
+    default_locale: defaultLocale,
+    available_locales: availableLocales ?? undefined,
     status,
     review_status: reviewStatus,
     requires_publisher: requiresPublisher,
     published_version: publishedVersion,
     draft_version: draftVersion,
+    version,
     usage_count: usageCount,
     comment,
     data,
     meta,
     updated_at: updatedAt,
     updated_by: updatedBy,
+    created_at: createdAt,
+    created_by: createdBy,
+    last_used_at: lastUsedAt,
     has_pending_publish: hasPendingPublish ?? null,
+    extras,
+    is_template: isTemplate,
+    origin_block_id: originBlockId,
   };
 }
 
-export function normalizeGlobalBlockUsage(value: unknown): SiteGlobalBlockUsage | null {
+export function normalizeBlockUsage(value: unknown): SiteBlockUsage | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -246,6 +306,10 @@ export function normalizeGlobalBlockUsage(value: unknown): SiteGlobalBlockUsage 
     return null;
   }
   const section = pickString(value.section) ?? 'general';
+  const scopeRaw = pickNullableString(value.scope) ?? null;
+  const scope = scopeRaw === 'shared' || scopeRaw === 'page' ? scopeRaw : null;
+  const defaultLocale = pickNullableString(value.default_locale) ?? null;
+  const statusLabel = pickNullableString(value.status_label) ?? null;
   return {
     block_id: blockId,
     page_id: pageId,
@@ -255,12 +319,16 @@ export function normalizeGlobalBlockUsage(value: unknown): SiteGlobalBlockUsage 
     section,
     locale: pickNullableString(value.locale) ?? null,
     has_draft: pickBoolean(value.has_draft) ?? null,
+    has_draft_binding: pickBoolean(value.has_draft_binding) ?? null,
     last_published_at: pickNullableString(value.last_published_at) ?? null,
     owner: pickNullableString(value.owner) ?? null,
+    scope,
+    default_locale: defaultLocale,
+    status_label: statusLabel,
   };
 }
 
-export function normalizeGlobalBlockWarning(value: unknown): SiteGlobalBlockWarning | null {
+export function normalizeBlockWarning(value: unknown): SiteBlockWarning | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -270,10 +338,10 @@ export function normalizeGlobalBlockWarning(value: unknown): SiteGlobalBlockWarn
   if (!code || !pageId || !message) {
     return null;
   }
-  return { code, page_id: pageId, message };
+  return { code, page_id: pageId, message, title: pickNullableString(value.title) ?? null };
 }
 
-export function normalizeGlobalBlockPublishJob(value: unknown): SiteGlobalBlockPublishJob | null {
+export function normalizeBlockPublishJob(value: unknown): SiteBlockPublishJob | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -286,9 +354,9 @@ export function normalizeGlobalBlockPublishJob(value: unknown): SiteGlobalBlockP
   return { job_id: jobId, type, status };
 }
 
-export function normalizeGlobalBlockHistoryItem(
+export function normalizeBlockHistoryItem(
   value: unknown,
-): SiteGlobalBlockHistoryItem | null {
+): SiteBlockHistoryItem | null {
   if (!isObjectRecord(value)) {
     return null;
   }
@@ -301,6 +369,16 @@ export function normalizeGlobalBlockHistoryItem(
   const data = isObjectRecord(value.data) ? (value.data as Record<string, unknown>) : {};
   const meta = isObjectRecord(value.meta) ? (value.meta as Record<string, unknown>) : {};
   const diff = ensureArray<SitePageDiffEntry>(value.diff, normalizeDiffEntry);
+  let sharedBindings = ensureArray(
+    value.shared_bindings,
+    normalizePageAttachedBlock,
+  ).filter((item): item is SitePageAttachedBlock => item != null);
+  if (!sharedBindings.length) {
+    sharedBindings = ensureArray(
+      (value as Record<string, unknown>).bindings,
+      normalizePageAttachedBlock,
+    ).filter((item): item is SitePageAttachedBlock => item != null);
+  }
   return {
     id,
     block_id: blockId,
@@ -311,6 +389,8 @@ export function normalizeGlobalBlockHistoryItem(
     diff,
     published_at: pickNullableString(value.published_at) ?? null,
     published_by: pickNullableString(value.published_by) ?? null,
+    created_at: pickNullableString(value.created_at) ?? null,
+    created_by: pickNullableString(value.created_by) ?? null,
   };
 }
 
@@ -392,6 +472,16 @@ export function normalizePageVersion(value: unknown): SitePageVersion | null {
   const data = isObjectRecord(value.data) ? (value.data as Record<string, unknown>) : {};
   const meta = isObjectRecord(value.meta) ? (value.meta as Record<string, unknown>) : {};
   const diff = ensureArray<SitePageDiffEntry>(value.diff, normalizeDiffEntry);
+  let sharedBindings = ensureArray(
+    value.shared_bindings,
+    normalizePageAttachedBlock,
+  ).filter((item): item is SitePageAttachedBlock => item != null);
+  if (!sharedBindings.length) {
+    sharedBindings = ensureArray(
+      (value as Record<string, unknown>).bindings,
+      normalizePageAttachedBlock,
+    ).filter((item): item is SitePageAttachedBlock => item != null);
+  }
 
   return {
     id,
@@ -403,10 +493,7 @@ export function normalizePageVersion(value: unknown): SitePageVersion | null {
     diff: diff.length ? diff : null,
     published_at: pickNullableString(value.published_at),
     published_by: pickNullableString(value.published_by),
-    global_blocks: ensureArray(
-      value.global_blocks,
-      normalizePageGlobalBlockReference,
-    ).filter((item): item is SitePageGlobalBlockReference => item != null),
+    shared_bindings: sharedBindings.length ? sharedBindings : undefined,
   };
 }
 
@@ -451,13 +538,96 @@ export function normalizePreviewResponse(value: unknown): SitePagePreviewRespons
       layout: normalized.layout || layoutKey,
     };
   }
+  const previewRaw = (value as Record<string, unknown>).preview;
+  const preview = isObjectRecord(previewRaw)
+    ? (previewRaw as SitePagePreviewDocument)
+    : null;
+
+  const variantsRaw = Array.isArray((value as Record<string, unknown>).preview_variants)
+    ? ((value as Record<string, unknown>).preview_variants as unknown[])
+    : [];
+  const previewVariants: SitePagePreviewVariant[] = [];
+  for (const rawVariant of variantsRaw) {
+    if (!isObjectRecord(rawVariant)) {
+      continue;
+    }
+    const layout = pickString(rawVariant.layout);
+    const responseDoc = isObjectRecord(rawVariant.response)
+      ? (rawVariant.response as SitePagePreviewDocument)
+      : null;
+    if (!layout || !responseDoc) {
+      continue;
+    }
+    previewVariants.push({
+      layout,
+      response: responseDoc,
+    });
+  }
+
+  const defaultLocale = pickString((value as Record<string, unknown>).default_locale) ?? null;
+  const availableLocalesRaw = Array.isArray((value as Record<string, unknown>).available_locales)
+    ? ((value as Record<string, unknown>).available_locales as unknown[])
+    : [];
+  const availableLocales = availableLocalesRaw.filter(
+    (entry): entry is string => typeof entry === 'string' && entry.trim().length > 0,
+  );
+
+  const localizedSlugs = isObjectRecord((value as Record<string, unknown>).localized_slugs)
+    ? Object.fromEntries(
+        Object.entries(
+          (value as Record<string, unknown>).localized_slugs as Record<string, unknown>,
+        ).map(([key, slug]) => [key, pickString(slug) ?? '']),
+      )
+    : undefined;
+
+  const shared = isObjectRecord((value as Record<string, unknown>).shared)
+    ? ((value as Record<string, unknown>).shared as Record<string, unknown>)
+    : null;
+
+  const locales = isObjectRecord((value as Record<string, unknown>).locales)
+    ? ((value as Record<string, unknown>).locales as Record<string, SitePagePreviewLocale>)
+    : null;
+
+  const metaLocalized = isObjectRecord((value as Record<string, unknown>).meta_localized)
+    ? ((value as Record<string, unknown>).meta_localized as Record<string, unknown>)
+    : undefined;
+
+  const bindings = ensureArray(
+    (value as Record<string, unknown>).bindings,
+    normalizePageAttachedBlock,
+  ).filter((item): item is SitePageAttachedBlock => item != null);
+
+  const blockRefs = Array.isArray((value as Record<string, unknown>).block_refs)
+    ? ((value as Record<string, unknown>).block_refs as unknown[])
+        .filter(isObjectRecord)
+        .map((entry) => entry as SitePageBlockReference)
+    : [];
+
+  if (preview && previewVariants.length === 0) {
+    previewVariants.push({
+      layout: 'default',
+      response: preview,
+    });
+  }
+
   return {
     page,
     draft_version: pickNumber((value as Record<string, unknown>).draft_version) ?? 0,
     published_version: pickNumber((value as Record<string, unknown>).published_version) ?? null,
     requested_version: pickNumber((value as Record<string, unknown>).requested_version) ?? null,
     version_mismatch: pickBoolean((value as Record<string, unknown>).version_mismatch) ?? false,
+    bindings,
+    shared_bindings: bindings.length ? bindings : undefined,
+    block_refs: blockRefs,
+    default_locale: defaultLocale,
+    available_locales: availableLocales.length ? availableLocales : undefined,
+    localized_slugs: localizedSlugs,
+    preview: preview ?? undefined,
+    preview_variants: previewVariants.length ? previewVariants : undefined,
+    shared,
+    locales,
     layouts,
+    meta_localized: metaLocalized,
   };
 }
 
@@ -654,7 +824,7 @@ export function normalizeBlockMetricsTopPage(value: unknown): SiteBlockMetricsTo
 
 export function normalizeBlockMetricsResponse(
   value: unknown,
-): SiteGlobalBlockMetricsResponse {
+): SiteBlockMetricsResponse {
   if (!isObjectRecord(value)) {
     return {
       block_id: '',
@@ -677,7 +847,7 @@ export function normalizeBlockMetricsResponse(
   const topPages = ensureArray(value.top_pages, normalizeBlockMetricsTopPage).filter(
     (item): item is SiteBlockMetricsTopPage => item != null,
   );
-  const payload: SiteGlobalBlockMetricsResponse = {
+  const payload: SiteBlockMetricsResponse = {
     block_id: pickString(value.block_id) ?? '',
     period: pickString(value.period) ?? '7d',
     range: normalizeMetricsRange(value.range),
@@ -693,9 +863,94 @@ export function normalizeBlockMetricsResponse(
   return payload;
 }
 
-function normalizePageGlobalBlockReference(
+export function normalizeBlockTemplate(value: unknown): SiteBlockTemplate | null {
+  if (!isObjectRecord(value)) {
+    return null;
+  }
+  const id = pickString(value.id);
+  const key = pickString(value.key);
+  const title = pickString(value.title);
+  if (!id || !key || !title) {
+    return null;
+  }
+  const section = pickString(value.section) ?? 'general';
+  const status = pickString(value.status) ?? 'available';
+  const defaultLocale = pickString(value.default_locale) ?? 'ru';
+  let availableLocales = Array.isArray(value.available_locales)
+    ? value.available_locales
+        .map((entry) => (typeof entry === 'string' && entry.trim() ? entry.trim() : null))
+        .filter((entry): entry is string => Boolean(entry))
+    : [];
+  if (!availableLocales.length) {
+    availableLocales = [defaultLocale];
+  } else if (!availableLocales.includes(defaultLocale)) {
+    availableLocales = [defaultLocale, ...availableLocales];
+  }
+  const toStringArray = (input: unknown): string[] => {
+    if (!input) {
+      return [];
+    }
+    const raw = Array.isArray(input) ? input : String(input).split(',');
+    const result: string[] = [];
+    for (const entry of raw) {
+      const text = typeof entry === 'string' ? entry.trim() : String(entry ?? '').trim();
+      if (!text || result.includes(text)) {
+        continue;
+      }
+      result.push(text);
+    }
+    return result;
+  };
+  const defaultData = isObjectRecord(value.default_data)
+    ? (value.default_data as Record<string, unknown>)
+    : {};
+  const defaultMeta = isObjectRecord(value.default_meta)
+    ? (value.default_meta as Record<string, unknown>)
+    : {};
+  const sources = toStringArray(value.sources);
+  const surfaces = toStringArray(value.surfaces);
+  const owners = toStringArray(value.owners);
+  const catalogLocales = toStringArray(value.catalog_locales);
+  const keywords = toStringArray(value.keywords);
+  const requiresPublisher = pickBoolean(value.requires_publisher) ?? false;
+  const allowSharedScope = pickBoolean(value.allow_shared_scope);
+  const allowPageScope = pickBoolean(value.allow_page_scope);
+  return {
+    id,
+    key,
+    title,
+    section,
+    status,
+    description: pickNullableString(value.description) ?? null,
+    default_locale: defaultLocale,
+    available_locales: availableLocales,
+    default_data: defaultData,
+    default_meta: defaultMeta,
+    block_type: pickNullableString(value.block_type),
+    category: pickNullableString(value.category),
+    sources,
+    surfaces,
+    owners,
+    catalog_locales: catalogLocales,
+    documentation_url: pickNullableString(value.documentation_url),
+    keywords,
+    preview_kind: pickNullableString(value.preview_kind),
+    status_note: pickNullableString(value.status_note),
+    requires_publisher: requiresPublisher,
+    allow_shared_scope: allowSharedScope ?? true,
+    allow_page_scope: allowPageScope ?? true,
+    shared_note: pickNullableString(value.shared_note),
+    key_prefix: pickNullableString(value.key_prefix),
+    created_at: pickNullableString(value.created_at) ?? null,
+    created_by: pickNullableString(value.created_by) ?? null,
+    updated_at: pickNullableString(value.updated_at) ?? null,
+    updated_by: pickNullableString(value.updated_by) ?? null,
+  };
+}
+
+function normalizePageBlockReference(
   value: unknown,
-): SitePageGlobalBlockReference | null {
+): SitePageBlockReference | null {
   if (typeof value === 'string') {
     const cleaned = value.trim();
     return cleaned ? { key: cleaned } : null;
@@ -715,25 +970,30 @@ function normalizePageGlobalBlockReference(
   return { key, section: section ?? undefined };
 }
 
-function normalizePageAttachedGlobalBlock(
+export function normalizePageAttachedBlock(
   value: unknown,
-): SitePageAttachedGlobalBlock | null {
-  const base = normalizePageGlobalBlockReference(value);
+): SitePageAttachedBlock | null {
+  const base = normalizePageBlockReference(value);
   if (!base) {
     return null;
   }
   const record = isObjectRecord(value) ? value : {};
   const statusRaw = pickString(record.status);
   const reviewStatusRaw = pickString(record.review_status);
-  const status = GLOBAL_BLOCK_STATUSES.includes(
-    statusRaw as typeof GLOBAL_BLOCK_STATUSES[number],
+  const status = BLOCK_STATUSES.includes(
+    statusRaw as typeof BLOCK_STATUSES[number],
   )
-    ? (statusRaw as SitePageAttachedGlobalBlock['status'])
+    ? (statusRaw as SitePageAttachedBlock['status'])
     : statusRaw || undefined;
   const reviewStatus =
     reviewStatusRaw && REVIEW_STATUSES.has(reviewStatusRaw)
-      ? (reviewStatusRaw as SitePageAttachedGlobalBlock['review_status'])
+      ? (reviewStatusRaw as SitePageAttachedBlock['review_status'])
       : reviewStatusRaw || undefined;
+  const hasDraft = pickBoolean(record.has_draft);
+  const hasDraftBinding = pickBoolean(record.has_draft_binding);
+  const lastPublishedAt = pickNullableString(record.last_published_at) ?? undefined;
+  const owner = pickNullableString(record.owner) ?? undefined;
+  const extras = isObjectRecord(record.extras) ? (record.extras as Record<string, unknown>) : undefined;
   return {
     ...base,
     block_id: pickNullableString(record.block_id) ?? pickNullableString(record.id) ?? undefined,
@@ -746,5 +1006,14 @@ function normalizePageAttachedGlobalBlock(
     review_status: reviewStatus,
     updated_at: pickNullableString(record.updated_at) ?? undefined,
     updated_by: pickNullableString(record.updated_by) ?? undefined,
+    has_draft: hasDraft ?? undefined,
+    has_draft_binding: hasDraftBinding ?? undefined,
+    last_published_at: lastPublishedAt,
+    owner,
+    extras,
   };
 }
+
+
+
+

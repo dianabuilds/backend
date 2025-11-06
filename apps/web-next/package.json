@@ -1,0 +1,27 @@
+{
+  "name": "@caves/web-next",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env NEXT_DISABLE_TURBOPACK=1 next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@caves/site-shared": "file:../../packages/site-shared",
+    "next": "15.4.7",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "cross-env": "^10.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "15.4.7",
+    "typescript": "^5"
+  }
+}

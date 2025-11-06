@@ -8,11 +8,10 @@ import { extractErrorMessage } from '@shared/utils/errors';
 import { formatDateTime } from '@shared/utils/format';
 import { pushGlobalToast } from '@shared/ui/toastBus';
 import { managementSiteEditorApi } from '@shared/api/management';
-import { globalBlockStatusAppearance, reviewAppearance, statusAppearance, typeLabel } from '../utils/pageHelpers';
+import { statusAppearance, typeLabel } from '../utils/pageHelpers';
 import { SitePageHistoryPanel } from './PageHistoryPanel';
 import { SitePageAuditPanel } from './PageAuditPanel';
 import type {
-  SitePageAttachedGlobalBlock,
   SitePageListResponse,
   SitePageStatus,
   SitePageSummary,
@@ -174,15 +173,6 @@ export default function SitePagesCatalog(): React.ReactElement {
   const triggerDetailReload = React.useCallback(() => {
     setDetailRefreshKey((key) => key + 1);
   }, []);
-  const attachedBlocks = React.useMemo<SitePageAttachedGlobalBlock[]>(() => {
-    if (!selectedPage || !Array.isArray(selectedPage.global_blocks)) {
-      return [];
-    }
-    return selectedPage.global_blocks.filter(
-      (item): item is SitePageAttachedGlobalBlock => item != null,
-    );
-  }, [selectedPage]);
-
   // eslint-disable-next-line no-console
 
   const {
@@ -914,79 +904,21 @@ export default function SitePagesCatalog(): React.ReactElement {
                   tone={selectedPage.has_pending_review ? 'warning' : undefined}
                 />
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs uppercase tracking-wide text-gray-400 dark:text-dark-300">
-                    Глобальные блоки
-                  </div>
-                  {detailLoading ? <Spinner className="h-4 w-4 text-primary-500" /> : null}
-                </div>
-                {detailError ? (
-                  <div className="rounded-2xl border border-rose-200/70 bg-rose-50/70 p-4 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                      <div className="space-y-2">
-                        <p>{detailError}</p>
-                        <div>
-                  <Button size="xs" variant="outlined" onClick={triggerDetailReload}>
-                            Повторить
-                          </Button>
-                        </div>
+              {detailError ? (
+                <div className="rounded-2xl border border-rose-200/70 bg-rose-50/70 p-4 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <p>{detailError}</p>
+                      <div>
+                        <Button size="xs" variant="outlined" onClick={triggerDetailReload}>
+                          Повторить
+                        </Button>
                       </div>
                     </div>
                   </div>
-                ) : attachedBlocks.length ? (
-                  <ul className="space-y-3">
-                    {attachedBlocks.map((block) => {
-                      const statusMeta = globalBlockStatusAppearance(block.status);
-                      const reviewMeta = reviewAppearance(block.review_status);
-                      return (
-                        <li key={block.key}>
-                          <div className="space-y-3 rounded-2xl border border-gray-200 p-4 dark:border-dark-600">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                                  {block.title || block.key}
-                                </div>
-                                <div className="text-xs text-gray-500 dark:text-dark-200">{block.key}</div>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge color={statusMeta.color} variant="soft">
-                                  {statusMeta.label}
-                                </Badge>
-                <Badge color={reviewMeta.color} variant="outline">
-                  {reviewMeta.label}
-                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-600 dark:text-dark-200">
-                              <MetaItem label="Секция" value={block.section || '—'} />
-                              <MetaItem label="Локаль" value={block.locale || '—'} />
-                              <MetaItem
-                                label="Версии"
-                                value={`v${block.published_version ?? '—'} · draft ${block.draft_version ?? '—'}`}
-                              />
-                              <MetaItem
-                                label="Обновлён"
-                                value={formatDateTime(block.updated_at, { fallback: '—' })}
-                              />
-                              <MetaItem label="Изменил" value={block.updated_by || '—'} />
-                              <MetaItem
-                                label="Публикация"
-                                value={block.requires_publisher ? 'Требует publisher' : '—'}
-                              />
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-200 p-4 text-xs text-gray-500 dark:border-dark-600 dark:text-dark-200">
-                    Нет связанных глобальных блоков.
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
               <SitePageHistoryPanel
                 entries={history}
                 loading={historyLoading}

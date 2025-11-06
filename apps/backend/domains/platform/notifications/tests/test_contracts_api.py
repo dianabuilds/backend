@@ -4,6 +4,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 
 from packages.core import validate_notifications_request
+from packages.core.api_contracts import jsonschema_validate
 
 
 def test_notifications_contract_accepts_object_payload():
@@ -12,6 +13,9 @@ def test_notifications_contract_accepts_object_payload():
     validate_notifications_request("/v1/notifications/send", "post", payload)
 
 
+@pytest.mark.skipif(
+    jsonschema_validate is None, reason="jsonschema dependency unavailable"
+)
 def test_notifications_contract_rejects_non_object():
     with pytest.raises(ValidationError):
         # type: ignore[arg-type]

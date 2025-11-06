@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
@@ -9,7 +9,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from domains.product.site.domain import (
-    GlobalBlockStatus,
+    BlockBinding,
+    BlockScope,
+    BlockStatus,
     Page,
     PageDraft,
     PageReviewStatus,
@@ -23,8 +25,8 @@ from domains.product.site.domain import (
 
 from ..tables import (
     SITE_AUDIT_LOG_TABLE,
-    SITE_GLOBAL_BLOCK_USAGE_TABLE,
-    SITE_GLOBAL_BLOCKS_TABLE,
+    SITE_BLOCK_BINDINGS_TABLE,
+    SITE_BLOCKS_TABLE,
     SITE_PAGE_DRAFTS_TABLE,
     SITE_PAGE_VERSIONS_TABLE,
     SITE_PAGES_TABLE,
@@ -34,17 +36,96 @@ from . import helpers
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncEngine
 
-
-_UNSET: Any = object()
-
-
-class PageRepositoryMixin:
-    if TYPE_CHECKING:
-
+    class _RepositoryProtocol(Protocol):
         async def _require_engine(self) -> AsyncEngine: ...
         def _row_to_page(self, row: Mapping[str, Any]) -> Page: ...
         def _row_to_draft(self, row: Mapping[str, Any]) -> PageDraft: ...
         def _row_to_version(self, row: Mapping[str, Any]) -> PageVersion: ...
+
+else:
+
+    class _RepositoryProtocol:  # pragma: no cover - runtime placeholder
+        pass
+
+
+_UNSET: Any = object()
+
+
+class PageRepositoryMixin(_RepositoryProtocol):
+
+    def _row_to_block_binding(self, row: Mapping[str, Any]) -> BlockBinding:
+        available_locales = helpers.as_locale_list(row.get("block_available_locales"))
+        extras: dict[str, Any] = {}
+        published_version = row.get("block_published_version")
+        if published_version is not None:
+            extras["published_version"] = int(published_version)
+        draft_version = row.get("block_draft_version")
+        if draft_version is not None:
+            extras["draft_version"] = int(draft_version)
+        block_updated_at = row.get("block_updated_at")
+        if block_updated_at is not None:
+            extras["block_updated_at"] = (
+                block_updated_at.isoformat()
+                if hasattr(block_updated_at, "isoformat")
+                else block_updated_at
+            )
+        block_updated_by = row.get("block_updated_by")
+        if block_updated_by:
+            extras["block_updated_by"] = block_updated_by
+        extras_payload = extras or None
+        scope_raw = row.get("block_scope")
+        scope_value = None
+        if scope_raw:
+            try:
+                scope_value = BlockScope(scope_raw)
+            except ValueError:
+                scope_value = None
+        status_raw = row.get("block_status")
+        status_value = None
+        if status_raw:
+            try:
+                status_value = BlockStatus(status_raw)
+            except ValueError:
+                status_value = None
+        review_raw = row.get("block_review_status")
+        review_value = None
+        if review_raw:
+            try:
+                review_value = PageReviewStatus(review_raw)
+            except ValueError:
+                review_value = None
+        page_status_raw = row.get("page_status")
+        page_status_value = None
+        if page_status_raw:
+            try:
+                page_status_value = PageStatus(page_status_raw)
+            except ValueError:
+                page_status_value = None
+        return BlockBinding(
+            block_id=row["block_id"],
+            page_id=row["page_id"],
+            section=row["section"],
+            locale=row["locale"],
+            has_draft=(
+                bool(row.get("has_draft")) if row.get("has_draft") is not None else None
+            ),
+            last_published_at=row.get("last_published_at"),
+            active=bool(row.get("active")) if row.get("active") is not None else None,
+            position=row.get("position"),
+            title=row.get("block_title"),
+            key=row.get("block_key"),
+            slug=row.get("page_slug"),
+            page_status=page_status_value,
+            owner=row.get("page_owner"),
+            default_locale=row.get("block_default_locale"),
+            available_locales=available_locales if available_locales else None,
+            scope=scope_value,
+            requires_publisher=row.get("block_requires_publisher"),
+            status=status_value,
+            review_status=review_value,
+            updated_at=row.get("binding_updated_at"),
+            extras=extras_payload,
+        )
 
     async def list_pages(
         self,
@@ -71,7 +152,12 @@ class PageRepositoryMixin:
         if status:
             filters.append(SITE_PAGES_TABLE.c.status == status.value)
         if locale:
-            filters.append(SITE_PAGES_TABLE.c.locale == locale)
+            filters.append(
+                sa.or_(
+                    SITE_PAGES_TABLE.c.default_locale == locale,
+                    SITE_PAGES_TABLE.c.available_locales.contains([locale]),
+                )
+            )
         if has_draft is True:
             filters.append(SITE_PAGES_TABLE.c.draft_version.is_not(None))
         elif has_draft is False:
@@ -163,39 +249,80 @@ class PageRepositoryMixin:
         data: Mapping[str, Any] | None,
         meta: Mapping[str, Any] | None,
     ) -> None:
-        refs = helpers.extract_global_block_refs(data, meta)
-        existing_rows = (
+        data_map = helpers.as_mapping(data)
+        meta_map = helpers.as_mapping(meta)
+        refs = helpers.extract_shared_block_refs(data_map, meta_map)
+        now = helpers.utcnow()
+        explicit_meta_keys = {"globalBlocks", "global_blocks", "header", "footer"}
+        has_explicit_directive = bool(refs) or any(
+            key in meta_map for key in explicit_meta_keys
+        )
+
+        existing_rows_result = await conn.execute(
+            sa.select(
+                SITE_BLOCK_BINDINGS_TABLE.c.id,
+                SITE_BLOCK_BINDINGS_TABLE.c.block_id,
+                SITE_BLOCK_BINDINGS_TABLE.c.section,
+                SITE_BLOCK_BINDINGS_TABLE.c.locale,
+                SITE_BLOCK_BINDINGS_TABLE.c.position,
+                SITE_BLOCK_BINDINGS_TABLE.c.active,
+            ).where(SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id)
+        )
+        existing_rows = existing_rows_result.mappings().all()
+        existing_pair_map: dict[tuple[UUID, str, str | None], Mapping[str, Any]] = {
+            (
+                row["block_id"],
+                row["section"],
+                row.get("locale"),
+            ): row
+            for row in existing_rows
+        }
+
+        if not has_explicit_directive:
+            if existing_rows:
+                await conn.execute(
+                    SITE_BLOCK_BINDINGS_TABLE.update()
+                    .where(
+                        sa.and_(
+                            SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id,
+                            SITE_BLOCK_BINDINGS_TABLE.c.active.is_(True),
+                        )
+                    )
+                    .values(has_draft=True, updated_at=now)
+                )
+            return
+
+        page_locale_row = (
             (
                 await conn.execute(
-                    sa.select(
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
-                    ).where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
+                    sa.select(SITE_PAGES_TABLE.c.default_locale).where(
+                        SITE_PAGES_TABLE.c.id == page_id
+                    )
                 )
             )
             .mappings()
-            .all()
+            .first()
         )
-        existing_pairs = {
-            (row["block_id"], row["section"]) for row in existing_rows  # type: ignore[var-annotated]
-        }
+        page_locale = str((page_locale_row or {}).get("default_locale") or "ru")
 
         keys = {key for key, _ in refs}
         block_map: dict[str, tuple[UUID, str | None]] = {}
         if keys:
-            block_rows = (
-                await conn.execute(
-                    sa.select(
-                        SITE_GLOBAL_BLOCKS_TABLE.c.key,
-                        SITE_GLOBAL_BLOCKS_TABLE.c.id,
-                        SITE_GLOBAL_BLOCKS_TABLE.c.section,
-                    ).where(SITE_GLOBAL_BLOCKS_TABLE.c.key.in_(keys))
+            block_rows_result = await conn.execute(
+                sa.select(
+                    SITE_BLOCKS_TABLE.c.key,
+                    SITE_BLOCKS_TABLE.c.id,
+                    SITE_BLOCKS_TABLE.c.section,
                 )
-            ).mappings()
-            for row in block_rows:
-                block_map[row["key"]] = (row["id"], row.get("section"))  # type: ignore[index]
+                .where(SITE_BLOCKS_TABLE.c.key.in_(keys))
+                .where(SITE_BLOCKS_TABLE.c.scope == BlockScope.SHARED.value)
+            )
+            for row in block_rows_result.mappings():
+                block_map[row["key"]] = (row["id"], row.get("section"))
 
-        new_pairs: set[tuple[UUID, str]] = set()
+        section_positions: dict[str, int] = {}
+        new_pairs: set[tuple[UUID, str, str | None]] = set()
+        new_payload: dict[tuple[UUID, str, str | None], dict[str, Any]] = {}
         for key, section_hint in refs:
             block_entry = block_map.get(key)
             if not block_entry:
@@ -203,45 +330,83 @@ class PageRepositoryMixin:
             block_id, block_section = block_entry
             section_value = section_hint or block_section or "general"
             section_text = str(section_value).strip() or "general"
-            new_pairs.add((block_id, section_text))
+            locale_value: str | None = page_locale
+            position = section_positions.get(section_text, 0)
+            section_positions[section_text] = position + 1
+            pair = (block_id, section_text, locale_value)
+            if pair in new_pairs:
+                continue
+            new_pairs.add(pair)
+            new_payload[pair] = {
+                "block_id": block_id,
+                "section": section_text,
+                "locale": locale_value,
+                "position": position,
+            }
 
+        existing_pairs = set(existing_pair_map.keys())
         to_remove = existing_pairs - new_pairs
         to_add = new_pairs - existing_pairs
+        to_keep = existing_pairs & new_pairs
 
-        if to_remove:
-            await conn.execute(
-                SITE_GLOBAL_BLOCK_USAGE_TABLE.delete()
-                .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
-                .where(
-                    sa.tuple_(
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
-                    ).in_(list(to_remove))
+        affected_block_ids: set[UUID] = set()
+
+        if to_keep:
+            for pair in to_keep:
+                row = existing_pair_map[pair]
+                payload = new_payload.get(pair)
+                update_values: dict[str, Any] = {"has_draft": True, "updated_at": now}
+                if payload:
+                    current_position = row.get("position") or 0
+                    if payload["position"] != current_position:
+                        update_values["position"] = payload["position"]
+                if not bool(row.get("active", True)):
+                    update_values["active"] = True
+                await conn.execute(
+                    SITE_BLOCK_BINDINGS_TABLE.update()
+                    .where(SITE_BLOCK_BINDINGS_TABLE.c.id == row["id"])
+                    .values(**update_values)
                 )
-            )
+                affected_block_ids.add(pair[0])
 
         if to_add:
             await conn.execute(
-                SITE_GLOBAL_BLOCK_USAGE_TABLE.insert(),
+                SITE_BLOCK_BINDINGS_TABLE.insert(),
                 [
-                    {"page_id": page_id, "block_id": block_id, "section": section}
-                    for block_id, section in to_add
+                    {
+                        "page_id": page_id,
+                        "block_id": block_id,
+                        "section": section,
+                        "locale": locale,
+                        "position": new_payload.get(
+                            (block_id, section, locale), {}
+                        ).get("position", 0),
+                        "active": True,
+                        "has_draft": True,
+                        "last_published_at": None,
+                        "created_at": now,
+                        "updated_at": now,
+                    }
+                    for block_id, section, locale in to_add
                 ],
             )
+            affected_block_ids.update(block_id for block_id, _, _ in to_add)
 
-        affected_block_ids = {block_id for block_id, _ in existing_pairs | new_pairs}
-        usage_subquery = (
-            sa.select(sa.func.count())
-            .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
-            .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id == sa.bindparam("block_id"))
-            .scalar_subquery()
-        )
-        for block_id in affected_block_ids:
+        if to_remove:
             await conn.execute(
-                SITE_GLOBAL_BLOCKS_TABLE.update()
-                .where(SITE_GLOBAL_BLOCKS_TABLE.c.id == block_id)
-                .values(usage_count=usage_subquery.params(block_id=block_id))
+                SITE_BLOCK_BINDINGS_TABLE.delete()
+                .where(SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id)
+                .where(
+                    sa.tuple_(
+                        SITE_BLOCK_BINDINGS_TABLE.c.block_id,
+                        SITE_BLOCK_BINDINGS_TABLE.c.section,
+                        SITE_BLOCK_BINDINGS_TABLE.c.locale,
+                    ).in_(list(to_remove))
+                )
             )
+            affected_block_ids.update(block_id for block_id, _, _ in to_remove)
+
+        # Usage counts are derived dynamically; no table update required.
 
     async def create_page(
         self,
@@ -257,6 +422,10 @@ class PageRepositoryMixin:
         engine = await self._require_engine()
         new_id = uuid4()
         now = helpers.utcnow()
+        normalized_locale = locale.strip() if isinstance(locale, str) else "ru"
+        if not normalized_locale:
+            normalized_locale = "ru"
+        slug_localized = {normalized_locale: slug}
         async with engine.begin() as conn:
             await conn.execute(
                 SITE_PAGES_TABLE.insert().values(
@@ -265,7 +434,9 @@ class PageRepositoryMixin:
                     type=page_type.value,
                     status=PageStatus.DRAFT.value,
                     title=title,
-                    locale=locale,
+                    default_locale=normalized_locale,
+                    available_locales=[normalized_locale],
+                    slug_localized=slug_localized,
                     owner=owner,
                     created_at=now,
                     updated_at=now,
@@ -295,7 +466,8 @@ class PageRepositoryMixin:
                         "slug": slug,
                         "type": page_type.value,
                         "title": title,
-                        "locale": locale,
+                        "locale": normalized_locale,
+                        "available_locales": [normalized_locale],
                         "owner": owner,
                         "draft_version": 1,
                         "pinned": pinned,
@@ -326,7 +498,9 @@ class PageRepositoryMixin:
                         sa.select(
                             SITE_PAGES_TABLE.c.slug,
                             SITE_PAGES_TABLE.c.title,
-                            SITE_PAGES_TABLE.c.locale,
+                            SITE_PAGES_TABLE.c.default_locale,
+                            SITE_PAGES_TABLE.c.available_locales,
+                            SITE_PAGES_TABLE.c.slug_localized,
                             SITE_PAGES_TABLE.c.owner,
                             SITE_PAGES_TABLE.c.pinned,
                         )
@@ -340,11 +514,24 @@ class PageRepositoryMixin:
             if not current_row:
                 raise SitePageNotFound(f"page {page_id} not found")
 
+            current_default_locale = (
+                str(current_row.get("default_locale") or "ru").strip() or "ru"
+            )
+            current_locales = helpers.as_locale_list(
+                current_row.get("available_locales")
+            )
+            if not current_locales:
+                current_locales = (current_default_locale,)
+            current_slug_map = helpers.as_mapping(current_row.get("slug_localized"))
+            if not current_slug_map:
+                current_slug_map = {current_default_locale: current_row["slug"]}
+
             updates: dict[str, Any] = {}
             snapshot_before = {
                 "slug": current_row["slug"],
                 "title": current_row["title"],
-                "locale": current_row["locale"],
+                "default_locale": current_default_locale,
+                "available_locales": list(current_locales),
                 "owner": current_row.get("owner"),
                 "pinned": bool(current_row.get("pinned")),
             }
@@ -352,7 +539,11 @@ class PageRepositoryMixin:
             if slug is not _UNSET:
                 if not isinstance(slug, str) or not slug.strip():
                     raise SiteRepositoryError("site_page_invalid_slug")
-                updates["slug"] = slug.strip()
+                normalized_slug = slug.strip()
+                updates["slug"] = normalized_slug
+                slug_map_updated = dict(current_slug_map)
+                slug_map_updated[current_default_locale] = normalized_slug
+                updates["slug_localized"] = slug_map_updated
 
             if title is not _UNSET:
                 if not isinstance(title, str) or not title.strip():
@@ -362,7 +553,17 @@ class PageRepositoryMixin:
             if locale is not _UNSET:
                 if not isinstance(locale, str) or not locale.strip():
                     raise SiteRepositoryError("site_page_invalid_locale")
-                updates["locale"] = locale.strip()
+                normalized_locale = locale.strip()
+                updates["default_locale"] = normalized_locale
+                locales_ordered = list(
+                    dict.fromkeys((normalized_locale, *current_locales))
+                )
+                updates["available_locales"] = locales_ordered
+                slug_map_updated = dict(updates.get("slug_localized", current_slug_map))
+                slug_map_updated.setdefault(
+                    normalized_locale, updates.get("slug", current_row["slug"])
+                )
+                updates["slug_localized"] = slug_map_updated
 
             if owner is not _UNSET:
                 if owner is None:
@@ -422,7 +623,8 @@ class PageRepositoryMixin:
                             SITE_PAGES_TABLE.c.slug,
                             SITE_PAGES_TABLE.c.pinned,
                             SITE_PAGES_TABLE.c.title,
-                            SITE_PAGES_TABLE.c.locale,
+                            SITE_PAGES_TABLE.c.default_locale,
+                            SITE_PAGES_TABLE.c.available_locales,
                             SITE_PAGES_TABLE.c.owner,
                         )
                         .where(SITE_PAGES_TABLE.c.id == page_id)
@@ -440,17 +642,6 @@ class PageRepositoryMixin:
             if pinned or slug in {"/", "main"}:
                 raise SiteRepositoryError("site_page_delete_forbidden")
 
-            usage_rows = (
-                await conn.execute(
-                    sa.select(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id).where(
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id
-                    )
-                )
-            ).mappings()
-            affected_block_ids = {
-                row["block_id"] for row in usage_rows if row.get("block_id") is not None
-            }
-
             await conn.execute(
                 SITE_AUDIT_LOG_TABLE.insert().values(
                     id=uuid4(),
@@ -460,7 +651,10 @@ class PageRepositoryMixin:
                     snapshot={
                         "slug": slug,
                         "title": page_row.get("title"),
-                        "locale": page_row.get("locale"),
+                        "default_locale": page_row.get("default_locale"),
+                        "available_locales": list(
+                            helpers.as_locale_list(page_row.get("available_locales"))
+                        ),
                         "owner": page_row.get("owner"),
                     },
                     actor=actor,
@@ -471,23 +665,6 @@ class PageRepositoryMixin:
             await conn.execute(
                 SITE_PAGES_TABLE.delete().where(SITE_PAGES_TABLE.c.id == page_id)
             )
-
-            if affected_block_ids:
-                usage_subquery = (
-                    sa.select(sa.func.count())
-                    .select_from(SITE_GLOBAL_BLOCK_USAGE_TABLE)
-                    .where(
-                        SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id
-                        == sa.bindparam("block_id")
-                    )
-                    .scalar_subquery()
-                )
-                for block_id in affected_block_ids:
-                    await conn.execute(
-                        SITE_GLOBAL_BLOCKS_TABLE.update()
-                        .where(SITE_GLOBAL_BLOCKS_TABLE.c.id == block_id)
-                        .values(usage_count=usage_subquery.params(block_id=block_id))
-                    )
 
     async def get_page(self, page_id: UUID) -> Page:
         engine = await self._require_engine()
@@ -755,67 +932,39 @@ class PageRepositoryMixin:
                 published_version_int = None
         return diff, draft_version, published_version_int
 
-    async def list_page_global_blocks(self, page_id: UUID) -> list[dict[str, Any]]:
-        engine = await self._require_engine()
-        async with engine.connect() as conn:
-            stmt = (
-                sa.select(
-                    SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.id.label("block_id"),
-                    SITE_GLOBAL_BLOCKS_TABLE.c.key,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.title,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.status,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.locale,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.requires_publisher,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.published_version,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.draft_version,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.review_status,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.updated_at,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.updated_by,
-                )
-                .join(
-                    SITE_GLOBAL_BLOCKS_TABLE,
-                    SITE_GLOBAL_BLOCKS_TABLE.c.id
-                    == SITE_GLOBAL_BLOCK_USAGE_TABLE.c.block_id,
-                )
-                .where(SITE_GLOBAL_BLOCK_USAGE_TABLE.c.page_id == page_id)
-                .order_by(
-                    SITE_GLOBAL_BLOCK_USAGE_TABLE.c.section.asc(),
-                    SITE_GLOBAL_BLOCKS_TABLE.c.title.asc(),
-                )
-            )
-            result = await conn.execute(stmt)
-            rows = result.mappings().all()
+    async def list_page_global_blocks(
+        self, page_id: UUID, *, include_inactive: bool = False
+    ) -> list[dict[str, Any]]:
+        bindings = await self.list_block_bindings(
+            page_id, include_inactive=include_inactive
+        )
         blocks: list[dict[str, Any]] = []
-        for row in rows:
-            status_value = row.get("status")
-            review_status_value = row.get("review_status")
+        for binding in bindings:
+            status_value = binding.status.value if binding.status else None
+            if status_value is None and binding.status is not None:
+                status_value = str(binding.status)
+            review_status_value = (
+                binding.review_status.value if binding.review_status else None
+            )
+            if review_status_value is None and binding.review_status is not None:
+                review_status_value = str(binding.review_status)
+            extras = binding.extras or {}
             blocks.append(
                 {
-                    "block_id": str(row["block_id"]),
-                    "key": row.get("key"),
-                    "title": row.get("title"),
-                    "section": row.get("section"),
-                    "status": (
-                        status_value.value
-                        if isinstance(status_value, GlobalBlockStatus)
-                        else str(status_value)
-                    ),
-                    "locale": row.get("locale"),
-                    "requires_publisher": bool(row.get("requires_publisher")),
-                    "published_version": row.get("published_version"),
-                    "draft_version": row.get("draft_version"),
-                    "review_status": (
-                        review_status_value.value
-                        if isinstance(review_status_value, PageReviewStatus)
-                        else (
-                            str(review_status_value)
-                            if review_status_value is not None
-                            else None
-                        )
-                    ),
-                    "updated_at": row.get("updated_at"),
-                    "updated_by": row.get("updated_by"),
+                    "block_id": str(binding.block_id),
+                    "key": binding.key,
+                    "title": binding.title,
+                    "section": binding.section,
+                    "scope": binding.scope.value if binding.scope else "shared",
+                    "status": status_value,
+                    "default_locale": binding.default_locale,
+                    "available_locales": list(binding.available_locales or ()),
+                    "requires_publisher": bool(binding.requires_publisher),
+                    "published_version": extras.get("published_version"),
+                    "draft_version": extras.get("draft_version"),
+                    "review_status": review_status_value,
+                    "updated_at": extras.get("block_updated_at"),
+                    "updated_by": extras.get("block_updated_by"),
                 }
             )
         return blocks
@@ -891,6 +1040,188 @@ class PageRepositoryMixin:
                 )
             )
         return draft
+
+    def _build_block_bindings_select(self) -> sa.Select[tuple[Any, ...]]:
+        return (
+            sa.select(
+                SITE_BLOCK_BINDINGS_TABLE.c.block_id,
+                SITE_BLOCK_BINDINGS_TABLE.c.page_id,
+                SITE_BLOCK_BINDINGS_TABLE.c.section,
+                SITE_BLOCK_BINDINGS_TABLE.c.locale,
+                SITE_BLOCK_BINDINGS_TABLE.c.has_draft,
+                SITE_BLOCK_BINDINGS_TABLE.c.last_published_at,
+                SITE_BLOCK_BINDINGS_TABLE.c.active,
+                SITE_BLOCK_BINDINGS_TABLE.c.position,
+                SITE_BLOCK_BINDINGS_TABLE.c.updated_at.label("binding_updated_at"),
+                SITE_BLOCKS_TABLE.c.key.label("block_key"),
+                SITE_BLOCKS_TABLE.c.title.label("block_title"),
+                SITE_BLOCKS_TABLE.c.scope.label("block_scope"),
+                SITE_BLOCKS_TABLE.c.status.label("block_status"),
+                SITE_BLOCKS_TABLE.c.review_status.label("block_review_status"),
+                SITE_BLOCKS_TABLE.c.default_locale.label("block_default_locale"),
+                SITE_BLOCKS_TABLE.c.available_locales.label("block_available_locales"),
+                SITE_BLOCKS_TABLE.c.requires_publisher.label(
+                    "block_requires_publisher"
+                ),
+                SITE_BLOCKS_TABLE.c.published_version.label("block_published_version"),
+                SITE_BLOCKS_TABLE.c.draft_version.label("block_draft_version"),
+                SITE_BLOCKS_TABLE.c.updated_at.label("block_updated_at"),
+                SITE_BLOCKS_TABLE.c.updated_by.label("block_updated_by"),
+                SITE_PAGES_TABLE.c.slug.label("page_slug"),
+                SITE_PAGES_TABLE.c.status.label("page_status"),
+                SITE_PAGES_TABLE.c.owner.label("page_owner"),
+            )
+            .select_from(SITE_BLOCK_BINDINGS_TABLE)
+            .join(
+                SITE_BLOCKS_TABLE,
+                SITE_BLOCKS_TABLE.c.id == SITE_BLOCK_BINDINGS_TABLE.c.block_id,
+            )
+            .join(
+                SITE_PAGES_TABLE,
+                SITE_PAGES_TABLE.c.id == SITE_BLOCK_BINDINGS_TABLE.c.page_id,
+            )
+        )
+
+    async def list_block_bindings(
+        self,
+        page_id: UUID,
+        *,
+        locale: str | None = None,
+        include_inactive: bool = False,
+    ) -> list[BlockBinding]:
+        engine = await self._require_engine()
+        stmt = self._build_block_bindings_select().where(
+            SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id
+        )
+        if locale:
+            stmt = stmt.where(SITE_BLOCK_BINDINGS_TABLE.c.locale == locale)
+        if not include_inactive:
+            stmt = stmt.where(SITE_BLOCK_BINDINGS_TABLE.c.active.is_(True))
+        stmt = stmt.order_by(
+            SITE_BLOCK_BINDINGS_TABLE.c.section,
+            SITE_BLOCK_BINDINGS_TABLE.c.position,
+            SITE_BLOCK_BINDINGS_TABLE.c.updated_at.desc(),
+        )
+        async with engine.connect() as conn:
+            rows = (await conn.execute(stmt)).mappings().all()
+        return [self._row_to_block_binding(row) for row in rows]
+
+    async def _get_block_binding_row(
+        self,
+        conn: AsyncConnection,
+        *,
+        page_id: UUID,
+        section: str,
+        locale: str,
+    ) -> Mapping[str, Any] | None:
+        stmt = (
+            self._build_block_bindings_select()
+            .where(SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id)
+            .where(SITE_BLOCK_BINDINGS_TABLE.c.section == section)
+            .where(SITE_BLOCK_BINDINGS_TABLE.c.locale == locale)
+            .limit(1)
+        )
+        result = await conn.execute(stmt)
+        return result.mappings().first()
+
+    async def upsert_block_binding(
+        self,
+        page_id: UUID,
+        *,
+        block_id: UUID,
+        section: str,
+        locale: str,
+    ) -> BlockBinding:
+        engine = await self._require_engine()
+        normalized_section = section.strip()
+        normalized_locale = locale.strip()
+        if not normalized_section:
+            raise SiteRepositoryError("site_block_binding_invalid_section")
+        if not normalized_locale:
+            raise SiteRepositoryError("site_block_binding_invalid_locale")
+        now = helpers.utcnow()
+        async with engine.begin() as conn:
+            existing = await conn.execute(
+                sa.select(SITE_BLOCK_BINDINGS_TABLE.c.id).where(
+                    sa.and_(
+                        SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id,
+                        SITE_BLOCK_BINDINGS_TABLE.c.section == normalized_section,
+                        SITE_BLOCK_BINDINGS_TABLE.c.locale == normalized_locale,
+                    )
+                )
+            )
+            row = existing.mappings().first()
+            if row:
+                await conn.execute(
+                    SITE_BLOCK_BINDINGS_TABLE.update()
+                    .where(SITE_BLOCK_BINDINGS_TABLE.c.id == row["id"])
+                    .values(
+                        block_id=block_id,
+                        active=True,
+                        has_draft=True,
+                        updated_at=now,
+                    )
+                )
+            else:
+                await conn.execute(
+                    SITE_BLOCK_BINDINGS_TABLE.insert().values(
+                        block_id=block_id,
+                        page_id=page_id,
+                        section=normalized_section,
+                        locale=normalized_locale,
+                        position=0,
+                        active=True,
+                        has_draft=True,
+                        last_published_at=None,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+            binding_row = await self._get_block_binding_row(
+                conn,
+                page_id=page_id,
+                section=normalized_section,
+                locale=normalized_locale,
+            )
+            if not binding_row:
+                raise SiteRepositoryError("site_block_binding_not_found")
+            return self._row_to_block_binding(binding_row)
+
+    async def delete_block_binding(
+        self,
+        page_id: UUID,
+        *,
+        section: str,
+        locale: str,
+    ) -> None:
+        engine = await self._require_engine()
+        normalized_section = section.strip()
+        normalized_locale = locale.strip()
+        async with engine.begin() as conn:
+            await conn.execute(
+                SITE_BLOCK_BINDINGS_TABLE.delete().where(
+                    sa.and_(
+                        SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id,
+                        SITE_BLOCK_BINDINGS_TABLE.c.section == normalized_section,
+                        SITE_BLOCK_BINDINGS_TABLE.c.locale == normalized_locale,
+                    )
+                )
+            )
+
+    async def mark_block_bindings_published(self, page_id: UUID) -> None:
+        engine = await self._require_engine()
+        now = helpers.utcnow()
+        async with engine.begin() as conn:
+            await conn.execute(
+                SITE_BLOCK_BINDINGS_TABLE.update()
+                .where(SITE_BLOCK_BINDINGS_TABLE.c.page_id == page_id)
+                .values(
+                    has_draft=False,
+                    last_published_at=now,
+                    active=True,
+                    updated_at=now,
+                )
+            )
 
     async def _get_current_draft_version(self, page_id: UUID) -> int:
         engine = await self._require_engine()

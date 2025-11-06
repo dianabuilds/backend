@@ -562,22 +562,61 @@ export type ManagementAuditUser = {
 export type SitePageType = 'landing' | 'collection' | 'article' | 'system';
 export type SitePageStatus = 'draft' | 'published' | 'archived';
 
-export type SitePageGlobalBlockReference = {
+export type SiteBlockBinding = {
+  block_id: string;
   key: string;
-  section?: string | null;
+  section: string | null;
+  status?: SiteBlockStatus | string | null;
+  review_status?: SiteBlockReviewStatus | string | null;
+  requires_publisher?: boolean | null;
+  published_version?: number | null;
+  draft_version?: number | null;
+  locale: string;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  scope?: SiteBlock['scope'];
+  title?: string | null;
+  has_draft?: boolean | null;
+  has_draft_binding?: boolean | null;
+  last_published_at?: string | null;
+  owner?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+  position?: number | null;
+  page_id?: string | null;
+  active?: boolean | null;
+  extras?: Record<string, unknown>;
 };
 
-export type SitePageAttachedGlobalBlock = SitePageGlobalBlockReference & {
+export type SitePageBlockReference = {
   block_id?: string;
-  title?: string | null;
-  status?: SiteGlobalBlockStatus | string | null;
+  key: string;
+  section?: string | null;
+  required?: boolean;
+  locked?: boolean;
+  can_detach?: boolean;
+  is_missing?: boolean;
   locale?: string | null;
+  title?: string | null;
+  scope?: SiteBlock['scope'];
+};
+
+export type SitePageAttachedBlock = SitePageBlockReference & {
+  status?: SiteBlockStatus | string | null;
   requires_publisher?: boolean | null;
   published_version?: number | null;
   draft_version?: number | null;
   review_status?: SitePageReviewStatus | string | null;
   updated_at?: string | null;
   updated_by?: string | null;
+  has_draft?: boolean | null;
+  has_draft_binding?: boolean | null;
+  last_published_at?: string | null;
+  owner?: string | null;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  active?: boolean | null;
+  extras?: Record<string, unknown> | null;
 };
 
 export type SitePageSummary = {
@@ -593,7 +632,18 @@ export type SitePageSummary = {
   draft_version?: number | null;
   has_pending_review?: boolean | null;
   pinned?: boolean | null;
-  global_blocks?: SitePageAttachedGlobalBlock[];
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  localized_slugs?: Record<string, string> | null;
+  locales?: Array<{
+    locale: string;
+    slug: string;
+    status?: SitePageLocaleStatus | string | null;
+    title?: string | null;
+  }> | null;
+  bindings?: SitePageAttachedBlock[];
+  block_refs?: SitePageAttachedBlock[];
+  shared_bindings?: SitePageAttachedBlock[];
 };
 
 export type SitePageListResponse = {
@@ -604,6 +654,7 @@ export type SitePageListResponse = {
 };
 
 export type SitePageReviewStatus = 'none' | 'pending' | 'approved' | 'rejected';
+export type SitePageLocaleStatus = 'draft' | 'ready' | 'scheduled' | 'published' | 'archived' | string;
 
 export type SitePageDraft = {
   page_id: string;
@@ -614,7 +665,18 @@ export type SitePageDraft = {
   review_status: SitePageReviewStatus;
   updated_at?: string | null;
   updated_by?: string | null;
-  global_blocks?: SitePageGlobalBlockReference[];
+  bindings?: SitePageAttachedBlock[];
+  block_refs?: SitePageBlockReference[];
+  shared_bindings?: SitePageAttachedBlock[];
+  locales?: Record<string, SitePageDraftLocale>;
+};
+
+export type SitePageDraftLocale = {
+  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  status?: SitePageLocaleStatus | string | null;
+  slug?: string | null;
+  title?: string | null;
 };
 
 export type SiteValidationErrorEntry = {
@@ -674,7 +736,7 @@ export type SiteBlockMetricsTopPage = {
   ctr?: number | null;
 };
 
-export type SiteGlobalBlockMetricsResponse = {
+export type SiteBlockMetricsResponse = {
   block_id: string;
   period: string;
   range: SiteMetricsRange;
@@ -716,7 +778,7 @@ export type SitePageVersion = {
   diff?: SitePageDiffEntry[] | null;
   published_at?: string | null;
   published_by?: string | null;
-  global_blocks?: SitePageGlobalBlockReference[];
+  shared_bindings?: SitePageAttachedBlock[];
 };
 
 export type SitePageHistoryResponse = {
@@ -746,7 +808,44 @@ export type SitePagePreviewResponse = {
   published_version?: number | null;
   requested_version?: number | null;
   version_mismatch: boolean;
+  bindings?: SitePageAttachedBlock[];
+  shared_bindings?: SitePageAttachedBlock[];
+  block_refs?: SitePageBlockReference[];
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  localized_slugs?: Record<string, string>;
+  preview?: SitePagePreviewDocument | null;
+  preview_variants?: SitePagePreviewVariant[];
+  shared?: Record<string, unknown> | null;
+  locales?: Record<string, SitePagePreviewLocale> | null;
   layouts: Record<string, SitePagePreviewLayout>;
+  meta_localized?: Record<string, unknown>;
+};
+
+export type SitePagePreviewVariant = {
+  layout: string;
+  response: SitePagePreviewDocument;
+};
+
+export type SitePagePreviewDocument = {
+  page_id?: string | null;
+  slug?: string | null;
+  locale?: string | null;
+  title?: string | null;
+  type?: string | null;
+  version?: number | null;
+  generated_at?: string | null;
+  meta?: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  blocks?: Array<Record<string, unknown>>;
+  fallbacks?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+};
+
+export type SitePagePreviewLocale = {
+  data?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 export type SiteAuditEntry = {
@@ -766,30 +865,81 @@ export type SiteAuditListResponse = {
   offset: number;
 };
 
-export type SiteGlobalBlockStatus = 'draft' | 'published' | 'archived';
-export type SiteGlobalBlockReviewStatus = SitePageReviewStatus;
+export type SiteBlockStatus = 'draft' | 'published' | 'archived';
+export type SiteBlockReviewStatus = SitePageReviewStatus;
 
-export type SiteGlobalBlock = {
+export type SiteBlock = {
   id: string;
   key: string;
   title: string;
+  template_id?: string | null;
+  template_key?: string | null;
   section: string;
   locale?: string | null;
-  status: SiteGlobalBlockStatus;
-  review_status: SiteGlobalBlockReviewStatus;
+  scope?: 'shared' | 'page' | null;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  status: SiteBlockStatus;
+  review_status: SiteBlockReviewStatus;
   requires_publisher: boolean;
   published_version?: number | null;
   draft_version?: number | null;
+  version?: number | null;
   usage_count?: number | null;
   comment?: string | null;
   data?: Record<string, unknown>;
   meta?: Record<string, unknown>;
   updated_at?: string | null;
   updated_by?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  last_used_at?: string | null;
   has_pending_publish?: boolean | null;
+  extras?: Record<string, unknown>;
+  is_template?: boolean;
+  origin_block_id?: string | null;
 };
 
-export type SiteGlobalBlockUsage = {
+export type SiteBlockTemplateStatus = 'available' | 'draft' | 'archived' | string;
+
+export type SiteBlockTemplate = {
+  id: string;
+  key: string;
+  title: string;
+  section: string;
+  description?: string | null;
+  status: SiteBlockTemplateStatus;
+  default_locale: string;
+  available_locales: string[];
+  default_data: Record<string, unknown>;
+  default_meta: Record<string, unknown>;
+  block_type?: string | null;
+  category?: string | null;
+  sources: string[];
+  surfaces: string[];
+  owners: string[];
+  catalog_locales: string[];
+  documentation_url?: string | null;
+  keywords: string[];
+  preview_kind?: string | null;
+  status_note?: string | null;
+  requires_publisher: boolean;
+  allow_shared_scope: boolean;
+  allow_page_scope: boolean;
+  shared_note?: string | null;
+  key_prefix?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+};
+
+export type SiteBlockTemplateListResponse = {
+  items: SiteBlockTemplate[];
+  total: number;
+};
+
+export type SiteBlockUsage = {
   block_id: string;
   page_id: string;
   slug: string;
@@ -798,36 +948,42 @@ export type SiteGlobalBlockUsage = {
   section: string;
   locale?: string | null;
   has_draft?: boolean | null;
+  has_draft_binding?: boolean | null;
   last_published_at?: string | null;
   owner?: string | null;
+  position?: number | null;
+  scope?: SiteBlock['scope'];
+  default_locale?: string | null;
+  status_label?: string | null;
 };
 
-export type SiteGlobalBlockWarning = {
+export type SiteBlockWarning = {
   code: string;
   page_id: string;
   message: string;
+  title?: string | null;
 };
 
-export type SiteGlobalBlockListResponse = {
-  items: SiteGlobalBlock[];
+export type SiteBlockListResponse = {
+  items: SiteBlock[];
   page: number;
   page_size: number;
   total?: number | null;
 };
 
-export type SiteGlobalBlockDetailResponse = {
-  block: SiteGlobalBlock;
-  usage: SiteGlobalBlockUsage[];
-  warnings: SiteGlobalBlockWarning[];
+export type SiteBlockDetailResponse = {
+  block: SiteBlock;
+  usage: SiteBlockUsage[];
+  warnings: SiteBlockWarning[];
 };
 
-export type SiteGlobalBlockPublishJob = {
+export type SiteBlockPublishJob = {
   job_id: string;
   type: string;
   status: string;
 };
 
-export type SiteGlobalBlockAffectedPage = {
+export type SiteBlockAffectedPage = {
   page_id: string;
   slug: string;
   title: string;
@@ -835,17 +991,17 @@ export type SiteGlobalBlockAffectedPage = {
   republish_status?: string | null;
 };
 
-export type SiteGlobalBlockPublishResponse = {
+export type SiteBlockPublishResponse = {
   id: string;
   published_version?: number | null;
-  affected_pages: SiteGlobalBlockAffectedPage[];
-  jobs: SiteGlobalBlockPublishJob[];
+  affected_pages: SiteBlockAffectedPage[];
+  jobs: SiteBlockPublishJob[];
   audit_id: string;
-  block: SiteGlobalBlock;
-  usage: SiteGlobalBlockUsage[];
+  block: SiteBlock;
+  usage: SiteBlockUsage[];
 };
 
-export type SiteGlobalBlockHistoryItem = {
+export type SiteBlockHistoryItem = {
   id: string;
   block_id: string;
   version: number;
@@ -855,13 +1011,13 @@ export type SiteGlobalBlockHistoryItem = {
   diff?: SitePageDiffEntry[] | null;
   published_at?: string | null;
   published_by?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
 };
 
-export type SiteGlobalBlockHistoryResponse = {
-  items: SiteGlobalBlockHistoryItem[];
+export type SiteBlockHistoryResponse = {
+  items: SiteBlockHistoryItem[];
   total: number;
   limit: number;
   offset: number;
 };
-
-

@@ -17,3 +17,9 @@ def make_router() -> APIRouter:
     register_analytics_routes(router)
     register_moderation_routes(router)
     return router
+
+
+router = make_router()
+
+
+__all__ = ["make_router", "router"]

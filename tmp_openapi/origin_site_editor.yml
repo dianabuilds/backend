@@ -1,0 +1,3291 @@
+openapi: 3.1.0
+info:
+  title: Site Editor API
+  description: Endpoints for managing site pages and global blocks.
+  version: 1.0.0
+paths:
+  /v1/site/pages:
+    get:
+      tags:
+      - site
+      summary: List Pages
+      operationId: list_pages_v1_site_pages_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/PageType'
+          - type: 'null'
+          title: Type
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/PageStatus'
+          - type: 'null'
+          title: Status
+      - name: locale
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            minLength: 1
+          - type: 'null'
+          title: Q
+      - name: has_draft
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Draft
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          pattern: ^(updated_at_desc|updated_at_asc|title_asc)$
+          default: updated_at_desc
+          title: Sort
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Pages V1 Site Pages Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - site
+      summary: Create Page
+      operationId: create_page_v1_site_pages_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageCreatePayload'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Page V1 Site Pages Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}:
+    get:
+      tags:
+      - site
+      summary: Get Page
+      operationId: get_page_v1_site_pages__page_id__get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Page V1 Site Pages  Page Id  Get
+        '404':
+          description: Not Found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - site
+      summary: Update Page
+      operationId: update_page_v1_site_pages__page_id__patch
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageUpdatePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Page V1 Site Pages  Page Id  Patch
+        '400':
+          description: Bad Request
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/draft:
+    get:
+      tags:
+      - site
+      summary: Get Page Draft
+      operationId: get_page_draft_v1_site_pages__page_id__draft_get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Page Draft V1 Site Pages  Page Id  Draft Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - site
+      summary: Save Page Draft
+      operationId: save_page_draft_v1_site_pages__page_id__draft_put
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PageDraftPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Page Draft V1 Site Pages  Page Id  Draft Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/draft/validate:
+    post:
+      tags:
+      - site
+      summary: Validate Page Draft
+      operationId: validate_page_draft_v1_site_pages__page_id__draft_validate_post
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftValidationPayload'
+              default:
+                data: {}
+                meta: {}
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Validate Page Draft V1 Site Pages  Page Id  Draft
+                  Validate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/draft/diff:
+    get:
+      tags:
+      - site
+      summary: Diff Page Draft
+      operationId: diff_page_draft_v1_site_pages__page_id__draft_diff_get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Diff Page Draft V1 Site Pages  Page Id  Draft Diff
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/preview:
+    post:
+      tags:
+      - site
+      summary: Preview Page
+      operationId: preview_page_v1_site_pages__page_id__preview_post
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PagePreviewPayload'
+              default:
+                data: {}
+                meta: {}
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Preview Page V1 Site Pages  Page Id  Preview Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/publish:
+    post:
+      tags:
+      - site
+      summary: Publish Page
+      operationId: publish_page_v1_site_pages__page_id__publish_post
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishPayload'
+              default: {}
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Publish Page V1 Site Pages  Page Id  Publish Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/history:
+    get:
+      tags:
+      - site
+      summary: List Page History
+      operationId: list_page_history_v1_site_pages__page_id__history_get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Page History V1 Site Pages  Page Id  History
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/history/{version}:
+    get:
+      tags:
+      - site
+      summary: Get Page Version
+      operationId: get_page_version_v1_site_pages__page_id__history__version__get
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Page Version V1 Site Pages  Page Id  History  Version  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/pages/{page_id}/history/{version}/restore:
+    post:
+      tags:
+      - site
+      summary: Restore Page Version
+      operationId: restore_page_version_v1_site_pages__page_id__history__version__restore_post
+      parameters:
+      - name: page_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Page Id
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Restore Page Version V1 Site Pages  Page Id  History  Version  Restore
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks:
+    get:
+      tags:
+      - site
+      summary: List Global Blocks
+      operationId: list_global_blocks_v1_site_global_blocks_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      - name: section
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Section
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/GlobalBlockStatus'
+          - type: 'null'
+          title: Status
+      - name: locale
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: has_draft
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Has Draft
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          default: updated_at_desc
+          title: Sort
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Global Blocks V1 Site Global Blocks Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - site
+      summary: Create Global Block
+      operationId: create_global_block_v1_site_global_blocks_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalBlockCreatePayload'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Global Block V1 Site Global Blocks Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks/{block_id}:
+    get:
+      tags:
+      - site
+      summary: Get Global Block
+      operationId: get_global_block_v1_site_global_blocks__block_id__get
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Global Block V1 Site Global Blocks  Block Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      tags:
+      - site
+      summary: Save Global Block
+      operationId: save_global_block_v1_site_global_blocks__block_id__put
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalBlockSavePayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Global Block V1 Site Global Blocks  Block Id  Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks/{block_id}/publish:
+    post:
+      tags:
+      - site
+      summary: Publish Global Block
+      operationId: publish_global_block_v1_site_global_blocks__block_id__publish_post
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalBlockPublishPayload'
+              default:
+                acknowledge_usage: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Publish Global Block V1 Site Global Blocks  Block
+                  Id  Publish Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks/{block_id}/history:
+    get:
+      tags:
+      - site
+      summary: List Global Block History
+      operationId: list_global_block_history_v1_site_global_blocks__block_id__history_get
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Global Block History V1 Site Global Blocks  Block
+                  Id  History Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks/{block_id}/history/{version}:
+    get:
+      tags:
+      - site
+      summary: Get Global Block Version
+      operationId: get_global_block_version_v1_site_global_blocks__block_id__history__version__get
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Global Block Version V1 Site Global Blocks  Block
+                  Id  History  Version  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/global-blocks/{block_id}/history/{version}/restore:
+    post:
+      tags:
+      - site
+      summary: Restore Global Block Version
+      operationId: restore_global_block_version_v1_site_global_blocks__block_id__history__version__restore_post
+      parameters:
+      - name: block_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Block Id
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Restore Global Block Version V1 Site Global Blocks  Block
+                  Id  History  Version  Restore Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/site/audit:
+    get:
+      tags:
+      - site
+      summary: List Audit
+      operationId: list_audit_v1_site_audit_get
+      parameters:
+      - name: entity_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entity Type
+      - name: entity_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Entity Id
+      - name: actor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Audit V1 Site Audit Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    AchievementAdminOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        icon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Icon
+        visible:
+          type: boolean
+          title: Visible
+        condition:
+          additionalProperties: true
+          type: object
+          title: Condition
+        created_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By User Id
+        updated_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Updated By User Id
+      type: object
+      required:
+      - id
+      - code
+      - title
+      - visible
+      - condition
+      title: AchievementAdminOut
+    AchievementCreateIn:
+      properties:
+        code:
+          type: string
+          title: Code
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        icon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Icon
+        visible:
+          type: boolean
+          title: Visible
+          default: true
+        condition:
+          additionalProperties: true
+          type: object
+          title: Condition
+          default: {}
+      type: object
+      required:
+      - code
+      - title
+      title: AchievementCreateIn
+    AchievementOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code:
+          type: string
+          title: Code
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        icon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Icon
+        unlocked:
+          type: boolean
+          title: Unlocked
+        unlocked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Unlocked At
+      type: object
+      required:
+      - id
+      - code
+      - title
+      - unlocked
+      title: AchievementOut
+    AchievementUpdateIn:
+      properties:
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        icon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Icon
+        visible:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Visible
+        condition:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Condition
+      type: object
+      title: AchievementUpdateIn
+    ActivateCodeOut:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+          default: true
+        code:
+          type: string
+          title: Code
+      type: object
+      required:
+      - code
+      title: ActivateCodeOut
+    AdminHomeResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        draft:
+          anyOf:
+          - $ref: '#/components/schemas/HomeConfigSnapshot'
+          - type: 'null'
+        published:
+          anyOf:
+          - $ref: '#/components/schemas/HomeConfigSnapshot'
+          - type: 'null'
+        history:
+          items:
+            $ref: '#/components/schemas/HomeHistoryEntry'
+          type: array
+          title: History
+      type: object
+      required:
+      - slug
+      title: AdminHomeResponse
+    AppealDTO:
+      properties:
+        id:
+          type: string
+          title: Id
+        target_type:
+          type: string
+          title: Target Type
+        target_id:
+          type: string
+          title: Target Id
+        user_id:
+          type: string
+          title: User Id
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        status:
+          type: string
+          title: Status
+          default: new
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        decided_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decided At
+        decided_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decided By
+        decision_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decision Reason
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      required:
+      - id
+      - target_type
+      - target_id
+      - user_id
+      title: AppealDTO
+    Body_upload_avatar_me_v1_profile_me_avatar_post:
+      properties:
+        file:
+          type: string
+          format: binary
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_avatar_me_v1_profile_me_avatar_post
+    Body_upload_media_v1_media_post:
+      properties:
+        file:
+          type: string
+          format: binary
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_media_v1_media_post
+    BroadcastAudiencePayload:
+      properties:
+        type:
+          $ref: '#/components/schemas/BroadcastAudienceType'
+        filters:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Filters
+        user_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: User Ids
+      type: object
+      required:
+      - type
+      title: BroadcastAudiencePayload
+    BroadcastAudienceResponse:
+      properties:
+        type:
+          $ref: '#/components/schemas/BroadcastAudienceType'
+        filters:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Filters
+        user_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: User Ids
+      type: object
+      required:
+      - type
+      - filters
+      - user_ids
+      title: BroadcastAudienceResponse
+    BroadcastAudienceType:
+      type: string
+      enum:
+      - all_users
+      - segment
+      - explicit_users
+      title: BroadcastAudienceType
+      description: Audience modes supported by the broadcast product.
+    BroadcastCreateRequest:
+      properties:
+        title:
+          type: string
+          title: Title
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        template_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Id
+        audience:
+          $ref: '#/components/schemas/BroadcastAudiencePayload'
+        created_by:
+          type: string
+          title: Created By
+        scheduled_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Scheduled At
+      type: object
+      required:
+      - title
+      - audience
+      - created_by
+      title: BroadcastCreateRequest
+    BroadcastListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/BroadcastResponse'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        offset:
+          type: integer
+          title: Offset
+        limit:
+          type: integer
+          title: Limit
+        has_next:
+          type: boolean
+          title: Has Next
+        status_counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Status Counts
+        recipients:
+          type: integer
+          title: Recipients
+      type: object
+      required:
+      - items
+      - total
+      - offset
+      - limit
+      - has_next
+      - status_counts
+      - recipients
+      title: BroadcastListResponse
+    BroadcastResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        template_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Id
+        audience:
+          $ref: '#/components/schemas/BroadcastAudienceResponse'
+        status:
+          $ref: '#/components/schemas/BroadcastStatus'
+        created_by:
+          type: string
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        scheduled_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Scheduled At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        finished_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Finished At
+        total:
+          type: integer
+          title: Total
+        sent:
+          type: integer
+          title: Sent
+        failed:
+          type: integer
+          title: Failed
+      type: object
+      required:
+      - id
+      - title
+      - body
+      - template_id
+      - audience
+      - status
+      - created_by
+      - created_at
+      - updated_at
+      - scheduled_at
+      - started_at
+      - finished_at
+      - total
+      - sent
+      - failed
+      title: BroadcastResponse
+    BroadcastScheduleRequest:
+      properties:
+        scheduled_at:
+          type: string
+          format: date-time
+          title: Scheduled At
+      type: object
+      required:
+      - scheduled_at
+      title: BroadcastScheduleRequest
+    BroadcastStatus:
+      type: string
+      enum:
+      - draft
+      - scheduled
+      - sending
+      - sent
+      - failed
+      - cancelled
+      title: BroadcastStatus
+      description: Lifecycle status for broadcast notifications.
+    BroadcastUpdateRequest:
+      properties:
+        title:
+          type: string
+          title: Title
+        body:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Body
+        template_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Template Id
+        audience:
+          $ref: '#/components/schemas/BroadcastAudiencePayload'
+        scheduled_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Scheduled At
+      type: object
+      required:
+      - title
+      - audience
+      title: BroadcastUpdateRequest
+    CaseCreate:
+      properties:
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Type
+          default: general
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+          default: open
+        queue:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Queue
+        priority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priority
+        severity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Severity
+        subject_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Id
+        subject_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Type
+        subject_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject Label
+        assignee_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Assignee Id
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+      type: object
+      required:
+      - title
+      title: CaseCreate
+    CaseNoteCreate:
+      properties:
+        text:
+          type: string
+          title: Text
+        pinned:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Pinned
+        visibility:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Visibility
+      type: object
+      required:
+      - text
+      title: CaseNoteCreate
+    CaseUpdate:
+      properties:
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        queue:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Queue
+        priority:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priority
+        severity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Severity
+        assignee_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Assignee Id
+        tags:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Tags
+        metadata:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Metadata
+      type: object
+      title: CaseUpdate
+    CharacterIn:
+      properties:
+        name:
+          type: string
+          title: Name
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        traits:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Traits
+      type: object
+      required:
+      - name
+      title: CharacterIn
+    CharacterOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        world_id:
+          type: string
+          format: uuid
+          title: World Id
+        name:
+          type: string
+          title: Name
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        traits:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Traits
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        created_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By User Id
+        updated_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Updated By User Id
+      type: object
+      required:
+      - id
+      - world_id
+      - name
+      - created_at
+      - updated_at
+      title: CharacterOut
+    CharacterPatch:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        traits:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Traits
+      type: object
+      title: CharacterPatch
+    ContentStatus:
+      type: string
+      enum:
+      - pending
+      - resolved
+      - hidden
+      - restricted
+      - escalated
+      title: ContentStatus
+    ContentSummary:
+      properties:
+        id:
+          type: string
+          title: Id
+        type:
+          $ref: '#/components/schemas/ContentType'
+        author_id:
+          type: string
+          title: Author Id
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        preview:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Preview
+        ai_labels:
+          items:
+            type: string
+          type: array
+          title: Ai Labels
+        complaints_count:
+          type: integer
+          title: Complaints Count
+          default: 0
+        status:
+          $ref: '#/components/schemas/ContentStatus'
+          default: pending
+        moderation_history:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Moderation History
+        reports:
+          items:
+            $ref: '#/components/schemas/ReportDTO'
+          type: array
+          title: Reports
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      required:
+      - id
+      - type
+      - author_id
+      title: ContentSummary
+    ContentType:
+      type: string
+      enum:
+      - node
+      - comment
+      - trail
+      - media
+      title: ContentType
+    DeactivateCodeOut:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+          default: true
+      type: object
+      title: DeactivateCodeOut
+    DecisionResponse:
+      properties:
+        content_id:
+          type: string
+          title: Content Id
+        status:
+          type: string
+          title: Status
+        decision:
+          additionalProperties: true
+          type: object
+          title: Decision
+        moderation_status:
+          type: string
+          title: Moderation Status
+        db_state:
+          additionalProperties: true
+          type: object
+          title: Db State
+      type: object
+      title: DecisionResponse
+    DraftValidationPayload:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      title: DraftValidationPayload
+    EVMVerify:
+      properties:
+        message:
+          type: string
+          title: Message
+        signature:
+          type: string
+          title: Signature
+        wallet_address:
+          type: string
+          title: Wallet Address
+      type: object
+      required:
+      - message
+      - signature
+      - wallet_address
+      title: EVMVerify
+    EmailChangeIn:
+      properties:
+        email:
+          type: string
+          title: Email
+      type: object
+      required:
+      - email
+      title: EmailChangeIn
+    EmailChangePayload:
+      properties:
+        email:
+          type: string
+          title: Email
+      type: object
+      required:
+      - email
+      title: EmailChangePayload
+    EmailConfirmIn:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: EmailConfirmIn
+    EmailConfirmPayload:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: EmailConfirmPayload
+    GlobalBlockCreatePayload:
+      properties:
+        key:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Key
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Title
+        section:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Section
+          default: promo
+        locale:
+          anyOf:
+          - type: string
+            maxLength: 10
+          - type: 'null'
+          title: Locale
+        requires_publisher:
+          type: boolean
+          title: Requires Publisher
+          default: false
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      required:
+      - key
+      - title
+      title: GlobalBlockCreatePayload
+    GlobalBlockPublishPayload:
+      properties:
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+        diff:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Diff
+        version:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Version
+        acknowledge_usage:
+          type: boolean
+          title: Acknowledge Usage
+          default: false
+      type: object
+      title: GlobalBlockPublishPayload
+    GlobalBlockSavePayload:
+      properties:
+        version:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Version
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+        review_status:
+          $ref: '#/components/schemas/PageReviewStatus'
+          default: none
+      type: object
+      title: GlobalBlockSavePayload
+    GlobalBlockStatus:
+      type: string
+      enum:
+      - draft
+      - published
+      - archived
+      title: GlobalBlockStatus
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HomeConfigPayload:
+      properties:
+        slug:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Slug
+          default: main
+        data:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Data
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+      type: object
+      title: HomeConfigPayload
+    HomeConfigSnapshot:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        slug:
+          type: string
+          title: Slug
+        version:
+          type: integer
+          title: Version
+        status:
+          type: string
+          title: Status
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        created_at:
+          type: string
+          title: Created At
+        updated_at:
+          type: string
+          title: Updated At
+        published_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Published At
+        created_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By
+        updated_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated By
+        draft_of:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Draft Of
+      type: object
+      required:
+      - id
+      - slug
+      - version
+      - status
+      - data
+      - created_at
+      - updated_at
+      title: HomeConfigSnapshot
+    HomeHistoryEntry:
+      properties:
+        config_id:
+          type: string
+          format: uuid
+          title: Config Id
+        version:
+          type: integer
+          title: Version
+        action:
+          type: string
+          title: Action
+        actor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor
+        actor_team:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Team
+        comment:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Comment
+        created_at:
+          type: string
+          title: Created At
+        published_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Published At
+        is_current:
+          type: boolean
+          title: Is Current
+          default: false
+      type: object
+      required:
+      - config_id
+      - version
+      - action
+      - created_at
+      title: HomeHistoryEntry
+    IndexIn:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        text:
+          type: string
+          title: Text
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
+      type: object
+      required:
+      - id
+      - title
+      - text
+      title: IndexIn
+    LoginSchema:
+      properties:
+        login:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Login
+          description: Username or email
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+          description: Deprecated alias for login
+        password:
+          type: string
+          minLength: 1
+          title: Password
+      type: object
+      required:
+      - password
+      title: LoginSchema
+      description: Accept either `login` or legacy `email` field for username/email
+        auth.
+    ModeratorNotePayload:
+      properties:
+        id:
+          type: string
+          title: Id
+        text:
+          type: string
+          title: Text
+        author_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Id
+        author_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Author Name
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        pinned:
+          type: boolean
+          title: Pinned
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      title: ModeratorNotePayload
+    MyReferralCodeOut:
+      properties:
+        code:
+          type: string
+          title: Code
+        active:
+          type: boolean
+          title: Active
+      type: object
+      required:
+      - code
+      - active
+      title: MyReferralCodeOut
+    MyReferralStatsOut:
+      properties:
+        total_signups:
+          type: integer
+          title: Total Signups
+      type: object
+      required:
+      - total_signups
+      title: MyReferralStatsOut
+    NotificationPreferencesPayload:
+      properties:
+        preferences:
+          additionalProperties: true
+          type: object
+          title: Preferences
+      type: object
+      required:
+      - preferences
+      title: NotificationPreferencesPayload
+    PageCreatePayload:
+      properties:
+        slug:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Slug
+        type:
+          $ref: '#/components/schemas/PageType'
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Title
+        locale:
+          type: string
+          maxLength: 8
+          minLength: 2
+          title: Locale
+          default: ru
+        owner:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Owner
+        pinned:
+          type: boolean
+          title: Pinned
+          default: false
+      type: object
+      required:
+      - slug
+      - type
+      - title
+      title: PageCreatePayload
+    PageUpdatePayload:
+      properties:
+        slug:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Slug
+        title:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Title
+        locale:
+          anyOf:
+          - type: string
+            maxLength: 8
+            minLength: 2
+          - type: 'null'
+          title: Locale
+        owner:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Owner
+        pinned:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Pinned
+      type: object
+      title: PageUpdatePayload
+    PageDraftPayload:
+      properties:
+        version:
+          type: integer
+          minimum: 0.0
+          title: Version
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+        review_status:
+          $ref: '#/components/schemas/PageReviewStatus'
+          default: none
+      type: object
+      required:
+      - version
+      title: PageDraftPayload
+    PagePreviewPayload:
+      properties:
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        layouts:
+          anyOf:
+          - items:
+              type: string
+            type: array
+            maxItems: 4
+          - type: 'null'
+          title: Layouts
+        version:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Version
+      type: object
+      title: PagePreviewPayload
+    PageReviewStatus:
+      type: string
+      enum:
+      - none
+      - pending
+      - approved
+      - rejected
+      title: PageReviewStatus
+    PageStatus:
+      type: string
+      enum:
+      - draft
+      - published
+      - archived
+      title: PageStatus
+    PageType:
+      type: string
+      enum:
+      - landing
+      - collection
+      - article
+      - system
+      title: PageType
+    PreferenceBody:
+      properties:
+        preferences:
+          additionalProperties: true
+          type: object
+          title: Preferences
+      type: object
+      required:
+      - preferences
+      title: PreferenceBody
+    PreviewResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+      type: object
+      required:
+      - slug
+      - payload
+      title: PreviewResponse
+    ProfileUpdateIn:
+      properties:
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+      type: object
+      title: ProfileUpdateIn
+    ProfileUpdatePayload:
+      properties:
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+      type: object
+      title: ProfileUpdatePayload
+    PubIn:
+      properties:
+        topic:
+          type: string
+          title: Topic
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+        key:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Key
+      type: object
+      required:
+      - topic
+      - payload
+      title: PubIn
+    PublicHomeResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        version:
+          type: integer
+          title: Version
+        updated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Updated At
+        published_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Published At
+        generated_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Generated At
+        blocks:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Blocks
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        fallbacks:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Fallbacks
+      type: object
+      required:
+      - slug
+      - version
+      - updated_at
+      - published_at
+      - generated_at
+      - blocks
+      - meta
+      - fallbacks
+      title: PublicHomeResponse
+    PublishPayload:
+      properties:
+        comment:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Comment
+        diff:
+          anyOf:
+          - items:
+              additionalProperties: true
+              type: object
+            type: array
+          - type: 'null'
+          title: Diff
+      type: object
+      title: PublishPayload
+    PublishResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        published:
+          $ref: '#/components/schemas/HomeConfigSnapshot'
+      type: object
+      required:
+      - slug
+      - published
+      title: PublishResponse
+    QueueResponse:
+      properties:
+        items:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+      type: object
+      required:
+      - items
+      - next_cursor
+      title: QueueResponse
+    QuotaConsumeIn:
+      properties:
+        user_id:
+          type: string
+          minLength: 1
+          title: User Id
+        key:
+          type: string
+          minLength: 1
+          title: Key
+        limit:
+          type: integer
+          minimum: 0.0
+          title: Limit
+        amount:
+          type: integer
+          minimum: 1.0
+          title: Amount
+          default: 1
+        scope:
+          type: string
+          pattern: ^(day|month)$
+          title: Scope
+          default: day
+      type: object
+      required:
+      - user_id
+      - key
+      - limit
+      title: QuotaConsumeIn
+    QuotaConsumeOut:
+      properties:
+        allowed:
+          type: boolean
+          title: Allowed
+        remaining:
+          type: integer
+          title: Remaining
+        limit:
+          type: integer
+          title: Limit
+        scope:
+          type: string
+          title: Scope
+        reset_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reset At
+        overage:
+          type: boolean
+          title: Overage
+      type: object
+      required:
+      - allowed
+      - remaining
+      - limit
+      - scope
+      - reset_at
+      - overage
+      title: QuotaConsumeOut
+    ReasonIn:
+      properties:
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      title: ReasonIn
+    ReferralCodeAdminOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        owner_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Owner User Id
+        code:
+          type: string
+          title: Code
+        uses_count:
+          type: integer
+          title: Uses Count
+        active:
+          type: boolean
+          title: Active
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+      type: object
+      required:
+      - id
+      - code
+      - uses_count
+      - active
+      title: ReferralCodeAdminOut
+    ReferralEventAdminOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        code_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Code Id
+        code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Code
+        referrer_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Referrer User Id
+        referee_user_id:
+          type: string
+          format: uuid
+          title: Referee User Id
+        event_type:
+          type: string
+          title: Event Type
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+      type: object
+      required:
+      - id
+      - referee_user_id
+      - event_type
+      - occurred_at
+      title: ReferralEventAdminOut
+    ReportDTO:
+      properties:
+        id:
+          type: string
+          title: Id
+        object_type:
+          type: string
+          title: Object Type
+        object_id:
+          type: string
+          title: Object Id
+        reporter_id:
+          type: string
+          title: Reporter Id
+        category:
+          type: string
+          title: Category
+        text:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Text
+        status:
+          $ref: '#/components/schemas/ReportStatus'
+          default: new
+        created_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created At
+        resolved_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resolved At
+        decision:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Decision
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        updates:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Updates
+        source:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      required:
+      - id
+      - object_type
+      - object_id
+      - reporter_id
+      - category
+      title: ReportDTO
+    ReportStatus:
+      type: string
+      enum:
+      - new
+      - valid
+      - invalid
+      - resolved
+      - escalated
+      title: ReportStatus
+    RestoreResponse:
+      properties:
+        slug:
+          type: string
+          title: Slug
+        draft:
+          $ref: '#/components/schemas/HomeConfigSnapshot'
+      type: object
+      required:
+      - slug
+      - draft
+      title: RestoreResponse
+    RolesUpdateResponse:
+      properties:
+        user_id:
+          type: string
+          title: User Id
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+      type: object
+      required:
+      - user_id
+      - roles
+      title: RolesUpdateResponse
+    SanctionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        type:
+          type: string
+          title: Type
+        status:
+          type: string
+          title: Status
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        issued_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Issued By
+        issued_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Issued At
+        starts_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Starts At
+        ends_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ends At
+        revoked_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Revoked At
+        revoked_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Revoked By
+        evidence:
+          items:
+            type: string
+          type: array
+          title: Evidence
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      title: SanctionResponse
+    SendIn:
+      properties:
+        channel:
+          type: string
+          minLength: 1
+          title: Channel
+          examples:
+          - log
+          - webhook
+        payload:
+          additionalProperties: true
+          type: object
+          title: Payload
+      type: object
+      required:
+      - channel
+      - payload
+      title: SendIn
+    SessionTerminateOthersPayload:
+      properties:
+        password:
+          type: string
+          minLength: 1
+          title: Password
+        keep_session_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Keep Session Id
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 256
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - password
+      title: SessionTerminateOthersPayload
+    SessionTerminatePayload:
+      properties:
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 256
+          - type: 'null'
+          title: Reason
+      type: object
+      title: SessionTerminatePayload
+    SignupSchema:
+      properties:
+        email:
+          type: string
+          title: Email
+        password:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Password
+      type: object
+      required:
+      - email
+      title: SignupSchema
+    TemplatePayload:
+      properties:
+        id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Id
+        slug:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Slug
+        name:
+          type: string
+          title: Name
+        body:
+          type: string
+          title: Body
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        subject:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Subject
+        locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+        variables:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Variables
+        meta:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Meta
+        created_by:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Created By
+      type: object
+      required:
+      - name
+      - body
+      title: TemplatePayload
+    TestNotificationBody:
+      properties:
+        channel:
+          type: string
+          minLength: 1
+          title: Channel
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+      type: object
+      required:
+      - channel
+      title: TestNotificationBody
+    Token:
+      properties:
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - token
+      title: Token
+    UserDetailPayload:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        status:
+          type: string
+          title: Status
+        registered_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registered At
+        last_seen_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Seen At
+        complaints_count:
+          type: integer
+          title: Complaints Count
+        notes_count:
+          type: integer
+          title: Notes Count
+        sanction_count:
+          type: integer
+          title: Sanction Count
+        active_sanctions:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Active Sanctions
+        last_sanction:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Last Sanction
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+        sanctions:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Sanctions
+        reports:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Reports
+        tickets:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Tickets
+        notes:
+          items:
+            $ref: '#/components/schemas/ModeratorNotePayload'
+          type: array
+          title: Notes
+      type: object
+      title: UserDetailPayload
+    UserIdIn:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - user_id
+      title: UserIdIn
+    UserSummaryPayload:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        status:
+          type: string
+          title: Status
+        registered_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Registered At
+        last_seen_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Seen At
+        complaints_count:
+          type: integer
+          title: Complaints Count
+        notes_count:
+          type: integer
+          title: Notes Count
+        sanction_count:
+          type: integer
+          title: Sanction Count
+        active_sanctions:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Active Sanctions
+        last_sanction:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Last Sanction
+        meta:
+          additionalProperties: true
+          type: object
+          title: Meta
+      type: object
+      title: UserSummaryPayload
+    UsersListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserSummaryPayload'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Next Cursor
+      type: object
+      required:
+      - items
+      - next_cursor
+      title: UsersListResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    WalletBindIn:
+      properties:
+        address:
+          type: string
+          title: Address
+        chain_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Chain Id
+        signature:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Signature
+      type: object
+      required:
+      - address
+      title: WalletBindIn
+    WalletBindPayload:
+      properties:
+        address:
+          type: string
+          title: Address
+        chain_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Chain Id
+        signature:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Signature
+      type: object
+      required:
+      - address
+      title: WalletBindPayload
+    WorldTemplateIn:
+      properties:
+        title:
+          type: string
+          title: Title
+        locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        meta:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Meta
+      type: object
+      required:
+      - title
+      title: WorldTemplateIn
+    WorldTemplateOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        locale:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Locale
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        meta:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Meta
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        created_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By User Id
+        updated_by_user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Updated By User Id
+      type: object
+      required:
+      - id
+      - title
+      - created_at
+      - updated_at
+      title: WorldTemplateOut
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+    CsrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+    CsrfCookie:
+      type: apiKey
+      in: cookie
+      name: XSRF-TOKEN
+    AdminKey:
+      type: apiKey
+      in: header
+      name: X-Admin-Key
+security:
+- BearerAuth: []
+- CookieAuth: []
+- CsrfHeader: []
+- CsrfCookie: []
+- AdminKey: []

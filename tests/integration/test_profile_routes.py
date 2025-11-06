@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import secrets
 from collections.abc import Iterator
 from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
+from apps.backend.app.api_gateway.idempotency import require_idempotency_key
 from apps.backend.app.api_gateway.main import create_app
 from domains.product.profile.adapters.memory.repository import MemoryRepo
 from domains.product.profile.application.services import Service
@@ -69,6 +71,7 @@ def public_app() -> Iterator[SimpleNamespace]:
         )
 
     app = create_app(contour="public", container_factory=container_factory)
+    app.dependency_overrides[require_idempotency_key] = lambda: "test-key"
     with TestClient(app) as client:
         yield SimpleNamespace(
             client=client,
@@ -126,7 +129,7 @@ def test_public_profile_mutations_cover_commands(public_app: SimpleNamespace) ->
     assert public_app.outbox.events[-1][0] == "profile.updated.v1"
 
     email_headers = dict(headers)
-    email_headers["Idempotency-Key"] = "req-1"
+    email_headers["Idempotency-Key"] = f"req-{secrets.token_urlsafe(8)}"
     response = public_app.client.post(
         "/v1/profile/me/email/request-change",
         json={"email": "new@example.com"},

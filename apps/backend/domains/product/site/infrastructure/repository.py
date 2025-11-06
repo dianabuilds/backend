@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .repositories.audit import AuditRepositoryMixin
 from .repositories.base import EngineFactory, SiteRepositoryBase
-from .repositories.global_blocks import GlobalBlockRepositoryMixin
+from .repositories.blocks import BlockRepositoryMixin
 from .repositories.metrics import MetricsRepositoryMixin
 from .repositories.pages import PageRepositoryMixin
 
@@ -10,7 +10,7 @@ from .repositories.pages import PageRepositoryMixin
 class SiteRepository(
     SiteRepositoryBase,
     PageRepositoryMixin,
-    GlobalBlockRepositoryMixin,
+    BlockRepositoryMixin,
     MetricsRepositoryMixin,
     AuditRepositoryMixin,
 ):

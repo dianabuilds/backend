@@ -26,6 +26,10 @@ def app(monkeypatch):
     router = APIRouter(prefix="/navigation")
     handler = StubHandler(payload={"ok": True})
 
+    class _NoRateLimit:
+        def as_dependencies(self):
+            return ()
+
     def fake_build(container):
         return handler
 
@@ -38,6 +42,7 @@ def app(monkeypatch):
     async def override_csrf():
         return None
 
+    monkeypatch.setitem(transition_api.PUBLIC_RATE_LIMITS, "navigation", _NoRateLimit())
     transition_api.register_transition_routes(router)
     application = FastAPI()
     application.include_router(router)

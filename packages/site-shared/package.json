@@ -1,0 +1,15 @@
+{
+  "name": "@caves/site-shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./site-page": "./src/site-page/index.ts",
+    "./site-page/types": "./src/site-page/types.ts",
+    "./site-page/normalize": "./src/site-page/normalize.ts"
+  },
+  "files": [
+    "src"
+  ]
+}

@@ -8,43 +8,51 @@ import {
 } from '../utils';
 
 import type {
-  SiteGlobalBlock,
-  SiteGlobalBlockAffectedPage,
-  SiteGlobalBlockDetailResponse,
-  SiteGlobalBlockHistoryItem,
-  SiteGlobalBlockHistoryResponse,
-  SiteGlobalBlockListResponse,
-  SiteGlobalBlockPublishJob,
-  SiteGlobalBlockPublishResponse,
-  SiteGlobalBlockUsage,
-  SiteGlobalBlockWarning,
+  SiteBlock,
+  SiteBlockAffectedPage,
+  SiteBlockDetailResponse,
+  SiteBlockHistoryItem,
+  SiteBlockHistoryResponse,
+  SiteBlockListResponse,
+  SiteBlockPublishJob,
+  SiteBlockPublishResponse,
+  SiteBlockTemplate,
+  SiteBlockUsage,
+  SiteBlockWarning,
   SitePageStatus,
 } from '@shared/types/management';
 
-import { GLOBAL_BLOCK_SORT, GLOBAL_BLOCK_STATUSES, PAGE_STATUSES, REVIEW_STATUSES } from './constants';
+import { BLOCK_SORT, BLOCK_STATUSES, PAGE_STATUSES, REVIEW_STATUSES } from './constants';
 import {
-  normalizeGlobalBlock,
-  normalizeGlobalBlockHistoryItem,
-  normalizeGlobalBlockPublishJob,
-  normalizeGlobalBlockUsage,
-  normalizeGlobalBlockWarning,
+  normalizeBlock,
+  normalizeBlockHistoryItem,
+  normalizeBlockPublishJob,
+  normalizeBlockTemplate,
+  normalizeBlockUsage,
+  normalizeBlockWarning,
   normalizeBlockPreviewResponse,
 } from './normalizers';
 import type {
-  CreateSiteGlobalBlockPayload,
+  ArchiveSiteBlockPayload,
+  CreateBlockTemplatePayload,
+  CreateSiteBlockPayload,
+  FetchBlockTemplatesParams,
   FetchOptions,
-  FetchSiteGlobalBlockHistoryParams,
-  FetchSiteGlobalBlocksParams,
+  FetchSiteBlockHistoryParams,
+  FetchSiteBlocksParams,
   PreviewSiteBlockParams,
-  PublishSiteGlobalBlockPayload,
-  SaveSiteGlobalBlockPayload,
+  PublishSiteBlockPayload,
+  SaveSiteBlockPayload,
   SiteBlockPreviewResponse,
+  SiteBlockTemplateDetail,
+  SiteBlockTemplateList,
+  UpdateBlockTemplatePayload,
 } from './types';
 
-export async function fetchSiteGlobalBlocks(
-  params: FetchSiteGlobalBlocksParams = {},
+export async function fetchSiteBlocks(
+  params: FetchSiteBlocksParams = {},
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockListResponse> {
+): Promise<SiteBlockListResponse> {
   const searchParams = new URLSearchParams();
   const page = Number.isFinite(params.page) && params.page ? Math.max(1, Math.trunc(params.page)) : 1;
   const pageSize =
@@ -54,12 +62,11 @@ export async function fetchSiteGlobalBlocks(
   if (params.section) {
     searchParams.set('section', params.section);
   }
-  if (
-    params.status &&
-    GLOBAL_BLOCK_STATUSES.includes(params.status as typeof GLOBAL_BLOCK_STATUSES[number])
-  ) {
-    const status = params.status as typeof GLOBAL_BLOCK_STATUSES[number];
-    searchParams.set('status', status);
+  if (params.status && BLOCK_STATUSES.includes(params.status as typeof BLOCK_STATUSES[number])) {
+    searchParams.set('status', params.status as typeof BLOCK_STATUSES[number]);
+  }
+  if (params.scope) {
+    searchParams.set('scope', params.scope);
   }
   if (params.locale) {
     searchParams.set('locale', params.locale);
@@ -76,16 +83,25 @@ export async function fetchSiteGlobalBlocks(
   if (params.reviewStatus && REVIEW_STATUSES.has(params.reviewStatus)) {
     searchParams.set('review_status', params.reviewStatus);
   }
-  if (params.sort && GLOBAL_BLOCK_SORT.has(params.sort)) {
+  if (typeof params.isTemplate === 'boolean') {
+    searchParams.set('is_template', String(params.isTemplate));
+  }
+  if (params.originBlockId) {
+    searchParams.set('origin_block_id', params.originBlockId);
+  }
+  if (params.sort && BLOCK_SORT.has(params.sort)) {
     searchParams.set('sort', params.sort);
+  }
+  if (typeof params.includeData === 'boolean') {
+    searchParams.set('include_data', String(params.includeData));
   }
 
   const response = await apiGet<Record<string, unknown>>(
-    `/v1/site/global-blocks?${searchParams.toString()}`,
+    `/v1/site/blocks?${searchParams.toString()}`,
     options,
   );
-  const items = ensureArray(response?.items, normalizeGlobalBlock).filter(
-    (entry): entry is SiteGlobalBlock => entry != null,
+  const items = ensureArray(response?.items, normalizeBlock).filter(
+    (entry): entry is SiteBlock => entry != null,
   );
   return {
     items,
@@ -95,130 +111,89 @@ export async function fetchSiteGlobalBlocks(
   };
 }
 
-export async function fetchSiteGlobalBlock(
+export async function fetchSiteBlock(
   blockId: string,
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockDetailResponse> {
+): Promise<SiteBlockDetailResponse> {
   if (!blockId) {
-    throw new Error('site_global_block_missing_id');
+    throw new Error('site_block_missing_id');
   }
   const response = await apiGet<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}`,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}`,
     options,
   );
-  const block = normalizeGlobalBlock(response?.block ?? response);
+  const block = normalizeBlock(response?.block ?? response);
   if (!block) {
-    throw new Error('site_global_block_invalid_response');
+    throw new Error('site_block_invalid_response');
   }
-  const usage = ensureArray(response?.usage, normalizeGlobalBlockUsage).filter(
-    (entry): entry is SiteGlobalBlockUsage => entry != null,
+  const usage = ensureArray(response?.usage, normalizeBlockUsage).filter(
+    (entry): entry is SiteBlockUsage => entry != null,
   );
-  const warnings = ensureArray(response?.warnings, normalizeGlobalBlockWarning).filter(
-    (entry): entry is SiteGlobalBlockWarning => entry != null,
+  const warnings = ensureArray(response?.warnings, normalizeBlockWarning).filter(
+    (entry): entry is SiteBlockWarning => entry != null,
   );
   return { block, usage, warnings };
 }
 
-export async function createSiteGlobalBlock(
-  payload: CreateSiteGlobalBlockPayload,
+export async function createSiteBlock(
+  payload: CreateSiteBlockPayload,
   options: FetchOptions = {},
-): Promise<SiteGlobalBlock> {
+): Promise<SiteBlock> {
   if (!payload?.key || !payload?.title || !payload?.section) {
-    throw new Error('site_global_block_invalid_payload');
+    throw new Error('site_block_invalid_payload');
   }
-  const body: Record<string, unknown> = {
-    key: payload.key,
-    title: payload.title,
-    section: payload.section,
-  };
-  if (payload.locale != null) {
-    body.locale = payload.locale;
-  }
-  if (payload.requires_publisher != null) {
-    body.requires_publisher = Boolean(payload.requires_publisher);
-  }
-  if (payload.data) {
-    body.data = payload.data;
-  }
-  if (payload.meta) {
-    body.meta = payload.meta;
-  }
-  const response = await apiPost<Record<string, unknown>>('/v1/site/global-blocks', body, options);
-  const block = normalizeGlobalBlock(response);
+  const response = await apiPost<Record<string, unknown>>('/v1/site/blocks', payload, options);
+  const block = normalizeBlock(response);
   if (!block) {
-    throw new Error('site_global_block_invalid_response');
+    throw new Error('site_block_create_invalid_response');
   }
   return block;
 }
 
-export async function saveSiteGlobalBlock(
+export async function saveSiteBlock(
   blockId: string,
-  payload: SaveSiteGlobalBlockPayload,
+  payload: SaveSiteBlockPayload,
   options: FetchOptions = {},
-): Promise<SiteGlobalBlock> {
+): Promise<SiteBlock> {
   if (!blockId) {
-    throw new Error('site_global_block_missing_id');
-  }
-  const body: Record<string, unknown> = {};
-  if (payload.version != null) {
-    body.version = payload.version;
-  }
-  if (payload.data) {
-    body.data = payload.data;
-  }
-  if (payload.meta) {
-    body.meta = payload.meta;
-  }
-  if (payload.comment != null) {
-    body.comment = payload.comment;
-  }
-  if (payload.review_status && REVIEW_STATUSES.has(payload.review_status)) {
-    body.review_status = payload.review_status;
+    throw new Error('site_block_missing_id');
   }
   const response = await apiPut<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}`,
-    body,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}`,
+    payload,
     options,
   );
-  const block = normalizeGlobalBlock(response);
+  const block = normalizeBlock(response);
   if (!block) {
-    throw new Error('site_global_block_invalid_response');
+    throw new Error('site_block_update_invalid_response');
   }
   return block;
 }
 
-export async function publishSiteGlobalBlock(
+export async function publishSiteBlock(
   blockId: string,
-  payload: PublishSiteGlobalBlockPayload = {},
+  payload: PublishSiteBlockPayload = {},
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockPublishResponse> {
+): Promise<SiteBlockPublishResponse> {
   if (!blockId) {
-    throw new Error('site_global_block_missing_id');
+    throw new Error('site_block_publish_missing_id');
   }
-  const body: Record<string, unknown> = {};
-  if (payload.version != null) {
-    body.version = payload.version;
-  }
-  if (payload.comment != null) {
-    body.comment = payload.comment;
-  }
-  body.acknowledge_usage = payload.acknowledgeUsage ?? true;
   const response = await apiPost<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}/publish`,
-    body,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}/publish`,
+    payload,
     options,
   );
-  const block = normalizeGlobalBlock(response?.block ?? response);
+  const block = normalizeBlock(response?.block ?? response);
   if (!block) {
-    throw new Error('site_global_block_publish_invalid_response');
+    throw new Error('site_block_publish_invalid_response');
   }
-  const usage = ensureArray(response?.usage, normalizeGlobalBlockUsage).filter(
-    (entry): entry is SiteGlobalBlockUsage => entry != null,
+  const usage = ensureArray(response?.usage, normalizeBlockUsage).filter(
+    (entry): entry is SiteBlockUsage => entry != null,
   );
-  const jobs = ensureArray(response?.jobs, normalizeGlobalBlockPublishJob).filter(
-    (entry): entry is SiteGlobalBlockPublishJob => entry != null,
+  const jobs = ensureArray(response?.jobs, normalizeBlockPublishJob).filter(
+    (entry): entry is SiteBlockPublishJob => entry != null,
   );
-  const affected = ensureArray(response?.affected_pages, (value): SiteGlobalBlockAffectedPage | null => {
+  const affected = ensureArray(response?.affected_pages, (value): SiteBlockAffectedPage | null => {
     if (!isObjectRecord(value)) {
       return null;
     }
@@ -254,13 +229,39 @@ export async function publishSiteGlobalBlock(
   };
 }
 
-export async function fetchSiteGlobalBlockHistory(
+export async function archiveSiteBlock(
   blockId: string,
-  params: FetchSiteGlobalBlockHistoryParams = {},
+  payload: ArchiveSiteBlockPayload = {},
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockHistoryResponse> {
+): Promise<SiteBlockDetailResponse> {
   if (!blockId) {
-    throw new Error('site_global_block_missing_id');
+    throw new Error('site_block_archive_missing_id');
+  }
+  const response = await apiPost<Record<string, unknown>>(
+    `/v1/site/blocks/${encodeURIComponent(blockId)}/archive`,
+    payload,
+    options,
+  );
+  const block = normalizeBlock(response?.block ?? response);
+  if (!block) {
+    throw new Error('site_block_archive_invalid_response');
+  }
+  const usage = ensureArray(response?.usage, normalizeBlockUsage).filter(
+    (entry): entry is SiteBlockUsage => entry != null,
+  );
+  const warnings = ensureArray(response?.warnings, normalizeBlockWarning).filter(
+    (entry): entry is SiteBlockWarning => entry != null,
+  );
+  return { block, usage, warnings };
+}
+
+export async function fetchSiteBlockHistory(
+  blockId: string,
+  params: FetchSiteBlockHistoryParams = {},
+  options: FetchOptions = {},
+): Promise<SiteBlockHistoryResponse> {
+  if (!blockId) {
+    throw new Error('site_block_missing_id');
   }
   const limit = Number.isFinite(params.limit) && params.limit ? Math.max(1, Math.trunc(params.limit)) : 10;
   const offset =
@@ -269,11 +270,11 @@ export async function fetchSiteGlobalBlockHistory(
   searchParams.set('limit', String(limit));
   searchParams.set('offset', String(offset));
   const response = await apiGet<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}/history?${searchParams.toString()}`,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}/history?${searchParams.toString()}`,
     options,
   );
-  const items = ensureArray(response?.items, normalizeGlobalBlockHistoryItem).filter(
-    (entry): entry is SiteGlobalBlockHistoryItem => entry != null,
+  const items = ensureArray(response?.items, normalizeBlockHistoryItem).filter(
+    (entry): entry is SiteBlockHistoryItem => entry != null,
   );
   return {
     items,
@@ -283,43 +284,43 @@ export async function fetchSiteGlobalBlockHistory(
   };
 }
 
-export async function fetchSiteGlobalBlockVersion(
+export async function fetchSiteBlockVersion(
   blockId: string,
   version: number,
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockHistoryItem | null> {
+): Promise<SiteBlockHistoryItem | null> {
   if (!blockId || !Number.isFinite(version)) {
     return null;
   }
   const response = await apiGet<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}/history/${version}`,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}/history/${version}`,
     options,
   );
-  return normalizeGlobalBlockHistoryItem(response);
+  return normalizeBlockHistoryItem(response);
 }
 
-export async function restoreSiteGlobalBlockVersion(
+export async function restoreSiteBlockVersion(
   blockId: string,
   version: number,
   options: FetchOptions = {},
-): Promise<SiteGlobalBlockDetailResponse> {
+): Promise<SiteBlockDetailResponse> {
   if (!blockId || !Number.isFinite(version)) {
-    throw new Error('site_global_block_restore_invalid_params');
+    throw new Error('site_block_restore_invalid_params');
   }
   const response = await apiPost<Record<string, unknown>>(
-    `/v1/site/global-blocks/${encodeURIComponent(blockId)}/history/${version}/restore`,
+    `/v1/site/blocks/${encodeURIComponent(blockId)}/history/${version}/restore`,
     {},
     options,
   );
-  const block = normalizeGlobalBlock(response?.block ?? response);
+  const block = normalizeBlock(response?.block ?? response);
   if (!block) {
-    throw new Error('site_global_block_restore_invalid_response');
+    throw new Error('site_block_restore_invalid_response');
   }
-  const usage = ensureArray(response?.usage, normalizeGlobalBlockUsage).filter(
-    (entry): entry is SiteGlobalBlockUsage => entry != null,
+  const usage = ensureArray(response?.usage, normalizeBlockUsage).filter(
+    (entry): entry is SiteBlockUsage => entry != null,
   );
-  const warnings = ensureArray(response?.warnings, normalizeGlobalBlockWarning).filter(
-    (entry): entry is SiteGlobalBlockWarning => entry != null,
+  const warnings = ensureArray(response?.warnings, normalizeBlockWarning).filter(
+    (entry): entry is SiteBlockWarning => entry != null,
   );
   return { block, usage, warnings };
 }
@@ -340,4 +341,112 @@ export async function previewSiteBlock(
   const path = `/v1/site/blocks/${encodeURIComponent(block)}/preview${query ? `?${query}` : ''}`;
   const response = await apiGet<Record<string, unknown>>(path, options);
   return normalizeBlockPreviewResponse(block, response);
+}
+
+export async function fetchBlockTemplates(
+  params: FetchBlockTemplatesParams = {},
+  options: FetchOptions = {},
+): Promise<SiteBlockTemplateList> {
+  const search = new URLSearchParams();
+  if (Array.isArray(params.status)) {
+    params.status.filter(Boolean).forEach((status) => search.append('status', status));
+  } else if (params.status) {
+    search.append('status', params.status);
+  }
+  if (params.section) {
+    search.set('section', params.section);
+  }
+  if (params.query) {
+    search.set('q', params.query);
+  }
+  if (params.includeData === false) {
+    search.set('include_data', 'false');
+  }
+  const query = search.toString();
+  const response = await apiGet<Record<string, unknown>>(
+    `/v1/site/block-templates${query ? `?${query}` : ''}`,
+    options,
+  );
+  const items = ensureArray(response?.items, normalizeBlockTemplate).filter(
+    (entry): entry is SiteBlockTemplate => entry != null,
+  );
+  return {
+    items,
+    total: pickNumber(response?.total) ?? items.length,
+  };
+}
+
+export async function fetchBlockTemplate(
+  templateId: string,
+  options: FetchOptions = {},
+): Promise<SiteBlockTemplateDetail> {
+  if (!templateId) {
+    throw new Error('site_block_template_missing_id');
+  }
+  const response = await apiGet<Record<string, unknown>>(
+    `/v1/site/block-templates/${encodeURIComponent(templateId)}`,
+    options,
+  );
+  const template = normalizeBlockTemplate(response);
+  if (!template) {
+    throw new Error('site_block_template_invalid_response');
+  }
+  return template;
+}
+
+export async function fetchBlockTemplateByKey(
+  templateKey: string,
+  options: FetchOptions = {},
+): Promise<SiteBlockTemplateDetail> {
+  if (!templateKey) {
+    throw new Error('site_block_template_missing_key');
+  }
+  const response = await apiGet<Record<string, unknown>>(
+    `/v1/site/block-templates/by-key/${encodeURIComponent(templateKey)}`,
+    options,
+  );
+  const template = normalizeBlockTemplate(response);
+  if (!template) {
+    throw new Error('site_block_template_invalid_response');
+  }
+  return template;
+}
+
+export async function createBlockTemplate(
+  payload: CreateBlockTemplatePayload,
+  options: FetchOptions = {},
+): Promise<SiteBlockTemplateDetail> {
+  if (!payload?.key || !payload?.title) {
+    throw new Error('site_block_template_invalid_payload');
+  }
+  const response = await apiPost<Record<string, unknown>>(
+    '/v1/site/block-templates',
+    payload,
+    options,
+  );
+  const template = normalizeBlockTemplate(response);
+  if (!template) {
+    throw new Error('site_block_template_create_invalid_response');
+  }
+  return template;
+}
+
+export async function updateBlockTemplate(
+  templateId: string,
+  payload: UpdateBlockTemplatePayload,
+  options: FetchOptions = {},
+): Promise<SiteBlockTemplateDetail> {
+  if (!templateId) {
+    throw new Error('site_block_template_missing_id');
+  }
+  const response = await apiPut<Record<string, unknown>>(
+    `/v1/site/block-templates/${encodeURIComponent(templateId)}`,
+    payload,
+    options,
+  );
+  const template = normalizeBlockTemplate(response);
+  if (!template) {
+    throw new Error('site_block_template_update_invalid_response');
+  }
+  return template;
 }

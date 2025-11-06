@@ -1,7 +1,9 @@
 import type {
-  SiteGlobalBlock,
-  SiteGlobalBlockStatus,
-  SiteGlobalBlockWarning,
+  SiteBlock,
+  SiteBlockStatus,
+  SiteBlockTemplate,
+  SiteBlockTemplateListResponse,
+  SiteBlockWarning,
   SiteMetricsPeriod,
   SitePageDraft,
   SitePageStatus,
@@ -64,49 +66,84 @@ export type FetchSitePageHistoryParams = {
   offset?: number;
 };
 
-export type FetchSiteGlobalBlocksParams = {
+export type ListSharedBindingsParams = {
+  locale?: string | null;
+  includeInactive?: boolean;
+};
+
+export type AssignSharedBindingPayload = {
+  block_id: string;
+  locale?: string | null;
+};
+
+export type DeleteSharedBindingParams = {
+  locale?: string | null;
+};
+
+export type FetchSiteBlocksParams = {
   page?: number;
   pageSize?: number;
   section?: string;
-  status?: SiteGlobalBlockStatus | '';
+  status?: SiteBlockStatus | '';
+  scope?: SiteBlock['scope'] | '';
   locale?: string;
   query?: string;
   hasDraft?: boolean | null;
   requiresPublisher?: boolean | null;
-  reviewStatus?: SiteGlobalBlock['review_status'] | '';
+  reviewStatus?: SiteBlock['review_status'] | '';
   sort?: 'updated_at_desc' | 'updated_at_asc' | 'title_asc' | 'usage_desc';
+  includeData?: boolean;
+  isTemplate?: boolean | null;
+  originBlockId?: string | null;
 };
 
-export type FetchSiteGlobalBlockMetricsParams = {
+export type FetchSiteBlockMetricsParams = {
   period?: SiteMetricsPeriod;
   locale?: string;
 };
 
-export type CreateSiteGlobalBlockPayload = {
+export type CreateSiteBlockPayload = {
   key: string;
   title: string;
+  template_id?: string | null;
+  template_key?: string | null;
   section: string;
-  locale?: string | null;
+  scope?: SiteBlock['scope'];
+  default_locale?: string | null;
+  available_locales?: string[] | null;
   requires_publisher?: boolean;
   data?: Record<string, unknown>;
   meta?: Record<string, unknown>;
+  is_template?: boolean;
+  origin_block_id?: string | null;
 };
 
-export type SaveSiteGlobalBlockPayload = {
+export type SaveSiteBlockPayload = {
   version?: number | null;
   data?: Record<string, unknown>;
   meta?: Record<string, unknown>;
   comment?: string | null;
-  review_status?: SiteGlobalBlock['review_status'];
+  review_status?: SiteBlock['review_status'];
+  title?: string | null;
+  section?: string | null;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  requires_publisher?: boolean | null;
+  is_template?: boolean | null;
+  origin_block_id?: string | null;
 };
 
-export type PublishSiteGlobalBlockPayload = {
+export type PublishSiteBlockPayload = {
   version?: number | null;
   comment?: string | null;
   acknowledgeUsage?: boolean;
 };
 
-export type FetchSiteGlobalBlockHistoryParams = {
+export type ArchiveSiteBlockPayload = {
+  restore?: boolean;
+};
+
+export type FetchSiteBlockHistoryParams = {
   limit?: number;
   offset?: number;
 };
@@ -150,5 +187,45 @@ export type SiteBlockPreviewResponse = {
   fetched_at?: string | null;
   fetchedAt?: string | null;
   meta?: Record<string, unknown>;
-  warnings?: SiteGlobalBlockWarning[];
+  warnings?: SiteBlockWarning[];
 };
+
+export type FetchBlockTemplatesParams = {
+  status?: string | string[];
+  section?: string;
+  query?: string;
+  includeData?: boolean;
+};
+
+export type SiteBlockTemplateList = SiteBlockTemplateListResponse;
+
+export type SiteBlockTemplateDetail = SiteBlockTemplate;
+
+export type CreateBlockTemplatePayload = {
+  key: string;
+  title: string;
+  section?: string;
+  description?: string | null;
+  status?: string;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  block_type?: string | null;
+  category?: string | null;
+  sources?: string[] | null;
+  surfaces?: string[] | null;
+  owners?: string[] | null;
+  catalog_locales?: string[] | null;
+  documentation_url?: string | null;
+  keywords?: string[] | null;
+  preview_kind?: string | null;
+  status_note?: string | null;
+  requires_publisher?: boolean;
+  allow_shared_scope?: boolean;
+  allow_page_scope?: boolean;
+  shared_note?: string | null;
+  key_prefix?: string | null;
+  default_data?: Record<string, unknown>;
+  default_meta?: Record<string, unknown>;
+};
+
+export type UpdateBlockTemplatePayload = Partial<CreateBlockTemplatePayload>;

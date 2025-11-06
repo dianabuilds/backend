@@ -269,7 +269,7 @@ async def test_block_preview_endpoint(
 
 
 @pytest.mark.asyncio()
-async def test_page_detail_includes_global_blocks(
+async def test_page_detail_includes_block_refs(
     service: SiteService,
     api_client: AsyncClient,
 ) -> None:
@@ -293,23 +293,38 @@ async def test_page_detail_includes_global_blocks(
     await service.save_page_draft(
         page_id=page.id,
         payload={"blocks": []},
-        meta={"globalBlocks": {"header": block.key}},
+        meta={},
         comment=None,
         review_status=PageReviewStatus.NONE,
         expected_version=draft.version,
         actor="editor@example.com",
     )
+    await service.assign_shared_block(
+        page_id=page.id,
+        section="header",
+        block_id=block.id,
+    )
 
     detail_response = await api_client.get(f"/v1/site/pages/{page.id}")
     assert detail_response.status_code == 200, detail_response.json()
     detail_payload = detail_response.json()
-    assert "global_blocks" in detail_payload
-    assert any(item["key"] == block.key for item in detail_payload["global_blocks"])
+    assert "shared_bindings" in detail_payload
+    assert any(
+        item["key"] == block.key for item in detail_payload["shared_bindings"] or []
+    )
+    assert any(
+        item["key"] == block.key for item in detail_payload.get("block_refs") or []
+    )
 
     draft_response = await api_client.get(f"/v1/site/pages/{page.id}/draft")
     assert draft_response.status_code == 200
     draft_payload = draft_response.json()
-    assert any(item["key"] == block.key for item in draft_payload["global_blocks"])
+    assert any(
+        item["key"] == block.key for item in draft_payload.get("shared_bindings") or []
+    )
+    assert any(
+        item["key"] == block.key for item in draft_payload.get("block_refs") or []
+    )
 
 
 @pytest.mark.asyncio()
@@ -411,3 +426,26 @@ async def test_delete_page_endpoint_forbidden_for_pinned(
     )
     response = await api_client.delete(f"/v1/site/pages/{page.id}")
     assert response.status_code == 409
+
+
+@pytest.mark.asyncio()
+async def test_blocks_archive_endpoint(
+    service: SiteService,
+    api_client: AsyncClient,
+):
+    block = await service.create_global_block(
+        key=f"archive-api-{uuid4().hex[:6]}",
+        title="Archive via API",
+        section="promo",
+        locale="ru",
+        requires_publisher=False,
+        data={},
+        meta={},
+    )
+    response = await api_client.post(
+        f"/v1/site/blocks/{block.id}/archive",
+        json={},
+    )
+    assert response.status_code == 200, response.json()
+    payload = response.json()
+    assert payload["block"]["status"] == "archived"

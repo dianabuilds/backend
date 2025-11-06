@@ -2,10 +2,10 @@ import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs } from '@ui';
 import { managementSiteEditorApi } from '@shared/api/management';
-import type { SitePageListResponse, SiteGlobalBlockListResponse } from '@shared/types/management';
+import type { SiteBlockListResponse, SitePageListResponse } from '@shared/types/management';
 
 import SitePagesCatalog from './SitePagesCatalog';
-import SiteGlobalBlocksCatalog from './SiteGlobalBlocksCatalog';
+import SiteBlockLibraryPage from './SiteBlockLibraryPage';
 
 type SummaryState = {
   pages: number | null;
@@ -32,10 +32,10 @@ export default function SiteEditorView(): React.ReactElement {
             { pageSize: 1 },
             { signal: controller.signal },
           ) as Promise<SitePageListResponse>,
-          managementSiteEditorApi.fetchSiteGlobalBlocks(
+          managementSiteEditorApi.fetchSiteBlocks(
             { pageSize: 1 },
             { signal: controller.signal },
-          ) as Promise<SiteGlobalBlockListResponse>,
+          ) as Promise<SiteBlockListResponse>,
         ]);
         if (!isMounted) {
           return;
@@ -75,7 +75,7 @@ export default function SiteEditorView(): React.ReactElement {
       },
       {
         key: 'blocks',
-        label: `Глобальные блоки${summary.blocks != null ? ` (${summary.blocks})` : ''}`,
+        label: `Библиотека блоков${summary.blocks != null ? ` (${summary.blocks})` : ''}`,
       },
     ],
     [summary.blocks, summary.pages],
@@ -95,8 +95,7 @@ export default function SiteEditorView(): React.ReactElement {
   return (
     <div className="space-y-6 pb-12">
       <Tabs items={tabItems} value={activeTab} onChange={handleTabChange} className="pt-2" />
-
-      {activeTab === 'blocks' ? <SiteGlobalBlocksCatalog /> : <SitePagesCatalog />}
+      {activeTab === 'blocks' ? <SiteBlockLibraryPage /> : <SitePagesCatalog />}
     </div>
   );
 }
