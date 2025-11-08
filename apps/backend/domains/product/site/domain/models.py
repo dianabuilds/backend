@@ -79,6 +79,9 @@ class PageDraft:
     updated_by: str | None
     comment: str | None = None
     review_status: PageReviewStatus = PageReviewStatus.NONE
+    default_locale: str = "ru"
+    available_locales: tuple[str, ...] = field(default_factory=tuple)
+    slug_localized: Mapping[str, str] | None = None
 
 
 @dataclass(slots=True)

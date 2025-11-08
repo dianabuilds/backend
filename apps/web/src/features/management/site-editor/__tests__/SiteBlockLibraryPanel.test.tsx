@@ -37,6 +37,10 @@ function makeContext(overrides: Partial<HomeEditorContextValue> = {}): HomeEdito
     saveDraft: overrides.saveDraft ?? vi.fn(() => Promise.resolve()),
     snapshot,
     slug: overrides.slug ?? '/',
+    activeLocale: overrides.activeLocale ?? 'ru',
+    availableLocales: overrides.availableLocales ?? ['ru'],
+    setActiveLocale: overrides.setActiveLocale ?? vi.fn(),
+    createLocale: overrides.createLocale ?? vi.fn(() => false),
     history: overrides.history ?? [],
     publishing: overrides.publishing ?? false,
     publishDraft: overrides.publishDraft ?? vi.fn(() => Promise.resolve()),
@@ -104,4 +108,3 @@ describe('SiteBlockLibraryPanel', () => {
     expect(screen.getByRole('button', { name: new RegExp(heroDefinition!.label, 'i') })).toBeInTheDocument();
   });
 });
-

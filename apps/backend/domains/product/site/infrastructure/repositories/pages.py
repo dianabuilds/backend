@@ -248,9 +248,23 @@ class PageRepositoryMixin(_RepositoryProtocol):
         page_id: UUID,
         data: Mapping[str, Any] | None,
         meta: Mapping[str, Any] | None,
+        default_locale: str = "ru",
+        locale: str | None = None,
     ) -> None:
-        data_map = helpers.as_mapping(data)
-        meta_map = helpers.as_mapping(meta)
+        normalized_default = default_locale.strip() or "ru"
+        data_view, *_ = helpers.project_localized_document(
+            data,
+            default_locale=normalized_default,
+            locale=locale,
+        )
+        meta_view, *_ = helpers.project_localized_document(
+            meta,
+            default_locale=normalized_default,
+            locale=locale,
+            allow_shared=False,
+        )
+        data_map = helpers.as_mapping(data_view)
+        meta_map = helpers.as_mapping(meta_view)
         refs = helpers.extract_shared_block_refs(data_map, meta_map)
         now = helpers.utcnow()
         explicit_meta_keys = {"globalBlocks", "global_blocks", "header", "footer"}
@@ -707,6 +721,37 @@ class PageRepositoryMixin(_RepositoryProtocol):
         engine = await self._require_engine()
         now = helpers.utcnow()
         async with engine.begin() as conn:
+            page_row = (
+                (
+                    await conn.execute(
+                        sa.select(
+                            SITE_PAGES_TABLE.c.default_locale,
+                            SITE_PAGES_TABLE.c.available_locales,
+                        )
+                        .where(SITE_PAGES_TABLE.c.id == page_id)
+                        .with_for_update()
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            if not page_row:
+                raise SitePageNotFound(f"page {page_id} not found")
+            default_locale = str(page_row.get("default_locale") or "ru").strip() or "ru"
+            available_locales = helpers.as_locale_list(
+                page_row.get("available_locales")
+            )
+            if not available_locales:
+                available_locales = (default_locale,)
+            normalized_payload = helpers.normalize_localized_document(
+                payload,
+                default_locale=default_locale,
+            )
+            normalized_meta = helpers.normalize_localized_document(
+                meta,
+                default_locale=default_locale,
+                allow_shared=False,
+            )
             result = await conn.execute(
                 sa.select(SITE_PAGE_DRAFTS_TABLE.c.version).where(
                     SITE_PAGE_DRAFTS_TABLE.c.page_id == page_id
@@ -723,8 +768,8 @@ class PageRepositoryMixin(_RepositoryProtocol):
                     .where(SITE_PAGE_DRAFTS_TABLE.c.page_id == page_id)
                     .values(
                         version=next_version,
-                        data=dict(payload),
-                        meta=dict(meta),
+                        data=dict(normalized_payload),
+                        meta=dict(normalized_meta),
                         comment=comment,
                         review_status=review_status.value,
                         updated_at=now,
@@ -737,8 +782,8 @@ class PageRepositoryMixin(_RepositoryProtocol):
                     SITE_PAGE_DRAFTS_TABLE.insert().values(
                         page_id=page_id,
                         version=next_version,
-                        data=dict(payload),
-                        meta=dict(meta),
+                        data=dict(normalized_payload),
+                        meta=dict(normalized_meta),
                         comment=comment,
                         review_status=review_status.value,
                         updated_at=now,
@@ -773,8 +818,9 @@ class PageRepositoryMixin(_RepositoryProtocol):
             await self._sync_page_block_usage(
                 conn,
                 page_id=page_id,
-                data=helpers.as_mapping(payload),
-                meta=helpers.as_mapping(meta),
+                data=normalized_payload,
+                meta=normalized_meta,
+                default_locale=default_locale,
             )
         return await self.get_page_draft(page_id)
 
@@ -872,8 +918,9 @@ class PageRepositoryMixin(_RepositoryProtocol):
             await self._sync_page_block_usage(
                 conn,
                 page_id=page_id,
-                data=helpers.as_mapping(draft_obj.data),
-                meta=helpers.as_mapping(draft_obj.meta),
+                data=draft_obj.data,
+                meta=draft_obj.meta,
+                default_locale=draft_obj.default_locale,
             )
         return await self.get_page_version(page_id, next_version)
 
@@ -1240,7 +1287,16 @@ class PageRepositoryMixin(_RepositoryProtocol):
         self, conn: AsyncConnection, page_id: UUID
     ) -> Mapping[str, Any] | None:
         result = await conn.execute(
-            sa.select(SITE_PAGE_DRAFTS_TABLE)
+            sa.select(
+                SITE_PAGE_DRAFTS_TABLE,
+                SITE_PAGES_TABLE.c.default_locale.label("page_default_locale"),
+                SITE_PAGES_TABLE.c.available_locales.label("page_available_locales"),
+                SITE_PAGES_TABLE.c.slug_localized.label("page_slug_localized"),
+            )
+            .join(
+                SITE_PAGES_TABLE,
+                SITE_PAGES_TABLE.c.id == SITE_PAGE_DRAFTS_TABLE.c.page_id,
+            )
             .where(SITE_PAGE_DRAFTS_TABLE.c.page_id == page_id)
             .limit(1)
         )

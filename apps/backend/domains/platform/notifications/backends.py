@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
+
+from sqlalchemy import text
+from sqlalchemy.pool import NullPool
 
 from domains.platform.flags.application.service import FlagService
 from domains.platform.notifications.adapters.memory import (
@@ -64,7 +68,54 @@ from domains.platform.notifications.ports_notify import (
     INotificationRepository,
 )
 from packages.core.async_utils import run_sync
-from packages.core.config import Settings, to_async_dsn
+from packages.core.config import Settings
+from packages.core.db import get_async_engine
+from packages.core.sql_fallback import evaluate_sql_backend
+
+logger = logging.getLogger(__name__)
+
+
+async def _ping_notifications_engine(engine) -> None:
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))
+
+
+def _probe_notifications_sql_backend(dsn: str) -> tuple[bool, str | None]:
+    engine = get_async_engine(
+        "notifications.probe",
+        url=dsn,
+        cache=False,
+        pool_pre_ping=False,
+        poolclass=NullPool,
+        connect_args={"timeout": 2},
+    )
+    try:
+        run_sync(_ping_notifications_engine(engine))
+        return True, None
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.warning("Notifications SQL backend probe failed", exc_info=exc)
+        return False, str(exc)
+    finally:
+        try:
+            run_sync(engine.dispose())
+        except Exception:  # pragma: no cover - best-effort cleanup
+            logger.debug("Notifications probe dispose failed", exc_info=True)
+
+
+def _resolve_notifications_dsn(
+    settings: Settings,
+    *,
+    test_mode: bool,
+) -> tuple[str | None, str | None]:
+    if test_mode:
+        return None, "test mode disallows SQL backend"
+    decision = evaluate_sql_backend(settings)
+    if not decision.dsn:
+        return None, decision.reason
+    ok, probe_reason = _probe_notifications_sql_backend(decision.dsn)
+    if not ok:
+        return None, probe_reason or "database probe failed"
+    return decision.dsn, None
 
 
 @dataclass(slots=True)
@@ -96,7 +147,19 @@ def select_backend(
     ws_manager = WebSocketManager()
     pusher = WebSocketPusher(ws_manager)
 
-    if test_mode or not getattr(settings, "database_url", None):
+    async_dsn, fallback_reason = _resolve_notifications_dsn(
+        settings, test_mode=test_mode
+    )
+    if not async_dsn:
+        if fallback_reason:
+            logger.info(
+                "Notifications backend: using in-memory repositories (%s)",
+                fallback_reason,
+            )
+        else:
+            logger.info(
+                "Notifications backend: using in-memory repositories (SQL disabled)"
+            )
         template_repo: TemplateRepo = InMemoryTemplateRepo()
         broadcast_repo: BroadcastRepo = InMemoryBroadcastRepo()
         notification_repo: INotificationRepository = InMemoryNotificationRepository()
@@ -110,7 +173,6 @@ def select_backend(
         audience_resolver = InMemoryAudienceResolver()
         config_repo = InMemoryNotificationConfigRepository()
     else:
-        async_dsn = to_async_dsn(settings.database_url)
         template_repo = SQLTemplateRepo(async_dsn)
         broadcast_repo = SQLBroadcastRepo(async_dsn)
         notification_repo = NotificationRepository(async_dsn)

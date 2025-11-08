@@ -84,19 +84,43 @@ def _serialize_draft(
     shared_bindings: Sequence[BlockBinding] | None = None,
     global_blocks: Sequence[Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    default_locale = getattr(draft, "default_locale", None) or "ru"
+    available_locales = list(getattr(draft, "available_locales", ()) or ())
+    if not available_locales:
+        available_locales = [default_locale]
+    data_view, data_locales, active_locale, fallback_locale = (
+        repo_helpers.project_localized_document(
+            draft.data,
+            default_locale=default_locale,
+        )
+    )
+    meta_view, meta_locales, _, _ = repo_helpers.project_localized_document(
+        draft.meta,
+        default_locale=default_locale,
+        allow_shared=False,
+    )
+    data_view = dict(data_view)
+    data_view["locales"] = data_locales
+    meta_view = dict(meta_view)
+    meta_view["locales"] = meta_locales
     return {
         "page_id": str(draft.page_id),
         "version": draft.version,
-        "data": draft.data,
-        "meta": draft.meta,
+        "data": data_view,
+        "meta": meta_view,
         "comment": draft.comment,
         "review_status": draft.review_status.value,
         "updated_at": draft.updated_at.isoformat(),
         "updated_by": draft.updated_by,
+        "default_locale": default_locale,
+        "available_locales": available_locales,
+        "slug_localized": dict(getattr(draft, "slug_localized", None) or {}),
+        "active_locale": active_locale,
+        "fallback_locale": fallback_locale,
         "block_refs": (
             _serialize_page_block_refs(global_blocks)
             if global_blocks is not None
-            else repo_helpers.format_shared_block_refs(draft.data, draft.meta)
+            else repo_helpers.format_shared_block_refs(data_view, meta_view)
         ),
         "shared_bindings": (
             [_serialize_block_binding(binding) for binding in shared_bindings]
@@ -937,9 +961,14 @@ async def validate_page_draft(
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
     try:
+        page = await service.get_page(page_id)
+    except SiteRepositoryError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    try:
         validated = service.validate_draft_payload(
             payload=payload.data,
             meta=payload.meta,
+            default_locale=page.default_locale,
         )
     except SiteValidationError as exc:
         detail = _serialize_validation_errors(exc)
@@ -992,6 +1021,7 @@ async def preview_page(
         validated = service.validate_draft_payload(
             payload=payload.data if payload.data else draft.data,
             meta=payload.meta if payload.meta else draft.meta,
+            default_locale=page.default_locale,
         )
     except SiteValidationError as exc:
         raise HTTPException(

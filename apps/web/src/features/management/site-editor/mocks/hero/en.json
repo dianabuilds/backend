@@ -1,4 +1,27 @@
 {
+  "content": {
+    "headline": "Build new worlds together",
+    "subheadline": "The fastest way to publish site updates, campaigns, and product launches.",
+    "tagline": "Caves Platform",
+    "primaryCta": {
+      "label": "Start free trial",
+      "href": "/en/signup",
+      "style": "primary"
+    },
+    "secondaryCta": {
+      "label": "Read docs",
+      "href": "/en/docs",
+      "style": "secondary"
+    },
+    "media": {
+      "url": "https://picsum.photos/seed/hero-en/960/540",
+      "alt": "Hero mockup"
+    },
+    "highlights": [
+      "99.9% uptime SLA",
+      "Content delivery < 2 min"
+    ]
+  },
   "items": [
     {
       "title": "Hero headline",

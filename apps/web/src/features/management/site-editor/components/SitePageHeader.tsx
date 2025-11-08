@@ -7,6 +7,7 @@ import type { HomeDraftSnapshot } from '../../home/types';
 type SitePageHeaderProps = {
   pageTitle: string;
   pageSlug: string;
+  activeLocale: string;
   pageStatusBadge: { label: string; color: 'neutral' | 'info' | 'warning' | 'success' | 'error' | 'primary' } | null;
   pageTypeLabel?: string | null;
   snapshot: HomeDraftSnapshot;
@@ -51,6 +52,7 @@ function formatDisplayDate(value: string | null): string {
 export function SitePageHeader({
   pageTitle,
   pageSlug,
+  activeLocale,
   pageStatusBadge,
   pageTypeLabel,
   snapshot,
@@ -122,9 +124,9 @@ export function SitePageHeader({
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Slug"
+          label={`Slug (${activeLocale.toUpperCase()})`}
           value={pageSlug || '—'}
-          hint="Используется в URL публичной страницы"
+          hint="Используется в URL публичной страницы выбранной локали"
         />
         <StatCard
           label="Черновик"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from statistics import mean
 from typing import Any
@@ -22,7 +23,16 @@ from domains.platform.telemetry.ports.rum_port import IRumRepository
 
 log = logging.getLogger(__name__)
 
-_STORAGE_ERRORS = (RedisError, SQLAlchemyError, RuntimeError, ValueError)
+_STORAGE_ERRORS = (
+    RedisError,
+    SQLAlchemyError,
+    RuntimeError,
+    ValueError,
+    TimeoutError,
+    asyncio.TimeoutError,
+    asyncio.CancelledError,
+    ConnectionError,
+)
 
 
 class RUMEvent(BaseModel):

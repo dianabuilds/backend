@@ -6,6 +6,9 @@ import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/ty
 
 type SitePageInfoPanelProps = {
   page: SitePageSummary | null;
+  pageSlug: string;
+  activeLocale: string;
+  isDefaultLocale: boolean;
   disabled?: boolean;
   saving: boolean;
   error: string | null;
@@ -49,6 +52,9 @@ function normalizeOwner(value: string): string {
 
 export function SitePageInfoPanel({
   page,
+  pageSlug,
+  activeLocale,
+  isDefaultLocale,
   disabled = false,
   saving,
   error,
@@ -76,8 +82,8 @@ export function SitePageInfoPanel({
     setLocale(normalizeLocale(page.locale));
     setOwner(page.owner ?? '');
     setPinned(Boolean(page.pinned));
-    setValidationError(null);
-  }, [page]);
+      setValidationError(null);
+  }, [page, pageSlug]);
 
   const initialValues = React.useMemo(() => {
     if (!page) {
@@ -91,12 +97,12 @@ export function SitePageInfoPanel({
     }
     return {
       title: page.title ?? '',
-      slug: normalizeSlug(page.slug ?? ''),
+      slug: normalizeSlug(pageSlug ?? page.slug ?? ''),
       locale: normalizeLocale(page.locale),
       owner: page.owner ?? '',
       pinned: Boolean(page.pinned),
     };
-  }, [page]);
+  }, [page, pageSlug]);
 
   const handleFieldChange = React.useCallback(
     (setter: (value: string) => void) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,9 +135,10 @@ export function SitePageInfoPanel({
   const normalizedLocale = normalizeLocale(locale);
   const normalizedOwner = normalizeOwner(owner);
 
+  const slugChanged = isDefaultLocale && normalizedSlug !== initialValues.slug;
   const hasChanges =
     normalizedTitle !== initialValues.title ||
-    normalizedSlug !== initialValues.slug ||
+    slugChanged ||
     normalizedLocale !== initialValues.locale ||
     normalizedOwner !== initialValues.owner ||
     pinned !== initialValues.pinned;
@@ -141,13 +148,13 @@ export function SitePageInfoPanel({
       return;
     }
     setTitle(page.title ?? '');
-    setSlug(normalizeSlug(page.slug ?? ''));
+    setSlug(normalizeSlug(pageSlug ?? page.slug ?? ''));
     setLocale(normalizeLocale(page.locale));
     setOwner(page.owner ?? '');
     setPinned(Boolean(page.pinned));
     setValidationError(null);
     onClearError();
-  }, [page, onClearError]);
+  }, [page, pageSlug, onClearError]);
 
   const handleBlurSlug = React.useCallback(() => {
     setSlug(normalizeSlug(slug));
@@ -166,8 +173,8 @@ export function SitePageInfoPanel({
         setValidationError('Название не может быть пустым.');
         return;
       }
-      if (!normalizedSlug) {
-        setValidationError('Slug не может быть пустым.');
+      if (isDefaultLocale && !normalizedSlug) {
+        setValidationError('Slug не может быть пустым для дефолтной локали.');
         return;
       }
       if (!normalizedLocale) {
@@ -178,7 +185,7 @@ export function SitePageInfoPanel({
       if (normalizedTitle !== initialValues.title) {
         payload.title = normalizedTitle;
       }
-      if (normalizedSlug !== initialValues.slug) {
+      if (slugChanged) {
         payload.slug = normalizedSlug;
       }
       if (normalizedLocale !== initialValues.locale) {
@@ -203,12 +210,13 @@ export function SitePageInfoPanel({
       initialValues.locale,
       initialValues.owner,
       initialValues.pinned,
-      initialValues.slug,
       initialValues.title,
       normalizedLocale,
       normalizedOwner,
       normalizedSlug,
+      isDefaultLocale,
       normalizedTitle,
+      slugChanged,
       onClearError,
       onSubmit,
       page,
@@ -244,14 +252,21 @@ export function SitePageInfoPanel({
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200">Slug</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-dark-200">
+            Slug ({activeLocale.toUpperCase()})
+          </span>
           <Input
             value={slug}
             onChange={handleFieldChange(setSlug)}
             onBlur={handleBlurSlug}
-            disabled={disabled || saving || !page}
+            disabled={disabled || saving || !page || !isDefaultLocale}
             placeholder="/promo"
           />
+          {!isDefaultLocale ? (
+            <span className="text-[11px] font-normal normal-case text-gray-500 dark:text-dark-300">
+              Slug можно менять только в дефолтной локали ({page?.default_locale?.toUpperCase() ?? 'RU'}).
+            </span>
+          ) : null}
         </label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="space-y-1">

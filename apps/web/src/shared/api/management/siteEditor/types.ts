@@ -137,6 +137,7 @@ export type PublishSiteBlockPayload = {
   version?: number | null;
   comment?: string | null;
   acknowledgeUsage?: boolean;
+  acknowledge_usage?: boolean;
 };
 
 export type ArchiveSiteBlockPayload = {
@@ -166,6 +167,7 @@ export type PreviewSitePagePayload = {
   meta?: Record<string, unknown>;
   layouts?: string[];
   version?: number;
+  locale?: string;
 };
 
 export type SiteBlockPreviewItem = {

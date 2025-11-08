@@ -116,21 +116,217 @@ export function createDefaultCta(): HeaderCta {
 }
 
 export function createDefaultHeaderConfig(): SiteHeaderConfig {
+  const menuAnalytics = (group: string, item: string): HeaderAnalytics => ({
+    event: 'header.menu.click',
+    context: {
+      group,
+      item,
+      surface: 'site-editor-preview',
+    },
+  });
+
+  const primaryMenu: HeaderMenuGroup = [
+    {
+      id: 'dashboard',
+      label: 'Главная',
+      description: 'Сводка продуктов и активностей',
+      href: '/dashboard',
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('primary', 'dashboard'),
+      children: [
+        {
+          id: 'overview',
+          label: 'Обзор',
+          href: '/dashboard/overview',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_self',
+          analytics: menuAnalytics('primary.children', 'overview'),
+          children: null,
+        },
+        {
+          id: 'metrics',
+          label: 'Метрики',
+          href: '/dashboard/metrics',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_self',
+          analytics: menuAnalytics('primary.children', 'metrics'),
+          children: null,
+        },
+      ],
+    },
+    {
+      id: 'solutions',
+      label: 'Решения',
+      description: 'Готовые сценарии для сайта',
+      href: '/solutions',
+      badge: 'New',
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('primary', 'solutions'),
+      children: [
+        {
+          id: 'landing',
+          label: 'Лендинги',
+          href: '/solutions/landing',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_self',
+          analytics: menuAnalytics('primary.children', 'landing'),
+          children: null,
+        },
+        {
+          id: 'knowledge-base',
+          label: 'База знаний',
+          href: '/solutions/knowledge-base',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_self',
+          analytics: menuAnalytics('primary.children', 'knowledge-base'),
+          children: null,
+        },
+      ],
+    },
+    {
+      id: 'resources',
+      label: 'Ресурсы',
+      description: 'Документация, новости, сообщество',
+      href: '/resources',
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('primary', 'resources'),
+      children: [
+        {
+          id: 'docs',
+          label: 'Документация',
+          href: '/docs',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_self',
+          analytics: menuAnalytics('primary.children', 'docs'),
+          children: null,
+        },
+        {
+          id: 'community',
+          label: 'Сообщество',
+          href: '/community',
+          description: null,
+          badge: null,
+          icon: null,
+          target: '_blank',
+          analytics: menuAnalytics('primary.children', 'community'),
+          children: null,
+        },
+      ],
+    },
+  ];
+
+  const secondaryMenu: HeaderMenuGroup = [
+    {
+      id: 'pricing',
+      label: 'Тарифы',
+      href: '/pricing',
+      description: null,
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('secondary', 'pricing'),
+      children: null,
+    },
+    {
+      id: 'partners',
+      label: 'Партнёры',
+      href: '/partners',
+      description: null,
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('secondary', 'partners'),
+      children: null,
+    },
+  ];
+
+  const utilityMenu: HeaderMenuGroup = [
+    {
+      id: 'support',
+      label: 'Поддержка',
+      href: '/support',
+      description: null,
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('utility', 'support'),
+      children: null,
+    },
+    {
+      id: 'login',
+      label: 'Войти',
+      href: '/auth/login',
+      description: null,
+      badge: null,
+      icon: null,
+      target: '_self',
+      analytics: menuAnalytics('utility', 'login'),
+      children: null,
+    },
+  ];
+
+  const ctaAnalytics: HeaderAnalytics = {
+    event: 'header.cta.click',
+    context: {
+      surface: 'site-editor-preview',
+      position: 'desktop',
+    },
+  };
+
   return {
     branding: {
-      title: '',
-      subtitle: null,
+      title: 'Caves Platform',
+      subtitle: 'Редактор сайта и библиотека блоков',
       href: '/',
-      logo: createDefaultLogo(),
+      logo: {
+        light: '/static/branding/caves-light.svg',
+        dark: '/static/branding/caves-dark.svg',
+        alt: 'Caves Platform',
+      },
     },
     navigation: {
-      primary: createDefaultMenuGroup(),
-      secondary: createDefaultMenuGroup(),
-      utility: createDefaultMenuGroup(),
-      cta: null,
+      primary: primaryMenu,
+      secondary: secondaryMenu,
+      utility: utilityMenu,
+      cta: {
+        id: 'cta-demo',
+        label: 'Запросить демо',
+        href: '/request-demo',
+        target: '_self',
+        style: 'primary',
+        analytics: ctaAnalytics,
+      },
       mobile: {
-        menu: createDefaultMenuGroup(),
-        cta: null,
+        menu: [...primaryMenu, ...secondaryMenu],
+        cta: {
+          id: 'cta-mobile',
+          label: 'Начать бесплатно',
+          href: '/signup',
+          target: '_self',
+          style: 'secondary',
+          analytics: {
+            event: 'header.cta.click',
+            context: {
+              surface: 'site-editor-preview',
+              position: 'mobile',
+            },
+          },
+        },
       },
     },
     layout: {
@@ -138,12 +334,17 @@ export function createDefaultHeaderConfig(): SiteHeaderConfig {
       sticky: true,
       hideOnScroll: false,
     },
-    features: {},
+    features: {
+      showBetaBadge: true,
+      enableThemeSwitch: true,
+    },
     localization: {
       fallbackLocale: 'ru',
-      available: ['ru'],
+      available: ['ru', 'en'],
     },
-    meta: {},
+    meta: {
+      samplePreset: 'default-header',
+    },
   };
 }
 

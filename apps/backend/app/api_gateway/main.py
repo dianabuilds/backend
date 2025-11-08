@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import sys
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from importlib import import_module
@@ -33,6 +34,26 @@ from .wires import Container, build_container
 DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_windows_selector_policy() -> None:
+    """Force selector loop policy on Windows so asyncpg TLS works reliably."""
+
+    if not sys.platform.lower().startswith("win"):
+        return
+    factory = getattr(asyncio, "WindowsSelectorEventLoopPolicy", None)
+    if factory is None:
+        logger.warning(
+            "Windows selector event loop policy is unavailable; TLS connections may fail"
+        )
+        return
+    try:
+        asyncio.set_event_loop_policy(factory())
+    except Exception:  # pragma: no cover - defensive logging only
+        logger.exception("Failed to apply Windows selector event loop policy")
+
+
+_ensure_windows_selector_policy()
 
 try:
     _redis_asyncio: ModuleType | None = import_module("redis.asyncio")

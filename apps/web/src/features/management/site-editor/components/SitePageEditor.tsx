@@ -1,10 +1,9 @@
 ﻿import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Button, Card, Dialog, Spinner, Tabs, Textarea, useToast } from '@ui';
+import { Button, Card, Dialog, Input, Spinner, Tabs, Textarea, useToast } from '@ui';
 import { useAuth } from '@shared/auth';
 import { managementSiteEditorApi } from '@shared/api/management';
 import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/types';
-import { getLocale } from '@shared/i18n/locale';
 import { reportFeatureError } from '@shared/utils/sentry';
 import type { SitePagePreviewResponse, SitePageReviewStatus } from '@shared/types/management';
 import { HomeEditorContext } from '../../home/HomeEditorContext';
@@ -43,6 +42,12 @@ const REVIEW_STATUS_BADGE_COLOR: Record<SitePageReviewStatus, 'neutral' | 'warni
   rejected: 'error',
 };
 
+const SUPPORTED_LOCALES = ['ru', 'en'] as const;
+const LOCALE_LABELS: Record<string, string> = {
+  ru: 'Русский',
+  en: 'Английский',
+};
+
 const KNOWN_ROLES = new Set(['user', 'editor', 'support', 'moderator', 'admin']);
 const ROLE_ALIASES: Record<string, string> = {
   'site.viewer': 'user',
@@ -71,45 +76,14 @@ function buildSiteDraftPayload(data: HomeDraftData): {
   const normalizedData: Record<string, unknown> = {
     blocks: Array.isArray(data.blocks) ? data.blocks : [],
   };
-  const sharedState = data.shared && typeof data.shared === 'object' ? data.shared : null;
-  let assignmentsSource =
-    (sharedState && typeof sharedState.assignments === 'object'
-      ? (sharedState.assignments as Record<string, string | null>)
-      : null) ?? null;
-  if (!assignmentsSource && sharedState) {
-    const legacy = sharedState as Record<string, unknown>;
-    const legacyAssignments = legacy['globalAssignments'] ?? legacy['global_assignments'];
-    if (legacyAssignments && typeof legacyAssignments === 'object') {
-      assignmentsSource = legacyAssignments as Record<string, string | null>;
-    }
-  }
-  if (assignmentsSource && typeof assignmentsSource === 'object') {
-    const normalizedAssignments = Object.entries(assignmentsSource).reduce<Record<string, string>>(
-      (acc, [section, value]) => {
-        if (typeof value !== 'string') {
-          return acc;
-        }
-        const trimmed = value.trim();
-        if (!trimmed) {
-          return acc;
-        }
-        acc[section] = trimmed;
-        return acc;
-      },
-      {},
-    );
-    if (Object.keys(normalizedAssignments).length > 0) {
-      normalizedData.shared = {
-        assignments: normalizedAssignments,
-      };
-    }
-  }
   const payload: { data: Record<string, unknown>; meta?: Record<string, unknown> } = {
     data: normalizedData,
   };
+
   if (data.meta && typeof data.meta === 'object' && data.meta !== null) {
     payload.meta = { ...data.meta };
   }
+
   return payload;
 }
 
@@ -220,13 +194,28 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
     updateSharedBindingInfo,
     assignSharedBinding,
     removeSharedBinding,
+    activeLocale,
+    availableLocales,
+    setActiveLocale: switchActiveLocale,
+    createLocale,
   } = useSitePageEditorState({ pageId });
   const { user } = useAuth();
   const [publishDialogOpen, setPublishDialogOpen] = React.useState(false);
   const [publishComment, setPublishComment] = React.useState('');
   const [workspaceTab, setWorkspaceTab] = React.useState<'layout' | 'settings' | 'preview'>('layout');
+  const [localeDialogOpen, setLocaleDialogOpen] = React.useState(false);
+  const [newLocaleValue, setNewLocaleValue] = React.useState('');
+  const [localeDialogError, setLocaleDialogError] = React.useState<string | null>(null);
 
-  const previewLocale = React.useMemo(() => page?.locale ?? getLocale(), [page?.locale]);
+  const localeTabs = React.useMemo(
+    () =>
+      availableLocales.map((locale) => ({
+        key: locale,
+        label: LOCALE_LABELS[locale] ?? locale.toUpperCase(),
+      })),
+    [availableLocales],
+  );
+  const canAddLocale = availableLocales.length < SUPPORTED_LOCALES.length;
 
   const fetchSitePreview = React.useCallback(
     async ({ layout, signal }: { layout?: string; signal: AbortSignal }): Promise<PreviewFetchResult> => {
@@ -238,12 +227,13 @@ export function SitePageEditor({ pageId }: SitePageEditorProps): React.ReactElem
           meta: payload.meta,
           layouts: layout ? [layout] : undefined,
           version: snapshot.version ?? undefined,
+          locale: activeLocale,
         },
         { signal },
       );
       return mapPreviewResponseToResult(response);
     },
-    [data, pageId, snapshot.version],
+    [activeLocale, data, pageId, snapshot.version],
   );
 
   const handlePreviewError = React.useCallback(
@@ -301,6 +291,10 @@ const handleUpdatePageInfo = React.useCallback(
     saveDraft,
     snapshot,
     slug,
+    activeLocale,
+    availableLocales,
+    setActiveLocale: switchActiveLocale,
+    createLocale,
     history: historyForContext,
     publishing,
     publishDraft,
@@ -316,8 +310,11 @@ const handleUpdatePageInfo = React.useCallback(
     assignSharedBinding,
     removeSharedBinding,
   }), [
+    activeLocale,
+    availableLocales,
     assignSharedBinding,
     clearSharedAssignment,
+    createLocale,
     data,
     dirty,
     historyForContext,
@@ -336,6 +333,7 @@ const handleUpdatePageInfo = React.useCallback(
     selectedBlockId,
     setBlocks,
     setData,
+    switchActiveLocale,
     setSharedAssignment,
     selectBlock,
     sharedAssignments,
@@ -423,6 +421,47 @@ const handleUpdatePageInfo = React.useCallback(
     setWorkspaceTab('layout');
   }, []);
 
+  const handleLocaleTabChange = React.useCallback(
+    (key: string) => {
+      if (!key || key === activeLocale) {
+        return;
+      }
+      switchActiveLocale(key);
+    },
+    [activeLocale, switchActiveLocale],
+  );
+
+  const handleCreateLocale = React.useCallback(() => {
+    const normalized = newLocaleValue.trim().toLowerCase();
+    if (!normalized) {
+      setLocaleDialogError('Укажите код локали (например, ru или en)');
+      return;
+    }
+    if (availableLocales.includes(normalized)) {
+      setLocaleDialogError('Такая локаль уже добавлена');
+      return;
+    }
+    if (!SUPPORTED_LOCALES.includes(normalized as typeof SUPPORTED_LOCALES[number])) {
+      setLocaleDialogError('Поддерживаются локали ru и en');
+      return;
+    }
+    if (!createLocale(normalized)) {
+      setLocaleDialogError('Не удалось создать локаль');
+      return;
+    }
+    switchActiveLocale(normalized);
+    setLocaleDialogOpen(false);
+    setNewLocaleValue('');
+    setLocaleDialogError(null);
+    pushToast({ intent: 'success', description: `Добавлена локаль ${normalized.toUpperCase()}` });
+  }, [availableLocales, createLocale, newLocaleValue, pushToast, switchActiveLocale]);
+
+  const handleOpenLocaleDialog = React.useCallback(() => {
+    setLocaleDialogError(null);
+    setNewLocaleValue('');
+    setLocaleDialogOpen(true);
+  }, []);
+
   const reviewStatusBadgeColor = REVIEW_STATUS_BADGE_COLOR[reviewStatus] ?? 'neutral';
 
   const handleManualSave = React.useCallback(async () => {
@@ -476,6 +515,7 @@ const handleUpdatePageInfo = React.useCallback(
         <SitePageHeader
           pageTitle={page?.title ?? 'Страница'}
           pageSlug={slug}
+          activeLocale={activeLocale}
           pageStatusBadge={status ? { label: status.label, color: status.color } : null}
           pageTypeLabel={page?.type ? typeLabel(page.type) : null}
           snapshot={snapshot}
@@ -490,6 +530,28 @@ const handleUpdatePageInfo = React.useCallback(
           onSaveDraft={handleManualSave}
           onOpenPublish={handleOpenPublish}
         />
+        <Card className="rounded-3xl border border-white/60 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-dark-600/60 dark:bg-dark-800/70">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Локали страницы</h2>
+              <p className="text-xs text-gray-500 dark:text-dark-200">
+                Выберите локаль, с которой работает редактор. Добавьте новую, чтобы подготовить перевод.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Tabs items={localeTabs} value={activeLocale} onChange={handleLocaleTabChange} />
+              <Button
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                onClick={handleOpenLocaleDialog}
+                disabled={!canAddLocale}
+              >
+                {canAddLocale ? 'Добавить локаль' : 'Все локали подключены'}
+              </Button>
+            </div>
+          </div>
+        </Card>
 
         <ErrorState message={savingError} />
 
@@ -518,7 +580,7 @@ const handleUpdatePageInfo = React.useCallback(
                     validation={validation}
                     revalidate={revalidate}
                     fetchPreview={fetchSitePreview}
-                    locale={previewLocale}
+                    locale={activeLocale}
                     title="Предпросмотр страницы"
                     description="Генерация payload для предпросмотра с учётом текущего черновика."
                     openWindowLabel="Открыть окно"
@@ -533,6 +595,9 @@ const handleUpdatePageInfo = React.useCallback(
                   <div className="space-y-4">
                     <SitePageInfoPanel
                       page={page}
+                      pageSlug={slug}
+                      activeLocale={activeLocale}
+                      isDefaultLocale={activeLocale === (page?.default_locale ?? activeLocale)}
                       disabled={loading || saving || publishing}
                       saving={pageInfoSaving}
                       error={pageInfoError}
@@ -600,6 +665,48 @@ const handleUpdatePageInfo = React.useCallback(
           </div>
         )}
       </div>
+      <Dialog
+        open={localeDialogOpen}
+        onClose={() => {
+          if (!saving && !publishing) {
+            setLocaleDialogOpen(false);
+          }
+        }}
+        title="Добавление локали"
+        footer={(
+          <>
+            <Button
+              variant="outlined"
+              color="neutral"
+              onClick={() => setLocaleDialogOpen(false)}
+              disabled={saving || publishing}
+            >
+              Отмена
+            </Button>
+            <Button onClick={handleCreateLocale} disabled={saving || publishing}>
+              Добавить
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600 dark:text-dark-200">
+            Укажите код локали (например, <code className="font-mono text-xs">ru</code> или <code className="font-mono text-xs">en</code>).
+          </p>
+          <Input
+            value={newLocaleValue}
+            onChange={(event) => {
+              setNewLocaleValue(event.target.value);
+              setLocaleDialogError(null);
+            }}
+            placeholder="ru"
+          />
+          {localeDialogError ? (
+            <p className="text-sm text-rose-600 dark:text-rose-300">{localeDialogError}</p>
+          ) : null}
+        </div>
+      </Dialog>
+
       <Dialog
         open={publishDialogOpen}
         onClose={handleClosePublish}

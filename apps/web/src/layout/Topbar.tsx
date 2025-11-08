@@ -316,7 +316,7 @@ export function Topbar(): React.ReactElement {
         wsRef.current = null;
       }
     };
-  }, [isAuthenticated, isReady, tokens.accessToken]);
+  }, [isAuthenticated, isReady, tokens.accessToken, tokens.refreshToken]);
 
   React.useEffect(() => {
     if (!isReady || !isAuthenticated) return;

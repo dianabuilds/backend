@@ -70,6 +70,21 @@ class SiteRepositoryBase:
         )
 
     def _row_to_draft(self, row: Mapping[str, Any]) -> PageDraft:
+        default_locale = (
+            str(
+                row.get("page_default_locale") or row.get("default_locale") or "ru"
+            ).strip()
+            or "ru"
+        )
+        available_locales = helpers.as_locale_list(
+            row.get("page_available_locales") or row.get("available_locales")
+        )
+        if not available_locales:
+            available_locales = (default_locale,)
+        slug_localized = helpers.as_mapping(
+            row.get("page_slug_localized") or row.get("slug_localized")
+        )
+        slug_map = slug_localized or None
         return PageDraft(
             page_id=row["page_id"],
             version=int(row["version"]),
@@ -81,6 +96,9 @@ class SiteRepositoryBase:
             ),
             updated_at=row["updated_at"],
             updated_by=row.get("updated_by"),
+            default_locale=default_locale,
+            available_locales=available_locales,
+            slug_localized=slug_map,
         )
 
     def _row_to_version(self, row: Mapping[str, Any]) -> PageVersion:

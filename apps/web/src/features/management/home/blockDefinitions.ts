@@ -24,6 +24,7 @@ const DEFINITIONS: BlockDefinition[] = [
         media: null,
       },
       layout: { variant: 'full' },
+      source: 'manual',
     }),
   },
   {
@@ -177,6 +178,10 @@ function nextBlockId(type: HomeBlockType, existing: HomeBlock[]): string {
     candidate = `${prefix}-${counter}`;
   }
   return candidate;
+}
+
+export function generateBlockId(type: HomeBlockType, existing: HomeBlock[]): string {
+  return nextBlockId(type, existing);
 }
 
 export function createBlockInstance(type: HomeBlockType, existing: HomeBlock[]): HomeBlock {

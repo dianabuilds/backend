@@ -1,6 +1,11 @@
 import type { ValidationSummary } from './validation';
 import type { HomeHistoryEntry } from '@shared/types/home';
-import type { SitePageAttachedBlock, SitePageSummary } from '@shared/types/management';
+import type {
+  SiteBlockReviewStatus,
+  SiteBlockStatus,
+  SitePageAttachedBlock,
+  SitePageSummary,
+} from '@shared/types/management';
 export type HomeBlockType =
   | 'hero'
   | 'dev_blog_list'
@@ -22,6 +27,8 @@ export type HomeBlockDataSource = {
   items?: Array<string | number> | null;
 };
 
+export type HomeBlockSource = "manual" | "site";
+
 export type HomeBlock = {
   id: string;
   type: HomeBlockType;
@@ -30,6 +37,19 @@ export type HomeBlock = {
   slots?: Record<string, unknown> | null;
   layout?: Record<string, unknown> | null;
   dataSource?: HomeBlockDataSource | null;
+  source?: HomeBlockSource;
+  siteBlockId?: string | null;
+  siteBlockKey?: string | null;
+  siteBlockSection?: string | null;
+  siteBlockLocale?: string | null;
+  siteBlockTitle?: string | null;
+  siteBlockStatus?: SiteBlockStatus | string | null;
+  siteBlockReviewStatus?: SiteBlockReviewStatus | string | null;
+  siteBlockRequiresPublisher?: boolean | null;
+  siteBlockHasPendingPublish?: boolean | null;
+  siteBlockHasDraft?: boolean | null;
+  siteBlockUpdatedAt?: string | null;
+  siteBlockUpdatedBy?: string | null;
 };
 
 export type HomeSharedState = {
@@ -64,6 +84,10 @@ export type HomeEditorContextValue = {
   saveDraft: (opts?: { silent?: boolean }) => Promise<void>;
   snapshot: HomeDraftSnapshot;
   slug: string;
+  activeLocale: string;
+  availableLocales: string[];
+  setActiveLocale: (locale: string) => void;
+  createLocale: (locale: string) => boolean;
   history: HomeHistoryEntry[];
   publishing: boolean;
   restoringVersion: number | null;

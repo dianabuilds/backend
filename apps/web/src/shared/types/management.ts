@@ -626,15 +626,15 @@ export type SitePageSummary = {
   status: SitePageStatus;
   title: string;
   locale: string;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  localized_slugs?: Record<string, string> | null;
   owner?: string | null;
   updated_at?: string | null;
   published_version?: number | null;
   draft_version?: number | null;
   has_pending_review?: boolean | null;
   pinned?: boolean | null;
-  default_locale?: string | null;
-  available_locales?: string[] | null;
-  localized_slugs?: Record<string, string> | null;
   locales?: Array<{
     locale: string;
     slug: string;
@@ -661,6 +661,11 @@ export type SitePageDraft = {
   version: number;
   data: Record<string, unknown>;
   meta: Record<string, unknown>;
+  default_locale?: string | null;
+  available_locales?: string[] | null;
+  slug_localized?: Record<string, string> | null;
+  active_locale?: string | null;
+  fallback_locale?: string | null;
   comment?: string | null;
   review_status: SitePageReviewStatus;
   updated_at?: string | null;

@@ -1,5 +1,9 @@
-﻿import React from 'react';
-import { Badge, Card } from '@ui';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Badge, Button, Card } from '@ui';
+import { ExternalLink } from '@icons';
+import { formatDateTime } from '@shared/utils/format';
+import { STATUS_META } from '../../site-editor/components/SiteBlockLibraryPage.constants';
 import { useHomeEditorContext } from '../HomeEditorContext';
 import type { HomeBlock } from '../types';
 import { getBlockDefinition } from '../blockDefinitions';
@@ -38,6 +42,17 @@ export function BlockInspector(): React.ReactElement {
   }
 
   const definition = getBlockDefinition(block.type);
+  const usesLibrary = block.source === 'site' && Boolean(block.siteBlockKey);
+  const libraryStatusMeta =
+    usesLibrary &&
+    block.siteBlockStatus &&
+    (block.siteBlockStatus === 'draft' || block.siteBlockStatus === 'published' || block.siteBlockStatus === 'archived')
+      ? STATUS_META[block.siteBlockStatus]
+      : null;
+  const libraryLocale = block.siteBlockLocale ?? '—';
+  const librarySection = block.siteBlockSection ?? block.type;
+  const libraryLink = usesLibrary && block.siteBlockId ? `/management/site-editor/blocks/${block.siteBlockId}` : null;
+  const libraryUpdatedAt = block.siteBlockUpdatedAt ? formatDateTime(block.siteBlockUpdatedAt, { fallback: '—' }) : '—';
 
   return (
     <Card
@@ -59,6 +74,58 @@ export function BlockInspector(): React.ReactElement {
         <p className="text-xs text-gray-500 dark:text-dark-300">
           Состояние: {block.enabled ? 'активен и будет показан на главной' : 'отключен и скрыт из публикации'}.
         </p>
+        {usesLibrary ? (
+          <div className="space-y-3 rounded-2xl border border-primary-100 bg-primary-50/40 p-3 text-sm text-gray-700">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge color="primary" variant="soft">
+                Библиотека
+              </Badge>
+              {libraryStatusMeta ? (
+                <Badge color={libraryStatusMeta.color} variant="soft">
+                  {libraryStatusMeta.label}
+                </Badge>
+              ) : null}
+              {block.siteBlockRequiresPublisher ? (
+                <Badge color="warning" variant="outline">
+                  Требуется publisher
+                </Badge>
+              ) : null}
+            </div>
+            <dl className="grid gap-1 text-xs text-gray-600">
+              <div className="flex items-center gap-1">
+                <dt className="text-gray-500">Ключ:</dt>
+                <dd className="font-mono text-gray-800">{block.siteBlockKey}</dd>
+              </div>
+              <div className="flex items-center gap-1">
+                <dt className="text-gray-500">Секция:</dt>
+                <dd className="font-medium text-gray-800">{librarySection}</dd>
+              </div>
+              <div className="flex items-center gap-1">
+                <dt className="text-gray-500">Локаль:</dt>
+                <dd className="font-medium text-gray-800 uppercase">{libraryLocale}</dd>
+              </div>
+              <div className="flex items-center gap-1">
+                <dt className="text-gray-500">Обновлён:</dt>
+                <dd className="font-medium text-gray-800">
+                  {libraryUpdatedAt}
+                  {block.siteBlockUpdatedBy ? ` · ${block.siteBlockUpdatedBy}` : ''}
+                </dd>
+              </div>
+            </dl>
+            {libraryLink ? (
+              <Button
+                as={Link}
+                to={libraryLink}
+                size="sm"
+                variant="ghost"
+                className="inline-flex items-center gap-1.5"
+              >
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                <span>Открыть блок</span>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {blockErrors.length ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-900/30 dark:text-amber-200">
             <div className="font-semibold">Ошибки настройки:</div>

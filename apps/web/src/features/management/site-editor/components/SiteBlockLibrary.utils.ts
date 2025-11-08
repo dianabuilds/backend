@@ -1,92 +1,55 @@
-import type { SiteBlock } from '@shared/types/management';
-import type { FiltersState } from './SiteBlockLibrary.types';
+﻿import type { SiteBlock } from '@shared/types/management';
 
-export function normalize(text: string): string {
-  return text
-    .normalize('NFKC')
-    .toLowerCase()
-    .trim();
-}
-
-export function pickOwner(block: SiteBlock): string | null {
-  const candidate = (block.meta as { owner?: unknown } | undefined)?.owner;
-  if (typeof candidate === 'string' && candidate.trim()) {
-    return candidate.trim();
+export function collectLocales(block: SiteBlock | null | undefined): string[] {
+  if (!block) {
+    return [];
   }
-  return null;
-}
-
-export function pickDocumentationUrl(block: SiteBlock): string | null {
-  const meta = block.meta as Record<string, unknown> | undefined;
-  const candidate = meta?.documentation ?? meta?.documentation_url ?? meta?.docs;
-  if (typeof candidate === 'string' && candidate.trim()) {
-    return candidate.trim();
-  }
-  return null;
-}
-
-export function collectLocales(block: SiteBlock): string[] {
   const locales = new Set<string>();
   if (typeof block.locale === 'string' && block.locale.trim()) {
-    locales.add(block.locale.trim());
+    locales.add(block.locale.trim().toLowerCase());
   }
   if (typeof block.default_locale === 'string' && block.default_locale.trim()) {
-    locales.add(block.default_locale.trim());
+    locales.add(block.default_locale.trim().toLowerCase());
   }
   if (Array.isArray(block.available_locales)) {
     block.available_locales
       .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-      .forEach((value) => locales.add(value.trim()));
+      .forEach((value) => locales.add(value.trim().toLowerCase()));
   }
   return Array.from(locales);
 }
 
-export function filterBlocks(blocks: SiteBlock[], filters: FiltersState): SiteBlock[] {
-  const search = normalize(filters.search);
-  return blocks.filter((block) => {
-    if (filters.status !== 'all' && block.status !== filters.status) {
-      return false;
+export function pickDocumentationUrl(
+  source: Pick<SiteBlock, 'meta'> | { documentation_url?: string | null } | null | undefined,
+): string | null {
+  if (!source) {
+    return null;
+  }
+  if ('documentation_url' in source) {
+    const directUrl = (source as { documentation_url?: unknown }).documentation_url;
+    if (typeof directUrl === 'string' && directUrl.trim()) {
+      return directUrl.trim();
     }
-    const scope = block.scope ?? 'unknown';
-    if (filters.scope !== 'all' && scope !== filters.scope) {
-      return false;
+  }
+  const meta = (source as { meta?: Record<string, unknown> }).meta;
+  if (meta && typeof meta === 'object') {
+    const direct = (meta as Record<string, unknown>).documentation_url;
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
     }
-    if (filters.requiresPublisher === 'true' && !block.requires_publisher) {
-      return false;
+    const legacy = (meta as Record<string, unknown>).documentation;
+    if (typeof legacy === 'string' && legacy.trim()) {
+      return legacy.trim();
     }
-    if (filters.requiresPublisher === 'false' && block.requires_publisher) {
-      return false;
-    }
-    if (filters.reviewStatus !== 'all' && block.review_status !== filters.reviewStatus) {
-      return false;
-    }
-    if (filters.locale !== 'all') {
-      const locales = collectLocales(block);
-      if (!locales.some((locale) => locale === filters.locale)) {
-        return false;
+    const links = (meta as Record<string, unknown>).links;
+    if (links && typeof links === 'object' && !Array.isArray(links)) {
+      const docLink = (links as Record<string, unknown>).documentation;
+      if (typeof docLink === 'string' && docLink.trim()) {
+        return docLink.trim();
       }
     }
-    if (filters.owner !== 'all' && pickOwner(block) !== filters.owner) {
-      return false;
-    }
-    if (search.length > 0) {
-      const haystack = [
-        block.title,
-        block.key,
-        block.section,
-        pickOwner(block) ?? '',
-        block.scope ?? '',
-        block.comment ?? '',
-        ...collectLocales(block),
-      ]
-        .map((value) => normalize(String(value ?? '')))
-        .join(' ');
-      if (!haystack.includes(search)) {
-        return false;
-      }
-    }
-    return true;
-  });
+  }
+  return null;
 }
 
 export function isSameStringList(left: string[], right: string[]): boolean {
@@ -97,5 +60,5 @@ export function isSameStringList(left: string[], right: string[]): boolean {
 }
 
 export function joinList(values: string[]): string {
-  return values.join('\\n');
+  return values.join('\n');
 }

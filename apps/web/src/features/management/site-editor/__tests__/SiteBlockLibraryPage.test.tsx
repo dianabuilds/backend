@@ -1,48 +1,28 @@
 ﻿import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ToastProvider } from '@ui';
 
 import SiteBlockLibraryPage from '../components/SiteBlockLibraryPage';
-import type {
-  SiteBlock,
-  SiteBlockDetailResponse,
-  SiteBlockHistoryResponse,
-  SiteBlockListResponse,
-} from '@shared/types/management';
+import type { SiteBlock, SiteBlockListResponse } from '@shared/types/management';
 
 const apiMocks = vi.hoisted(() => ({
   fetchSiteBlocks: vi.fn(),
-  fetchSiteBlock: vi.fn(),
-  createSiteBlock: vi.fn(),
-  saveSiteBlock: vi.fn(),
-  publishSiteBlock: vi.fn(),
-  archiveSiteBlock: vi.fn(),
-  fetchSiteBlockHistory: vi.fn(),
-  restoreSiteBlockVersion: vi.fn(),
 }));
 
 vi.mock('@shared/api/management', () => ({
   managementSiteEditorApi: apiMocks,
 }));
 
-const {
-  fetchSiteBlocks: mockedFetchSiteBlocks,
-  fetchSiteBlock: mockedFetchSiteBlock,
-  createSiteBlock: mockedCreateSiteBlock,
-  saveSiteBlock: mockedSaveSiteBlock,
-  publishSiteBlock: mockedPublishSiteBlock,
-  fetchSiteBlockHistory: mockedFetchSiteBlockHistory,
-} = apiMocks;
+const mockNavigate = vi.fn();
 
-function renderPage(): ReturnType<typeof render> {
-  return render(
-    <ToastProvider>
-      <SiteBlockLibraryPage />
-    </ToastProvider>,
-  );
-}
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 const SHARED_BLOCK: SiteBlock = {
   id: 'block-shared',
@@ -72,30 +52,14 @@ const SHARED_BLOCK: SiteBlock = {
 };
 
 const PAGE_BLOCK: SiteBlock = {
+  ...SHARED_BLOCK,
   id: 'block-page',
   key: 'promo-banner-123',
   title: 'Промо баннер',
   section: 'promo',
-  status: 'draft',
-  review_status: 'none',
   requires_publisher: false,
   scope: 'page',
-  locale: 'ru',
-  default_locale: 'ru',
-  available_locales: ['ru'],
-  published_version: null,
-  draft_version: 1,
-  version: 1,
-  usage_count: 0,
-  comment: null,
-  data: {},
-  meta: {},
   updated_at: '2025-11-02T12:00:00Z',
-  updated_by: 'designer@caves.dev',
-  has_pending_publish: null,
-  extras: {},
-  is_template: false,
-  origin_block_id: null,
 };
 
 const BLOCKS_RESPONSE: SiteBlockListResponse = {
@@ -105,109 +69,57 @@ const BLOCKS_RESPONSE: SiteBlockListResponse = {
   total: 2,
 };
 
-const SHARED_DETAIL_RESPONSE: SiteBlockDetailResponse = {
-  block: SHARED_BLOCK,
-  usage: [],
-  warnings: [],
-};
-
-const EMPTY_HISTORY: SiteBlockHistoryResponse = {
-  items: [],
-  total: 0,
-  limit: 20,
-  offset: 0,
-};
+const { fetchSiteBlocks: mockedFetchSiteBlocks } = apiMocks;
 
 describe('SiteBlockLibraryPage', () => {
   beforeEach(() => {
-    mockedFetchSiteBlocks.mockResolvedValue(BLOCKS_RESPONSE);
-    mockedFetchSiteBlock.mockResolvedValue(SHARED_DETAIL_RESPONSE);
-    mockedFetchSiteBlockHistory.mockResolvedValue(EMPTY_HISTORY);
-    mockedSaveSiteBlock.mockResolvedValue(SHARED_BLOCK);
-    mockedCreateSiteBlock.mockResolvedValue({
-      ...SHARED_BLOCK,
-      id: 'block-new',
-      key: 'new-shared',
-      title: 'Новый блок',
-    });
-    mockedPublishSiteBlock.mockResolvedValue({ block: SHARED_BLOCK, usage: [], warnings: [] });
+    mockedFetchSiteBlocks.mockReset().mockResolvedValue(BLOCKS_RESPONSE);
+    mockNavigate.mockReset();
   });
 
-  it('загружает список блоков и показывает детали первого shared-блока', async () => {
-    renderPage();
+  it('загружает и показывает список блоков', async () => {
+    render(<SiteBlockLibraryPage />);
 
     await waitFor(() => expect(mockedFetchSiteBlocks).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(mockedFetchSiteBlock).toHaveBeenCalledTimes(1));
-    await screen.findByText('Хедер');
-
-    const detailPanel = screen.getByTestId('site-block-library-detail');
-    expect(within(detailPanel).getByDisplayValue('Хедер')).toBeInTheDocument();
-    expect(within(detailPanel).getByText('Общий блок')).toBeInTheDocument();
+    expect(await screen.findByText('Хедер')).toBeInTheDocument();
+    expect(screen.getByText('Промо баннер')).toBeInTheDocument();
   });
 
-  it('сохраняет изменения без поля meta.library', async () => {
-    renderPage();
-    await screen.findByDisplayValue('Хедер');
-
-    const titleInput = screen.getByLabelText('Название');
-    await userEvent.clear(titleInput);
-    await userEvent.type(titleInput, 'Хедер (обновлён)');
-
-    const saveButton = screen.getByRole('button', { name: 'Сохранить' });
-    await userEvent.click(saveButton);
-
-    await waitFor(() => expect(mockedSaveSiteBlock).toHaveBeenCalledTimes(1));
-    const payload = mockedSaveSiteBlock.mock.calls[0][1];
-    expect(payload.meta).toBeUndefined();
-    expect(payload.title).toBe('Хедер (обновлён)');
-    expect(payload.version).toBe(SHARED_BLOCK.version);
-    expect(payload.is_template).toBe(false);
-    expect(payload.origin_block_id).toBeNull();
-  });
-
-  it('создаёт новый блок с областью shared по умолчанию', async () => {
-    renderPage();
-    await screen.findByText('Сводка');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Создать блок' }));
-
-    const dialog = screen.getByRole('dialog', { name: 'Создание блока' });
-    await userEvent.type(within(dialog).getByLabelText('Ключ'), 'new-shared');
-    await userEvent.type(within(dialog).getByLabelText('Название'), 'Новый блок');
-    await userEvent.type(within(dialog).getByLabelText('Секция'), 'promo');
-
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Создать' }));
-
-    await waitFor(() => expect(mockedCreateSiteBlock).toHaveBeenCalledTimes(1));
-    const payload = mockedCreateSiteBlock.mock.calls[0][0];
-    expect(payload.scope).toBe('shared');
-    expect(payload.meta).toBeUndefined();
-    expect(payload.is_template).toBe(false);
-    expect(payload.origin_block_id).toBeNull();
-  });
-
-  it('делает публикацию недоступной для шаблона', async () => {
-    const templateBlock: SiteBlock = {
-      ...SHARED_BLOCK,
-      id: 'block-template',
-      is_template: true,
-    };
+  it('не показывает шаблонные блоки', async () => {
     mockedFetchSiteBlocks.mockResolvedValueOnce({
-      items: [templateBlock],
+      items: [
+        {
+          ...SHARED_BLOCK,
+          id: 'template-block',
+          title: 'Шаблон',
+          is_template: true,
+        },
+      ],
       page: 1,
       page_size: 50,
       total: 1,
     });
-    mockedFetchSiteBlock.mockResolvedValueOnce({
-      block: templateBlock,
-      usage: [],
-      warnings: [],
-    });
 
-    renderPage();
+    render(<SiteBlockLibraryPage />);
 
-    await screen.findByText('Хедер');
-    const publishButton = await screen.findByRole('button', { name: 'Опубликовать' });
-    expect(publishButton).toBeDisabled();
+    await waitFor(() => expect(mockedFetchSiteBlocks).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Шаблон')).not.toBeInTheDocument();
+  });
+
+  it('переходит к деталям блока по клику', async () => {
+    render(<SiteBlockLibraryPage />);
+
+    const button = await screen.findByRole('button', { name: /Хедер/ });
+    await userEvent.click(button);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/management/site-editor/blocks/block-shared');
+  });
+
+  it('показывает сообщение об ошибке при сбое API', async () => {
+    mockedFetchSiteBlocks.mockRejectedValueOnce(new Error('network error'));
+
+    render(<SiteBlockLibraryPage />);
+
+    await waitFor(() => expect(screen.getByText('Не удалось загрузить блоки')).toBeInTheDocument());
   });
 });

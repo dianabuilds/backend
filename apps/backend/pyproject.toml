@@ -35,6 +35,9 @@ exclude = [
   "scripts*",
 ]
 
+[tool.setuptools]
+py-modules = ["sitecustomize"]
+
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["apps/backend/domains"]

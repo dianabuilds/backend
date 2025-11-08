@@ -1,4 +1,27 @@
 {
+  "content": {
+    "headline": "Создаём новые миры вместе",
+    "subheadline": "Редактор сайта, который помогает публиковать обновления за считанные минуты.",
+    "tagline": "Платформа Caves",
+    "primaryCta": {
+      "label": "Попробовать бесплатно",
+      "href": "/signup",
+      "style": "primary"
+    },
+    "secondaryCta": {
+      "label": "Документация",
+      "href": "/docs",
+      "style": "secondary"
+    },
+    "media": {
+      "url": "https://picsum.photos/seed/hero-ru/960/540",
+      "alt": "Превью hero-блока"
+    },
+    "highlights": [
+      "Запуск за 2 недели",
+      "50k+ активных пользователей"
+    ]
+  },
   "items": [
     {
       "title": "Главный экран",

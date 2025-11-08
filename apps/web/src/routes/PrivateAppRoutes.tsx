@@ -55,6 +55,7 @@ const ObservabilityRUM = React.lazy(() => import('../pages/observability/RUM'));
 const ManagementAI = React.lazy(() => import('../pages/management/AI'));
 const ManagementSiteEditor = React.lazy(() => import('../pages/management/SiteEditor'));
 const ManagementSiteBlockLibrary = React.lazy(() => import('../pages/management/SiteBlockLibrary'));
+const ManagementSiteBlockDetailPage = React.lazy(() => import('../pages/management/SiteBlockDetail'));
 const ManagementSiteEditorDetail = React.lazy(() => import('../pages/management/SitePageEditorDetail'));
 const ManagementDevBlog = React.lazy(() => import('../pages/management/DevBlog'));
 const ManagementPayments = React.lazy(() => import('../pages/management/Payments'));
@@ -148,6 +149,10 @@ export default function PrivateAppRoutes(): React.ReactElement {
         <Route
           path="/management/site-editor/library"
           element={withLayout(<ManagementSiteBlockLibrary />, { requireAdmin: true })}
+        />
+        <Route
+          path="/management/site-editor/blocks/:blockId"
+          element={withLayout(<ManagementSiteBlockDetailPage />, { requireAdmin: true })}
         />
         <Route
           path="/management/site-editor/pages/:pageId"

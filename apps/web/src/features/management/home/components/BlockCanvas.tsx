@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -15,16 +16,12 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge, Button, Card, Select, Spinner, Switch } from '@ui';
-import { AlertTriangle, GripVertical, Trash2 } from '@icons';
+import { AlertTriangle, ExternalLink, GripVertical, Trash2 } from '@icons';
 import { managementSiteEditorApi } from '@shared/api/management';
 import { extractErrorMessage } from '@shared/utils/errors';
 import { reviewAppearance } from '../../site-editor/utils/pageHelpers';
-import type {
-  SiteBlock,
-  SiteBlockStatus,
-  SitePageAttachedBlock,
-  SitePageSummary,
-} from '@shared/types/management';
+import { STATUS_META } from '../../site-editor/components/SiteBlockLibraryPage.constants';
+import type { SiteBlock, SitePageAttachedBlock, SitePageSummary } from '@shared/types/management';
 import type { HomeBlock } from '../types';
 import { useHomeEditorContext } from '../HomeEditorContext';
 import { getBlockLabel } from '../blockDefinitions';
@@ -36,8 +33,8 @@ const SHARED_SECTIONS: Array<{
   label: string;
   position: 'top' | 'bottom';
 }> = [
-  { key: 'header', label: 'Хедер', position: 'top' },
-  { key: 'footer', label: 'Футер', position: 'bottom' },
+  { key: 'header', label: '', position: 'top' },
+  { key: 'footer', label: '', position: 'bottom' },
 ];
 
 const SHARED_SECTION_STYLES: Record<
@@ -71,15 +68,6 @@ type SharedBlockOption = Pick<
   | 'updated_by'
 > & {
   scope?: SiteBlock['scope'];
-};
-
-const BLOCK_STATUS_META: Record<
-  SiteBlockStatus,
-  { label: string; color: 'success' | 'warning' | 'neutral' }
-> = {
-  draft: { label: 'Черновик', color: 'warning' },
-  published: { label: 'Опубликован', color: 'success' },
-  archived: { label: 'Архив', color: 'neutral' },
 };
 
 function normalizeSectionKey(value: string | null | undefined): 'header' | 'footer' | 'other' {
@@ -169,7 +157,7 @@ function useSharedSlotOptions(defaultLocale: string): {
         if ((error as { name?: string })?.name === 'AbortError') {
           return;
         }
-        setState({ loading: false, error: extractErrorMessage(error, 'Не удалось загрузить shared-блоки.'), options: [] });
+        setState({ loading: false, error: extractErrorMessage(error, '   shared-.'), options: [] });
       });
     return () => controller.abort();
   }, [defaultLocale, refreshToken]);
@@ -238,7 +226,7 @@ function SharedSlotRow({
   const assignedOption = assignedKey ? optionsByKey.get(assignedKey) ?? null : null;
   const statusValue = binding?.status ?? assignedOption?.status ?? baseline?.status ?? null;
   const statusMeta = statusValue && (statusValue === 'draft' || statusValue === 'published' || statusValue === 'archived')
-    ? BLOCK_STATUS_META[statusValue]
+    ? STATUS_META[statusValue]
     : null;
   const reviewMeta = binding?.review_status
     ? reviewAppearance(binding.review_status)
@@ -251,8 +239,8 @@ function SharedSlotRow({
       ? (binding.extras as Record<string, unknown>).has_pending_publish
       : undefined) ?? assignedOption?.has_pending_publish,
   );
-  const baselineTitle = baseline?.title ?? baseline?.key ?? 'Не привязан';
-  const draftTitle = assignedOption?.title ?? binding?.title ?? binding?.key ?? 'Не выбран';
+  const baselineTitle = baseline?.title ?? baseline?.key ?? 'РќРµ РїСЂРёРІСЏР·Р°РЅ';
+  const draftTitle = assignedOption?.title ?? binding?.title ?? binding?.key ?? 'РќРµ РІС‹Р±СЂР°РЅ';
   const isOverride = Boolean(baseline?.block_id) && Boolean(binding?.block_id) && baseline?.block_id !== binding?.block_id;
 
   const handleChange = React.useCallback(
@@ -275,6 +263,8 @@ function SharedSlotRow({
     void onClear(section, locale);
   }, [locale, onClear, section]);
 
+  const detailBlockId = assignedOption?.id ?? binding?.block_id ?? baseline?.block_id ?? null;
+
   const palette = SHARED_SECTION_STYLES[section];
 
   return (
@@ -285,7 +275,7 @@ function SharedSlotRow({
         <div className="flex flex-1 min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-gray-900">{label}</span>
-            <Badge variant="outline" color={palette?.badgeColor ?? 'neutral'}>Shared-блок</Badge>
+            <Badge variant="outline" color={palette?.badgeColor ?? 'neutral'}>Shared-СЃР»РѕС‚</Badge>
             {statusMeta ? (
               <Badge color={statusMeta.color} variant="soft">{statusMeta.label}</Badge>
             ) : null}
@@ -293,7 +283,7 @@ function SharedSlotRow({
               <Badge color={reviewMeta.color} variant="outline">{reviewMeta.label}</Badge>
             ) : null}
             {requiresPublisher ? (
-              <Badge color="warning" variant="soft">Требует publisher</Badge>
+              <Badge color="warning" variant="soft">РўСЂРµР±СѓРµС‚СЃСЏ publisher</Badge>
             ) : null}
             {isOverride ? (
               <Badge color="primary" variant="outline">Override</Badge>
@@ -301,7 +291,7 @@ function SharedSlotRow({
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500">
             <span className="font-mono lowercase">{section}</span>
-            <span className="opacity-40">•</span>
+            <span className="opacity-40">вЂў</span>
             <span className="font-mono uppercase">{(binding?.locale ?? assignedOption?.locale ?? locale).toUpperCase()}</span>
           </div>
         </div>
@@ -309,35 +299,51 @@ function SharedSlotRow({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Select aria-label={`Выбор shared-блока для секции ${label}`} value={assignedKey ?? ''} onChange={handleChange} disabled={loading}>
-          <option value="">Не выбран</option>
+        <Select
+          aria-label={`РќР°Р·РЅР°С‡РµРЅРёРµ shared-СЃР»РѕС‚Р° РґР»СЏ СЃРµРєС†РёРё ${label}`}
+          value={assignedKey ?? ''}
+          onChange={handleChange}
+          disabled={loading}
+        >
+          <option value="">РќРµ РІС‹Р±СЂР°РЅРѕ</option>
           {options.map((option) => (
             <option key={option.key} value={option.key}>
               {option.title || option.key}
             </option>
           ))}
           {assignedKey && !options.some((option) => option.key === assignedKey) ? (
-            <option value={assignedKey}>{assignedKey} (недоступен)</option>
+            <option value={assignedKey}>{assignedKey} (РЅРµРґРѕСЃС‚СѓРїРµРЅ)</option>
           ) : null}
         </Select>
         {assignedKey ? (
           <Button type="button" size="xs" variant="ghost" onClick={handleClear} disabled={loading}>
-            Сбросить
+            РЎР±СЂРѕСЃРёС‚СЊ
+          </Button>
+        ) : null}
+        {detailBlockId ? (
+          <Button
+            as={Link}
+            to={`/management/site-editor/blocks/${detailBlockId}`}
+            size="xs"
+            variant="ghost"
+            color="neutral"
+          >
+            РћС‚РєСЂС‹С‚СЊ Р±Р»РѕРє
           </Button>
         ) : null}
       </div>
 
       <div className="mt-2 space-y-1 text-xs text-gray-600">
         <div>
-          Опубликовано: <span className="font-medium text-gray-900">{baselineTitle}</span>
+          Р‘Р°Р·РѕРІС‹Р№ Р±Р»РѕРє: <span className="font-medium text-gray-900">{baselineTitle}</span>
         </div>
         {!(baseline?.block_id && binding?.block_id && baseline.block_id === binding.block_id) ? (
           <div>
-            Черновик: <span className="font-medium text-gray-900">{draftTitle}</span>
+            РўРµРєСѓС‰РёР№ РІС‹Р±РѕСЂ: <span className="font-medium text-gray-900">{draftTitle}</span>
           </div>
         ) : null}
         {hasPendingPublish ? (
-          <div className="text-indigo-600">В библиотеке есть неопубликованные изменения.</div>
+          <div className="text-indigo-600">Р’ Р±РёР±Р»РёРѕС‚РµРєРµ РµСЃС‚СЊ РЅРµРѕРїСѓР±Р»РёРєРѕРІР°РЅРЅС‹Рµ РёР·РјРµРЅРµРЅРёСЏ.</div>
         ) : null}
       </div>
     </div>
@@ -364,6 +370,14 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
 
   const label = getBlockLabel(block.type);
   const isDisabled = !block.enabled;
+  const usesLibrary = block.source === 'site' && Boolean(block.siteBlockKey);
+  const libraryStatusMeta =
+    usesLibrary &&
+    block.siteBlockStatus &&
+    (block.siteBlockStatus === 'draft' || block.siteBlockStatus === 'published' || block.siteBlockStatus === 'archived')
+      ? STATUS_META[block.siteBlockStatus]
+      : null;
+  const libraryLink = usesLibrary && block.siteBlockId ? `/management/site-editor/blocks/${block.siteBlockId}` : null;
 
   const cardClass = [
     'relative flex items-center gap-3 rounded-xl border bg-white px-3 py-2 shadow-sm transition-all',
@@ -387,7 +401,7 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
     >
       <button
         type="button"
-        aria-label="Переместить блок"
+        aria-label="РџРµСЂРµРјРµСЃС‚РёС‚СЊ Р±Р»РѕРє"
         className="inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 transition hover:border-gray-300 hover:text-gray-700"
         {...attributes}
         {...listeners}
@@ -400,26 +414,63 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-semibold text-gray-900">{block.title || label}</span>
           <Badge variant="outline" color="neutral">{label}</Badge>
-          {hasErrors ? <Badge color="warning">Есть ошибки</Badge> : null}
-          {isDisabled ? <Badge color="neutral">Отключён</Badge> : null}
+          {hasErrors ? <Badge color="warning">Р•СЃС‚СЊ РѕС€РёР±РєРё</Badge> : null}
+          {isDisabled ? <Badge color="neutral">РћС‚РєР»СЋС‡С‘РЅ</Badge> : null}
+          {usesLibrary ? <Badge color="primary" variant="soft">Р‘РёР±Р»РёРѕС‚РµРєР°</Badge> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-wide text-gray-500">
           <span>#{index + 1}</span>
-          <span className="opacity-40">•</span>
+          <span className="opacity-40"></span>
           <span className="font-mono lowercase">{block.id}</span>
         </div>
+        {usesLibrary ? (
+          <div className="flex flex-wrap items-center gap-1 text-xs text-indigo-700">
+            <span className="truncate font-semibold text-indigo-900">
+              {block.siteBlockTitle ?? block.siteBlockKey ?? 'Р‘Р»РѕРє РёР· Р±РёР±Р»РёРѕС‚РµРєРё'}
+            </span>
+            {libraryStatusMeta ? (
+              <Badge color={libraryStatusMeta.color} variant="soft">
+                {libraryStatusMeta.label}
+              </Badge>
+            ) : null}
+            {block.siteBlockRequiresPublisher ? (
+              <Badge color="warning" variant="outline">
+                РўСЂРµР±СѓРµС‚СЃСЏ publisher
+              </Badge>
+            ) : null}
+            {block.siteBlockLocale ? (
+              <span className="rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+                {block.siteBlockLocale}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
+        {libraryLink ? (
+          <Button
+            as={Link}
+            to={libraryLink}
+            type="button"
+            size="icon"
+            variant="ghost"
+            color="neutral"
+            onClick={(event) => event.stopPropagation()}
+            aria-label="РћС‚РєСЂС‹С‚СЊ Р±Р»РѕРє РІ Р±РёР±Р»РёРѕС‚РµРєРµ"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        ) : null}
         <div onClick={(event) => event.stopPropagation()}>
           <Switch
-            aria-label="Включить или выключить блок"
+            aria-label="Р’РєР»СЋС‡РёС‚СЊ РёР»Рё РІС‹РєР»СЋС‡РёС‚СЊ Р±Р»РѕРє"
             checked={block.enabled}
             onChange={(event) => onToggle(block.id, event.target.checked)}
           />
         </div>
         <Button
-          aria-label="Удалить блок"
+          aria-label="РЈРґР°Р»РёС‚СЊ Р±Р»РѕРє"
           type="button"
           size="icon"
           variant="ghost"
@@ -496,8 +547,8 @@ export function BlockCanvas(): React.ReactElement {
   return (
     <Card padding="sm" className="space-y-3 bg-white/95 shadow-sm">
       <div className="flex items-center justify-between rounded-xl border border-gray-100/80 bg-gray-50/60 px-3 py-2">
-        <h3 className="text-sm font-semibold text-gray-900">Структура страницы</h3>
-        <span className="text-xs text-gray-500">{blocks.length} блок(ов)</span>
+        <h3 className="text-sm font-semibold text-gray-900">РЎС‚СЂСѓРєС‚СѓСЂР° СЃС‚СЂР°РЅРёС†С‹</h3>
+        <span className="text-xs text-gray-500">{blocks.length} Р±Р»РѕРє(РѕРІ)</span>
       </div>
 
       {sharedState.error ? (
@@ -513,7 +564,7 @@ export function BlockCanvas(): React.ReactElement {
               onClick={refreshShared}
               disabled={sharedState.loading}
             >
-              Повторить попытку
+              РџРѕРІС‚РѕСЂРёС‚СЊ РїРѕРїС‹С‚РєСѓ
             </Button>
           </div>
         </div>
@@ -524,10 +575,10 @@ export function BlockCanvas(): React.ReactElement {
           key={item.key}
           section={item.key}
           label={item.label}
-      baseline={baselineBindings[item.key] ?? null}
-      binding={sharedBindings[item.key] ?? null}
-      assignedKey={sharedAssignments[item.key] ?? null}
-      options={optionsBySection.get(item.key) ?? []}
+          baseline={baselineBindings[item.key] ?? null}
+          binding={sharedBindings[item.key] ?? null}
+          assignedKey={sharedAssignments[item.key] ?? null}
+          options={optionsBySection.get(item.key) ?? []}
           optionsByKey={optionsByKey}
           locale={defaultLocale}
           loading={sharedState.loading}
@@ -538,7 +589,7 @@ export function BlockCanvas(): React.ReactElement {
 
       {blocks.length === 0 ? (
         <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-          <p>На канвасе пока нет блоков. Добавьте блок из библиотеки слева.</p>
+          <p>РќР° РєР°РЅРІР°СЃРµ РїРѕРєР° РЅРµС‚ Р±Р»РѕРєРѕРІ. Р”РѕР±Р°РІСЊС‚Рµ Р±Р»РѕРє РёР· Р±РёР±Р»РёРѕС‚РµРєРё СЃР»РµРІР°.</p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -566,10 +617,10 @@ export function BlockCanvas(): React.ReactElement {
           key={item.key}
           section={item.key}
           label={item.label}
-      baseline={baselineBindings[item.key] ?? null}
-      binding={sharedBindings[item.key] ?? null}
-      assignedKey={sharedAssignments[item.key] ?? null}
-      options={optionsBySection.get(item.key) ?? []}
+          baseline={baselineBindings[item.key] ?? null}
+          binding={sharedBindings[item.key] ?? null}
+          assignedKey={sharedAssignments[item.key] ?? null}
+          options={optionsBySection.get(item.key) ?? []}
           optionsByKey={optionsByKey}
           locale={defaultLocale}
           loading={sharedState.loading}

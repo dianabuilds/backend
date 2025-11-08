@@ -1,4 +1,4 @@
-import type { SiteBlock, SiteBlockStatus } from '@shared/types/management';
+﻿import type { SiteBlock, SiteBlockStatus } from '@shared/types/management';
 
 export type StatusMeta = {
   label: string;
@@ -44,6 +44,3 @@ export const REVIEW_STATUS_META: Record<
   approved: { label: 'Одобрено', color: 'success' },
   rejected: { label: 'Отклонено', color: 'error' },
 };
-
-export const HISTORY_PAGE_SIZE = 20;
-export const BLOCKS_PAGE_SIZE = 100;

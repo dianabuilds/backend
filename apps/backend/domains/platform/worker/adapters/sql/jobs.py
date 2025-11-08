@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -60,7 +61,6 @@ class SQLWorkerJobRepository:
             async with self._engine.begin() as conn:
                 row = (await conn.execute(sql, payload)).mappings().first()
                 if row is None:
-
                     raise RuntimeError("database_row_missing")
                 await conn.execute(
                     text(
@@ -69,7 +69,9 @@ class SQLWorkerJobRepository:
                     {
                         "job_id": row["job_id"],
                         "event": "queued",
-                        "details": {"priority": row["priority"]},
+                        "details": self._serialize_details(
+                            {"priority": row["priority"]}
+                        ),
                     },
                 )
                 return self._row_to_job(row)
@@ -203,10 +205,12 @@ class SQLWorkerJobRepository:
                     {
                         "job_id": job.job_id,
                         "event": "leased",
-                        "details": {
-                            "worker_id": worker_id,
-                            "lease_until": lease_until.isoformat(),
-                        },
+                        "details": self._serialize_details(
+                            {
+                                "worker_id": worker_id,
+                                "lease_until": lease_until.isoformat(),
+                            }
+                        ),
                     },
                 )
         return jobs
@@ -254,7 +258,9 @@ class SQLWorkerJobRepository:
                     {
                         "job_id": job_id,
                         "event": "heartbeat",
-                        "details": {"lease_until": lease_until.isoformat()},
+                        "details": self._serialize_details(
+                            {"lease_until": lease_until.isoformat()}
+                        ),
                     },
                 )
         return self._row_to_job(row) if row else None
@@ -290,7 +296,7 @@ class SQLWorkerJobRepository:
                             "job_id": job_id,
                             "worker_id": worker_id,
                             "status": status.value,
-                            "result": result,
+                            "result": self._serialize_details(result),
                         },
                     )
                 )
@@ -306,7 +312,7 @@ class SQLWorkerJobRepository:
                 {
                     "job_id": job_id,
                     "event": status.value,
-                    "details": result or {},
+                    "details": self._serialize_details(result or {}),
                 },
             )
             return self._row_to_job(row)
@@ -360,11 +366,13 @@ class SQLWorkerJobRepository:
                 {
                     "job_id": job.job_id,
                     "event": "requeued",
-                    "details": {
-                        "available_at": available_at.isoformat(),
-                        "priority": job.priority,
-                        "worker_id": worker_id,
-                    },
+                    "details": self._serialize_details(
+                        {
+                            "available_at": available_at.isoformat(),
+                            "priority": job.priority,
+                            "worker_id": worker_id,
+                        }
+                    ),
                 },
             )
             return job
@@ -380,7 +388,12 @@ class SQLWorkerJobRepository:
         )
         async with self._engine.begin() as conn:
             await conn.execute(
-                sql, {"job_id": job_id, "event": event, "details": details}
+                sql,
+                {
+                    "job_id": job_id,
+                    "event": event,
+                    "details": self._serialize_details(details),
+                },
             )
 
     def _row_to_job(self, row: Any) -> WorkerJob:
@@ -419,9 +432,31 @@ class SQLWorkerJobRepository:
             return None
         if isinstance(value, dict):
             return value
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError as exc:  # pragma: no cover - defensive
+                raise ValueError("invalid_json_payload") from exc
+            if isinstance(parsed, dict):
+                return parsed
+            raise ValueError("expected mapping payload")
         if hasattr(value, "items"):
             return dict(value.items())
         raise ValueError("expected mapping payload")
+
+    @staticmethod
+    def _serialize_details(details: dict[str, Any] | None) -> str | None:
+        if details is None:
+            return None
+        if isinstance(details, str):
+            return details
+        try:
+            return json.dumps(details)
+        except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
+            raise ValueError("worker_job_event_not_serializable") from exc
 
 
 __all__ = ["SQLWorkerJobRepository"]

@@ -16,21 +16,25 @@ import type {
 } from '@shared/types/management';
 import type { UpdateSitePagePayload } from '@shared/api/management/siteEditor/types';
 import {
-  validateHomeDraft,
-  type ValidationSummary,
-} from '../../home/validation';
+  resolveDraftAdapter,
+  type SiteDraftAdapter,
+} from '../draftAdapters';
 import type {
-  HomeBlock,
-  HomeBlockDataSource,
-  HomeBlockDataSourceEntity,
-  HomeBlockDataSourceMode,
-  HomeDraftData,
-  HomeDraftSnapshot,
-} from '../../home/types';
+  DraftBlock,
+  DraftData,
+  DraftSnapshot,
+  DraftValidationSummary,
+} from '../draftAdapters/types';
+
+type HomeBlock = DraftBlock;
+type HomeDraftData = DraftData;
+type HomeDraftSnapshot = DraftSnapshot;
+type ValidationSummary = DraftValidationSummary;
 
 export type UseSitePageEditorStateOptions = {
   pageId: string;
   autosaveMs?: number;
+  draftAdapter?: SiteDraftAdapter;
 };
 
 const DEFAULT_AUTOSAVE_MS = 1500;
@@ -91,15 +95,7 @@ function createEmptySharedBindings(): SharedBindingsMap {
   return ensureSharedBindingDefaults({});
 }
 
-const DEFAULT_DATA: HomeDraftData = {
-  blocks: [],
-  meta: null,
-  shared: {
-    assignments: createEmptySharedAssignments(),
-  },
-};
-
-const DEFAULT_SNAPSHOT: HomeDraftSnapshot = {
+const DEFAULT_SNAPSHOT: DraftSnapshot = {
   version: null,
   updatedAt: null,
   publishedAt: null,
@@ -107,92 +103,36 @@ const DEFAULT_SNAPSHOT: HomeDraftSnapshot = {
 
 type AnyRecord = Record<string, unknown>;
 
-const ALLOWED_BLOCK_TYPES: ReadonlyArray<HomeBlock['type']> = [
-  'hero',
-  'dev_blog_list',
-  'quests_carousel',
-  'nodes_carousel',
-  'popular_carousel',
-  'editorial_picks',
-  'recommendations',
-  'custom_carousel',
-];
-
-const ALLOWED_BLOCK_TYPE_SET = new Set<HomeBlock['type']>(ALLOWED_BLOCK_TYPES);
-
 function isRecord(value: unknown): value is AnyRecord {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-function normalizeDataSource(value: unknown): HomeBlockDataSource | null {
-  if (!isRecord(value)) {
-    return null;
+type LocaleDraftMap = Record<string, HomeDraftData>;
+
+function normalizeLocaleCode(value: string | null | undefined, fallback = 'ru'): string {
+  const normalized = (value ?? '').trim().toLowerCase();
+  if (!normalized) {
+    return fallback;
   }
-  const mode = value.mode;
-  if (mode !== 'manual' && mode !== 'auto') {
-    return null;
-  }
-  const result: HomeBlockDataSource = {
-    mode: mode as HomeBlockDataSourceMode,
-  };
-  const entity = value.entity;
-  if (entity === 'node' || entity === 'quest' || entity === 'dev_blog' || entity === 'custom') {
-    result.entity = entity as HomeBlockDataSourceEntity;
-  }
-  if (isRecord(value.filter)) {
-    result.filter = { ...value.filter };
-  }
-  if (Array.isArray(value.items)) {
-    const items = value.items.filter((item): item is string | number => {
-      if (typeof item === 'string') {
-        return item.trim().length > 0;
-      }
-      return typeof item === 'number' && Number.isFinite(item);
-    });
-    if (items.length > 0) {
-      result.items = items;
-    }
-  }
-  return result;
+  return normalized;
 }
 
-function normalizeBlock(raw: unknown, index: number): HomeBlock | null {
-  if (!isRecord(raw)) {
-    return null;
-  }
-  const idRaw = raw.id;
-  let id = typeof idRaw === 'string' ? idRaw.trim() : '';
-  if (!id) {
-    id = `block-${index + 1}`;
-  }
-  const typeRaw = raw.type;
-  const type = typeof typeRaw === 'string' && ALLOWED_BLOCK_TYPE_SET.has(typeRaw as HomeBlock['type'])
-    ? (typeRaw as HomeBlock['type'])
-    : 'hero';
-  const enabledRaw = raw.enabled;
-  const enabled = typeof enabledRaw === 'boolean' ? enabledRaw : true;
-
-  const block: HomeBlock = {
-    id,
-    type,
-    enabled,
+function cloneDraftData(source: HomeDraftData, defaultAssignments: SharedAssignments): HomeDraftData {
+  const sharedAssignments = source.shared?.assignments ?? defaultAssignments;
+  return {
+    blocks: Array.isArray(source.blocks)
+      ? source.blocks.map((block) => ({
+          ...block,
+          layout: block.layout ? { ...block.layout } : block.layout,
+          slots: block.slots ? { ...block.slots } : block.slots,
+          dataSource: block.dataSource ? { ...block.dataSource } : block.dataSource,
+        }))
+      : [],
+    meta: source.meta ? { ...source.meta } : null,
+    shared: {
+      assignments: { ...sharedAssignments },
+    },
   };
-
-  if (typeof raw.title === 'string') {
-    block.title = raw.title;
-  }
-  if (isRecord(raw.slots)) {
-    block.slots = { ...raw.slots };
-  }
-  if (isRecord(raw.layout)) {
-    block.layout = { ...raw.layout };
-  }
-  const dataSource = normalizeDataSource(raw.dataSource ?? raw.data_source);
-  if (dataSource) {
-    block.dataSource = dataSource;
-  }
-
-  return block;
 }
 
 function extractAssignmentsFromDataRecord(raw: AnyRecord | null): SharedAssignments {
@@ -220,35 +160,6 @@ function extractAssignmentsFromDataRecord(raw: AnyRecord | null): SharedAssignme
   return assignments;
 }
 
-function normalizeDraftData(
-  raw: unknown,
-  options: {
-    meta?: Record<string, unknown> | null;
-    assignments?: SharedAssignments | null;
-  } = {},
-): HomeDraftData {
-  const rawRecord = isRecord(raw) ? (raw as AnyRecord) : {};
-  const rawBlocks = Array.isArray(rawRecord.blocks) ? rawRecord.blocks : [];
-  const blocks: HomeBlock[] = [];
-  rawBlocks.forEach((item, index) => {
-    const block = normalizeBlock(item, index);
-    if (block) {
-      blocks.push(block);
-    }
-  });
-  const meta = options.meta ? { ...options.meta } : null;
-  let assignments = createEmptySharedAssignments();
-  assignments = mergeAssignments(assignments, extractAssignmentsFromDataRecord(rawRecord));
-  assignments = mergeAssignments(assignments, options.assignments ?? undefined);
-  return {
-    blocks,
-    meta,
-    shared: {
-      assignments,
-    },
-  };
-}
-
 function mergeAssignments(
   base: SharedAssignments,
   next: SharedAssignments | undefined,
@@ -266,44 +177,53 @@ function mergeAssignments(
   return ensureSharedAssignmentDefaults(result);
 }
 
-function cloneMeta(meta: HomeDraftData['meta']): Record<string, unknown> {
-  if (!meta) {
-    return {};
-  }
-  return Object.entries(meta).reduce<Record<string, unknown>>((acc, [key, value]) => {
-    acc[key] = value;
-    return acc;
-  }, {});
+function normalizeDraftData(
+  adapter: SiteDraftAdapter,
+  raw: unknown,
+  options: {
+    meta?: Record<string, unknown> | null;
+    assignments?: SharedAssignments | null;
+  } = {},
+): HomeDraftData {
+  const rawRecord = isRecord(raw) ? (raw as AnyRecord) : {};
+  let assignments = createEmptySharedAssignments();
+  assignments = mergeAssignments(assignments, extractAssignmentsFromDataRecord(rawRecord));
+  assignments = mergeAssignments(assignments, options.assignments ?? undefined);
+  const normalized = adapter.normalizeDraftData(rawRecord, {
+    meta: options.meta ?? null,
+    assignments,
+  });
+  const normalizedAssignments = mergeAssignments(createEmptySharedAssignments(), normalized.shared?.assignments);
+  return {
+    ...normalized,
+    shared: {
+      assignments: normalizedAssignments,
+    },
+  };
 }
 
-function buildDraftPayload(data: HomeDraftData): { data: Record<string, unknown>; meta?: Record<string, unknown> } {
-  const normalizedData: Record<string, unknown> = {
-    blocks: Array.isArray(data.blocks) ? data.blocks : [],
-  };
-
+function buildDraftPayload(
+  adapter: SiteDraftAdapter,
+  data: HomeDraftData,
+): { data: Record<string, unknown>; meta?: Record<string, unknown> } {
   const assignments = ensureSharedAssignmentDefaults(data.shared?.assignments ?? createEmptySharedAssignments());
-  const effectiveAssignments = Object.entries(assignments).reduce<Record<string, string>>((acc, [section, key]) => {
-    if (typeof key === 'string' && key.trim().length > 0) {
-      acc[section] = key.trim();
-    }
-    return acc;
-  }, {});
+  return adapter.buildDraftPayload({
+    ...data,
+    shared: {
+      assignments,
+    },
+  });
+}
 
-  if (Object.keys(effectiveAssignments).length > 0) {
-    normalizedData.shared = {
-      assignments: effectiveAssignments,
-    };
+function runLocalValidation(adapter: SiteDraftAdapter, data: HomeDraftData): ValidationSummary {
+  if (typeof adapter.validateDraft === 'function') {
+    return adapter.validateDraft(data);
   }
-
-  const meta = cloneMeta(data.meta ?? null);
-
-  const payload: { data: Record<string, unknown>; meta?: Record<string, unknown> } = {
-    data: normalizedData,
+  return {
+    valid: true,
+    general: [],
+    blocks: {},
   };
-  if (Object.keys(meta).length > 0) {
-    payload.meta = meta;
-  }
-  return payload;
 }
 
 function deriveAssignmentsFromBindings(bindings: SharedBindingsMap): SharedAssignments {
@@ -496,18 +416,41 @@ export type SitePageEditorState = {
   auditError: string | null;
   refreshAudit: () => Promise<void>;
   historyForContext: HomeHistoryEntry[];
+  activeLocale: string;
+  availableLocales: string[];
+  setActiveLocale: (locale: string) => void;
+  createLocale: (locale: string) => boolean;
 };
 
 export function useSitePageEditorState(
   options: UseSitePageEditorStateOptions,
 ): SitePageEditorState {
   const { pageId, autosaveMs = DEFAULT_AUTOSAVE_MS } = options;
+  const draftAdapter = React.useMemo<SiteDraftAdapter>(
+    () => options.draftAdapter ?? resolveDraftAdapter(),
+    [options.draftAdapter],
+  );
+
+  const defaultDraftData = React.useMemo<HomeDraftData>(() => {
+    const base = draftAdapter.createEmptyData();
+    const assignments = mergeAssignments(
+      createEmptySharedAssignments(),
+      base.shared?.assignments ?? undefined,
+    );
+    return {
+      blocks: Array.isArray(base.blocks) ? base.blocks : [],
+      meta: base.meta ?? null,
+      shared: {
+        assignments,
+      },
+    };
+  }, [draftAdapter]);
 
   const [page, setPage] = React.useState<SitePageSummary | null>(null);
   const [pageInfoSaving, setPageInfoSaving] = React.useState(false);
   const [pageInfoError, setPageInfoError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [dataState, setDataState] = React.useState<HomeDraftData>(DEFAULT_DATA);
+  const [dataState, setDataState] = React.useState<HomeDraftData>(defaultDraftData);
   const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(null);
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -520,7 +463,7 @@ export function useSitePageEditorState(
   const [metricsLoading, setMetricsLoading] = React.useState(false);
   const [metricsError, setMetricsError] = React.useState<string | null>(null);
   const [snapshot, setSnapshot] = React.useState<HomeDraftSnapshot>(DEFAULT_SNAPSHOT);
-  const [validation, setValidation] = React.useState<ValidationSummary>(validateHomeDraft(DEFAULT_DATA));
+  const [validation, setValidation] = React.useState<ValidationSummary>(runLocalValidation(draftAdapter, defaultDraftData));
   const [restoringVersion, setRestoringVersion] = React.useState<number | null>(null);
   const [sharedBindings, setSharedBindings] = React.useState<SharedBindingsMap>(createEmptySharedBindings());
 
@@ -532,6 +475,9 @@ export function useSitePageEditorState(
   const [auditLoading, setAuditLoading] = React.useState(false);
   const [auditError, setAuditError] = React.useState<string | null>(null);
 
+  const [activeLocale, setActiveLocaleState] = React.useState<string>('ru');
+  const [availableLocalesState, setAvailableLocalesState] = React.useState<string[]>(['ru']);
+
   const [serverValidation, setServerValidation] = React.useState<SiteDraftValidationResult | null>(null);
   const [serverValidationLoading, setServerValidationLoading] = React.useState(false);
   const [serverValidationError, setServerValidationError] = React.useState<string | null>(null);
@@ -540,8 +486,10 @@ export function useSitePageEditorState(
   const [diffLoading, setDiffLoading] = React.useState(false);
   const [diffError, setDiffError] = React.useState<string | null>(null);
 
-  const dataRef = React.useRef<HomeDraftData>(DEFAULT_DATA);
+  const dataRef = React.useRef<HomeDraftData>(defaultDraftData);
   const pageRef = React.useRef<SitePageSummary | null>(null);
+  const localeDraftsRef = React.useRef<LocaleDraftMap>({});
+  const activeLocaleRef = React.useRef<string>('ru');
   const draftVersionRef = React.useRef<number>(0);
   const reviewStatusRef = React.useRef<SitePageDraft['review_status']>('none');
   const savingRef = React.useRef(false);
@@ -551,6 +499,20 @@ export function useSitePageEditorState(
   const loadAbortRef = React.useRef<AbortController | null>(null);
   const autosaveTimer = React.useRef<number | null>(null);
 
+  const updateAvailableLocales = React.useCallback(
+    (map?: LocaleDraftMap) => {
+      const snapshot = pageRef.current;
+      const fromPage = snapshot?.available_locales ?? [];
+      const fromDraft = Object.keys(map ?? localeDraftsRef.current);
+      const merged = Array.from(new Set([...fromPage, ...fromDraft]))
+        .map((locale) => locale?.trim())
+        .filter((locale): locale is string => Boolean(locale));
+      const fallback = snapshot?.default_locale ?? snapshot?.locale ?? 'ru';
+      setAvailableLocalesState(merged.length ? merged : [fallback]);
+    },
+    [],
+  );
+
   const clearAutosaveTimer = React.useCallback(() => {
     if (autosaveTimer.current != null) {
       window.clearTimeout(autosaveTimer.current);
@@ -558,11 +520,100 @@ export function useSitePageEditorState(
     }
   }, []);
 
+  const applyDraftData = React.useCallback(
+    (
+      pageSummary: SitePageSummary,
+      draft: SitePageDraft | null,
+      bindingMap: SharedBindingsMap,
+    ) => {
+      const assignments = deriveAssignmentsFromBindings(bindingMap);
+      const rawData = isRecord(draft?.data) ? (draft!.data as AnyRecord) : {};
+      const localesPayload = isRecord(rawData.locales)
+        ? (rawData.locales as Record<string, AnyRecord>)
+        : undefined;
+      const rawMeta = isRecord(draft?.meta) ? (draft!.meta as AnyRecord) : {};
+      const metaLocales = isRecord(rawMeta.locales)
+        ? (rawMeta.locales as Record<string, AnyRecord>)
+        : undefined;
+      const defaultLocale = normalizeLocaleCode(
+        draft?.default_locale ?? pageSummary.default_locale ?? pageSummary.locale ?? 'ru',
+      );
+      const localeKeys = Object.keys(localesPayload ?? {});
+      if (!localeKeys.length) {
+        localeKeys.push(defaultLocale);
+      }
+      const locales: LocaleDraftMap = {};
+      localeKeys.forEach((localeKey) => {
+        const payloadSource = localesPayload?.[localeKey];
+        const payload: Record<string, unknown> =
+          payloadSource && typeof payloadSource === 'object'
+            ? { ...(payloadSource as Record<string, unknown>) }
+            : { ...rawData };
+        delete (payload as AnyRecord).locales;
+        if (isRecord(rawData.shared)) {
+          payload.shared = rawData.shared;
+        }
+        const metaSource = metaLocales?.[localeKey]
+          ? { ...(metaLocales[localeKey] as Record<string, unknown>) }
+          : { ...rawMeta };
+        delete (metaSource as AnyRecord).locales;
+        const normalized = normalizeDraftData(draftAdapter, payload, {
+          meta: metaSource,
+          assignments,
+        });
+        locales[localeKey] = normalized;
+      });
+      if (!Object.keys(locales).length) {
+        const normalized = normalizeDraftData(draftAdapter, draft?.data ?? null, {
+          meta: draft?.meta ?? null,
+          assignments,
+        });
+        locales[defaultLocale] = normalized;
+      }
+      localeDraftsRef.current = locales;
+      updateAvailableLocales(locales);
+      const desiredLocale = normalizeLocaleCode(
+        draft?.active_locale ?? metricsLocaleRef.current ?? pageSummary.locale ?? defaultLocale,
+        defaultLocale,
+      );
+      const activeDraft =
+        locales[desiredLocale] ??
+        locales[defaultLocale] ??
+        locales[Object.keys(locales)[0]];
+      const resolvedDraft =
+        activeDraft ??
+        normalizeDraftData(draftAdapter, draft?.data ?? null, {
+          meta: draft?.meta ?? null,
+          assignments,
+        });
+      activeLocaleRef.current = desiredLocale;
+      setActiveLocaleState(desiredLocale);
+      dataRef.current = resolvedDraft;
+      localeDraftsRef.current[desiredLocale] = resolvedDraft;
+      setDataState(resolvedDraft);
+      setSelectedBlockId(resolvedDraft.blocks[0]?.id ?? null);
+      metricsLocaleRef.current = desiredLocale;
+    },
+    [draftAdapter, setSelectedBlockId, updateAvailableLocales],
+  );
+
+  const buildLocalizedPayload = React.useCallback(() => {
+    const activeLocale = activeLocaleRef.current;
+    const draft = localeDraftsRef.current[activeLocale] ?? dataRef.current;
+    const payload = buildDraftPayload(draftAdapter, draft);
+    const data = { ...(payload.data ?? {}) };
+    if ('shared' in data) {
+      delete data.shared;
+    }
+    const meta = payload.meta ? { ...payload.meta } : undefined;
+    return { data, meta };
+  }, [draftAdapter]);
+
   const runServerValidation = React.useCallback(async (): Promise<SiteDraftValidationResult> => {
     setServerValidationLoading(true);
     setServerValidationError(null);
     try {
-      const payload = buildDraftPayload(dataRef.current);
+      const payload = buildLocalizedPayload();
       const result = await managementSiteEditorApi.validateSitePageDraft(pageId, {
         data: payload.data,
         meta: payload.meta,
@@ -576,7 +627,7 @@ export function useSitePageEditorState(
     } finally {
       setServerValidationLoading(false);
     }
-  }, [pageId]);
+  }, [buildLocalizedPayload, pageId]);
 
   const refreshDiff = React.useCallback(async () => {
     setDiffLoading(true);
@@ -624,10 +675,10 @@ export function useSitePageEditorState(
   }, [pageId]);
 
   const revalidate = React.useCallback((): ValidationSummary => {
-    const summary = validateHomeDraft(dataRef.current);
+    const summary = runLocalValidation(draftAdapter, dataRef.current);
     setValidation(summary);
     return summary;
-  }, []);
+  }, [draftAdapter]);
 
   const fetchMetrics = React.useCallback(
     async (
@@ -687,7 +738,6 @@ export function useSitePageEditorState(
       if (controller.signal.aborted || loadAbortRef.current !== controller) {
         return;
       }
-      metricsLocaleRef.current = pageSummary.locale || 'ru';
       setPageMetrics(null);
       setMetricsError(null);
       setPage(pageSummary);
@@ -703,17 +753,11 @@ export function useSitePageEditorState(
         draft?.shared_bindings ?? null,
       );
       setSharedBindings(bindingMap);
-      const normalized = normalizeDraftData(draft?.data ?? null, {
-        meta: draft?.meta ?? null,
-        assignments: deriveAssignmentsFromBindings(bindingMap),
-      });
-      dataRef.current = normalized;
-      setDataState(normalized);
-      setSelectedBlockId(normalized.blocks[0]?.id ?? null);
+      applyDraftData(pageSummary, draft ?? null, bindingMap);
       setDirty(false);
       setSnapshot(makeSnapshot(draft ?? null));
       setLastSavedAt(draft?.updated_at ?? null);
-      setValidation(validateHomeDraft(normalized));
+      setValidation(runLocalValidation(draftAdapter, dataRef.current));
       setServerValidation(null);
       setServerValidationError(null);
       setDraftDiff(null);
@@ -736,7 +780,7 @@ export function useSitePageEditorState(
         }
       }
     }
-  }, [fetchMetrics, pageId, refreshAudit, refreshDiff, refreshHistory]);
+  }, [applyDraftData, draftAdapter, fetchMetrics, pageId, refreshAudit, refreshDiff, refreshHistory]);
 
   const saveDraft = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (savingRef.current) {
@@ -756,7 +800,7 @@ export function useSitePageEditorState(
     }
     setSavingError(null);
     try {
-      const payload = buildDraftPayload(dataRef.current);
+      const payload = buildLocalizedPayload();
       const draft = await managementSiteEditorApi.saveSitePageDraft(
         pageId,
         {
@@ -801,7 +845,7 @@ export function useSitePageEditorState(
       savingRef.current = false;
       setSaving(false);
     }
-  }, [clearAutosaveTimer, pageId, revalidate, refreshDiff, runServerValidation]);
+  }, [buildLocalizedPayload, clearAutosaveTimer, pageId, revalidate, refreshDiff, runServerValidation]);
 
   const scheduleAutosave = React.useCallback(() => {
     if (autosaveMs <= 0) {
@@ -829,6 +873,7 @@ export function useSitePageEditorState(
     setDataState((prev) => {
       const next = updater(prev);
       dataRef.current = next;
+      localeDraftsRef.current[activeLocaleRef.current] = next;
       return next;
     });
     setDirty(true);
@@ -918,6 +963,21 @@ export function useSitePageEditorState(
           },
         };
       });
+      Object.entries(localeDraftsRef.current).forEach(([localeKey, draftData]) => {
+        if (localeKey === activeLocaleRef.current) {
+          return;
+        }
+        const prevShared = draftData.shared ?? { assignments: createEmptySharedAssignments() };
+        const baseAssignments = prevShared.assignments ?? createEmptySharedAssignments();
+        const assignments = applySharedAssignment(baseAssignments, normalizedSection, nextValue);
+        localeDraftsRef.current[localeKey] = {
+          ...draftData,
+          shared: {
+            ...prevShared,
+            assignments,
+          },
+        };
+      });
     },
     [setData, sharedAssignments],
   );
@@ -939,6 +999,44 @@ export function useSitePageEditorState(
     );
   }, []);
 
+  const createLocale = React.useCallback(
+    (locale: string) => {
+      const normalized = normalizeLocaleCode(locale);
+      if (!normalized) {
+        return false;
+      }
+      if (localeDraftsRef.current[normalized]) {
+        return false;
+      }
+      const assignments = dataRef.current.shared?.assignments ?? createEmptySharedAssignments();
+      const draftClone = cloneDraftData(dataRef.current, assignments);
+      localeDraftsRef.current[normalized] = draftClone;
+      updateAvailableLocales(localeDraftsRef.current);
+      return true;
+    },
+    [updateAvailableLocales],
+  );
+
+  const setActiveLocaleSafe = React.useCallback(
+    (locale: string) => {
+      const normalized = normalizeLocaleCode(locale, activeLocaleRef.current);
+      if (!localeDraftsRef.current[normalized]) {
+        const created = createLocale(normalized);
+        if (!created) {
+          return;
+        }
+      }
+      const nextDraft = localeDraftsRef.current[normalized] ?? dataRef.current;
+      activeLocaleRef.current = normalized;
+      setActiveLocaleState(normalized);
+      dataRef.current = nextDraft;
+      setDataState(nextDraft);
+      setSelectedBlockId(nextDraft.blocks[0]?.id ?? null);
+      metricsLocaleRef.current = normalized;
+    },
+    [createLocale, setSelectedBlockId],
+  );
+
   const resolveBindingLocale = React.useCallback(
     (candidate?: string | null) => {
       const normalizedCandidate = typeof candidate === 'string' ? candidate.trim() : '';
@@ -947,8 +1045,12 @@ export function useSitePageEditorState(
       }
       const snapshot = pageRef.current;
       const fallback =
-        (snapshot?.default_locale ?? snapshot?.locale ?? metricsLocaleRef.current ?? 'ru') || 'ru';
-      return typeof fallback === 'string' && fallback.trim().length > 0 ? fallback : 'ru';
+        activeLocaleRef.current ||
+        snapshot?.default_locale ||
+        snapshot?.locale ||
+        metricsLocaleRef.current ||
+        'ru';
+      return fallback;
     },
     [],
   );
@@ -1012,17 +1114,15 @@ export function useSitePageEditorState(
         draft.shared_bindings ?? null,
       );
       setSharedBindings(bindingMap);
-      const normalized = normalizeDraftData(draft.data, {
-        meta: draft.meta ?? null,
-        assignments: deriveAssignmentsFromBindings(bindingMap),
-      });
-      dataRef.current = normalized;
-      setDataState(normalized);
-      setSelectedBlockId(normalized.blocks[0]?.id ?? null);
+      const pageSnapshot = pageRef.current ?? page;
+      if (!pageSnapshot) {
+        throw new Error('site_page_not_loaded');
+      }
+      applyDraftData(pageSnapshot, draft, bindingMap);
       setDirty(false);
       setSnapshot(makeSnapshot(draft));
       setLastSavedAt(draft.updated_at ?? new Date().toISOString());
-      setValidation(validateHomeDraft(normalized));
+      setValidation(runLocalValidation(draftAdapter, dataRef.current));
       await Promise.all([
         refreshHistory(),
         refreshAudit(),
@@ -1032,7 +1132,7 @@ export function useSitePageEditorState(
     } finally {
       setRestoringVersion(null);
     }
-  }, [clearAutosaveTimer, pageId, refreshAudit, refreshDiff, refreshHistory, runServerValidation]);
+  }, [applyDraftData, clearAutosaveTimer, draftAdapter, page, pageId, refreshAudit, refreshDiff, refreshHistory, runServerValidation]);
 
   const publishDraft = React.useCallback(async ({ comment }: { comment?: string } = {}) => {
     if (publishingRef.current) {
@@ -1076,11 +1176,12 @@ export function useSitePageEditorState(
 
   React.useEffect(() => {
     pageRef.current = page;
-  }, [page]);
+    updateAvailableLocales();
+  }, [page, updateAvailableLocales]);
 
   React.useEffect(() => {
-    setValidation(validateHomeDraft(dataState));
-  }, [dataState]);
+    setValidation(runLocalValidation(draftAdapter, dataState));
+  }, [dataState, draftAdapter]);
 
   React.useEffect(() => {
     clearAutosaveTimer();
@@ -1109,6 +1210,8 @@ export function useSitePageEditorState(
     return mapHistoryToHomeEntries(pageId, siteHistory, page?.published_version ?? null);
   }, [pageId, page?.published_version, siteHistory]);
 
+  const slugForActiveLocale = page?.localized_slugs?.[activeLocale] ?? page?.slug ?? '';
+
   return {
     page,
     loading,
@@ -1120,25 +1223,29 @@ export function useSitePageEditorState(
     setData,
     setBlocks,
     selectBlock,
-  selectedBlockId,
-  dirty,
-  saving,
-  savingError,
-  lastSavedAt,
-  metricsPeriod: metricsPeriodState,
-  setMetricsPeriod,
-  pageMetrics,
-  metricsLoading,
-  metricsError,
-  refreshMetrics,
-  reviewStatus: reviewStatusState,
-  setReviewStatus,
-  loadDraft,
-  saveDraft,
-  publishing,
-  publishDraft,
-  snapshot,
-    slug: page?.slug ?? '',
+    selectedBlockId,
+    dirty,
+    saving,
+    savingError,
+    lastSavedAt,
+    metricsPeriod: metricsPeriodState,
+    setMetricsPeriod,
+    pageMetrics,
+    metricsLoading,
+    metricsError,
+    refreshMetrics,
+    reviewStatus: reviewStatusState,
+    setReviewStatus,
+    loadDraft,
+    saveDraft,
+    publishing,
+    publishDraft,
+    snapshot,
+    slug: slugForActiveLocale,
+    activeLocale,
+    availableLocales: availableLocalesState,
+    setActiveLocale: setActiveLocaleSafe,
+    createLocale,
     validation,
     revalidate,
     sharedBindings,

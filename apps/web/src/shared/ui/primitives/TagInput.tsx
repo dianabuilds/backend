@@ -7,13 +7,24 @@ type TagInputProps = {
   label?: string;
   className?: string;
   disabled?: boolean;
+  maxItems?: number;
 };
 
-export function TagInput({ value, onChange, placeholder = 'tag, another', label, className = '', disabled = false }: TagInputProps) {
+export function TagInput({
+  value,
+  onChange,
+  placeholder = 'tag, another',
+  label,
+  className = '',
+  disabled = false,
+  maxItems,
+}: TagInputProps) {
   const [text, setText] = React.useState('');
 
+  const reachLimit = typeof maxItems === 'number' && maxItems > 0 && value.length >= maxItems;
+
   const add = (raw: string) => {
-    if (disabled) return;
+    if (disabled || reachLimit) return;
     const t = raw.trim();
     if (!t) return;
     if (value.includes(t)) return;

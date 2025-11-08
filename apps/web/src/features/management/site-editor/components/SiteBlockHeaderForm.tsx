@@ -180,7 +180,7 @@ function FieldError({ message }: { message?: string }) {
   return <div className="text-xs text-rose-600 dark:text-rose-300">{message}</div>;
 }
 
-export function validateHeaderConfig(config: SiteHeaderConfig): HeaderValidationIssue[] {
+function validateHeaderConfig(config: SiteHeaderConfig): HeaderValidationIssue[] {
   const issues: HeaderValidationIssue[] = [];
   if (!config.branding.title.trim()) {
     issues.push({ path: 'branding.title', message: 'Укажите название' });
@@ -494,27 +494,71 @@ type MenuItemModalProps = {
 function MenuItemModal({ open, allowChildren, initial, onSubmit, onClose }: MenuItemModalProps): React.ReactElement | null {
   const [draft, setDraft] = React.useState<HeaderMenuItem>(() => cloneMenuItem(initial));
   const [errors, setErrors] = React.useState<MenuItemErrors>({});
+  const [autoAnalytics, setAutoAnalytics] = React.useState<boolean>(
+    () => !initial?.analytics?.event?.trim(),
+  );
+
+  const buildAnalyticsEvent = React.useCallback((item: HeaderMenuItem): string => {
+    const source = item.id.trim() || item.label.trim() || item.href.trim() || 'link';
+    const slug = source
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    const normalized = slug || 'link';
+    return `header.${normalized}.click`;
+  }, []);
+
+  const applyAutoAnalytics = React.useCallback(
+    (current: HeaderMenuItem, next: HeaderMenuItem): HeaderMenuItem => {
+      if (!autoAnalytics) {
+        return next;
+      }
+      const event = buildAnalyticsEvent(next);
+      return {
+        ...next,
+        analytics: {
+          event,
+          context: current.analytics?.context,
+        },
+      };
+    },
+    [autoAnalytics, buildAnalyticsEvent],
+  );
 
   React.useEffect(() => {
     if (open) {
-      setDraft(cloneMenuItem(initial));
+      const base = cloneMenuItem(initial);
+      const hasAnalytics = !!initial?.analytics?.event?.trim();
+      setAutoAnalytics(!hasAnalytics);
+      if (!hasAnalytics) {
+        base.analytics = {
+          event: buildAnalyticsEvent(base),
+          context: base.analytics?.context,
+        };
+      }
+      setDraft(base);
       setErrors({});
     }
-  }, [initial, open]);
+  }, [initial, open, buildAnalyticsEvent]);
 
   const handleChange = (key: keyof HeaderMenuItem, value: string) => {
-    setDraft((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setDraft((prev) => {
+      const next = {
+        ...prev,
+        [key]: value,
+      };
+      return applyAutoAnalytics(prev, next);
+    });
   };
 
   const handleAnalyticsChange = (value: string) => {
     const trimmed = value.trim();
     setDraft((prev) => {
       if (!trimmed) {
+        setAutoAnalytics(true);
         return { ...prev, analytics: undefined };
       }
+      setAutoAnalytics(false);
       return {
         ...prev,
         analytics: {
@@ -669,7 +713,6 @@ function MenuItemModal({ open, allowChildren, initial, onSubmit, onClose }: Menu
             placeholder="header.link_click"
           />
         </div>
-
         {allowChildren ? (
           <div className="space-y-3 rounded-lg border border-gray-200 p-3 dark:border-dark-600">
             <div className="flex items-center justify-between">

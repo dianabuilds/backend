@@ -515,6 +515,94 @@ def format_shared_block_refs(
     return formatted
 
 
+def _normalize_locale_code(value: Any, default_locale: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return default_locale
+    return text
+
+
+def _copy_locales_map(
+    locales: Mapping[str, Mapping[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    copied: dict[str, dict[str, Any]] = {}
+    for locale, payload in locales.items():
+        copied[locale] = dict(payload)
+    return copied
+
+
+def normalize_localized_document(
+    document: Mapping[str, Any] | None,
+    *,
+    default_locale: str,
+    allow_shared: bool = True,
+) -> dict[str, Any]:
+    base = as_mapping(document)
+    normalized_default = default_locale.strip() or "ru"
+    locales_section = base.get("locales")
+    localized: dict[str, dict[str, Any]] = {}
+    if isinstance(locales_section, Mapping):
+        for locale_code, payload in locales_section.items():
+            locale_key = _normalize_locale_code(locale_code, normalized_default)
+            localized[locale_key] = as_mapping(payload)
+    residual = {
+        key: value for key, value in base.items() if key not in {"locales", "shared"}
+    }
+    if residual:
+        current = localized.get(normalized_default, {})
+        merged = dict(residual)
+        merged.update(current)
+        localized[normalized_default] = merged
+    if not localized:
+        localized[normalized_default] = {}
+    shared_map: dict[str, Any] | None = None
+    if allow_shared:
+        shared_candidate = base.get("shared")
+        if isinstance(shared_candidate, Mapping):
+            shared_map = as_mapping(shared_candidate)
+    result: dict[str, Any] = {"locales": _copy_locales_map(localized)}
+    if shared_map:
+        result["shared"] = dict(shared_map)
+    return result
+
+
+def project_localized_document(
+    document: Mapping[str, Any] | None,
+    *,
+    default_locale: str,
+    locale: str | None = None,
+    allow_shared: bool = True,
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]], str, str | None]:
+    canonical = normalize_localized_document(
+        document,
+        default_locale=default_locale,
+        allow_shared=allow_shared,
+    )
+    locales_map = canonical.get("locales") or {}
+    if not locales_map:
+        locales_map = {default_locale: {}}
+    normalized_default = default_locale.strip() or "ru"
+    requested = (locale or "").strip()
+    active_locale = (
+        requested
+        if requested and requested in locales_map
+        else (
+            normalized_default
+            if normalized_default in locales_map
+            else next(iter(locales_map))
+        )
+    )
+    fallback_locale = (
+        active_locale if requested and active_locale != requested else None
+    )
+    selected = dict(locales_map.get(active_locale, {}))
+    if allow_shared:
+        shared_map = canonical.get("shared")
+        if isinstance(shared_map, Mapping) and shared_map:
+            selected.setdefault("shared", dict(shared_map))
+    return selected, _copy_locales_map(locales_map), active_locale, fallback_locale
+
+
 def compute_page_diff(
     previous_data: Mapping[str, Any] | None,
     previous_meta: Mapping[str, Any] | None,
@@ -582,6 +670,8 @@ __all__ = [
     "compute_global_block_diff",
     "extract_shared_block_refs",
     "format_shared_block_refs",
+    "normalize_localized_document",
+    "project_localized_document",
     "sanitize_block_meta",
     "as_locale_list",
 ]

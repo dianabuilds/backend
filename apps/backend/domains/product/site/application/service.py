@@ -31,6 +31,7 @@ from domains.product.site.domain import (
     PageVersion,
 )
 from domains.product.site.infrastructure import SiteRepository
+from domains.product.site.infrastructure.repositories import helpers as repo_helpers
 
 from .validation import PageDraftValidator, ValidatedDraft
 
@@ -52,6 +53,22 @@ class SiteService:
         self._validator = validator or PageDraftValidator()
         self._worker_queue = worker_queue
         self._notify_service = notify_service
+
+    @staticmethod
+    def _select_localized_payload(
+        document: Mapping[str, Any] | None,
+        *,
+        default_locale: str,
+        locale: str | None = None,
+        allow_shared: bool = True,
+    ) -> dict[str, Any]:
+        payload, _, _, _ = repo_helpers.project_localized_document(
+            document,
+            default_locale=default_locale,
+            locale=locale,
+            allow_shared=allow_shared,
+        )
+        return payload
 
     async def list_pages(
         self,
@@ -248,7 +265,11 @@ class SiteService:
     ) -> PageVersion:
         draft = await self._repo.get_page_draft(page_id)
         # Ensure the latest draft satisfies validation before publishing.
-        self._validator.validate(draft.data, draft.meta)
+        self.validate_draft_payload(
+            payload=draft.data,
+            meta=draft.meta,
+            default_locale=draft.default_locale,
+        )
         version = await self._repo.publish_page(
             page_id=page_id,
             actor=actor,
@@ -293,8 +314,21 @@ class SiteService:
         *,
         payload: Mapping[str, Any] | None,
         meta: Mapping[str, Any] | None,
+        default_locale: str = "ru",
+        locale: str | None = None,
     ) -> ValidatedDraft:
-        return self._validator.validate(payload, meta)
+        normalized_payload = self._select_localized_payload(
+            payload,
+            default_locale=default_locale,
+            locale=locale,
+        )
+        normalized_meta = self._select_localized_payload(
+            meta,
+            default_locale=default_locale,
+            locale=locale,
+            allow_shared=False,
+        )
+        return self._validator.validate(normalized_payload, normalized_meta)
 
     async def list_block_templates(
         self,

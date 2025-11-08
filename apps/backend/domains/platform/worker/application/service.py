@@ -58,6 +58,14 @@ class WorkerQueueService:
             )
             if existing is not None:
                 return existing
+        input_payload: Any = command.input
+        if input_payload is not None and not isinstance(input_payload, str):
+            try:
+                import json
+
+                input_payload = json.dumps(input_payload)
+            except TypeError as exc:
+                raise ValueError("worker_job_input_not_serializable") from exc
         payload = {
             "job_id": job_id,
             "type": command.type,
@@ -69,7 +77,7 @@ class WorkerQueueService:
             "config_hash": command.config_hash,
             "cost_cap_eur": command.cost_cap_eur,
             "budget_tag": command.budget_tag,
-            "input": command.input,
+            "input": input_payload,
         }
         job = await self._repo.enqueue(payload)
         if self._queue is not None:

@@ -69,6 +69,25 @@ export function normalizePage(value: unknown): SitePageSummary | null {
   const publishedVersion = pickNumber(value.published_version);
   const draftVersion = pickNumber(value.draft_version);
   const pinned = pickBoolean(value.pinned);
+  const defaultLocale = pickString(value.default_locale) ?? pickString(value.locale) ?? 'ru';
+  const availableLocales = ensureArray(
+    value.available_locales,
+    (entry): string | null => {
+      if (typeof entry !== 'string') {
+        return null;
+      }
+      const normalized = entry.trim();
+      return normalized || null;
+    },
+  ).filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+  const localizedSlugs = isObjectRecord(value.slug_localized)
+    ? Object.entries(value.slug_localized).reduce<Record<string, string>>((acc, [locale, slugValue]) => {
+        if (typeof slugValue === 'string' && locale) {
+          acc[locale] = slugValue;
+        }
+        return acc;
+      }, {})
+    : undefined;
   let sharedBindings = ensureArray(
     value.shared_bindings,
     normalizePageAttachedBlock,
@@ -90,13 +109,16 @@ export function normalizePage(value: unknown): SitePageSummary | null {
     title,
     type,
     status,
-    locale: pickString(value.locale) ?? 'ru',
+    locale: defaultLocale,
     owner: pickNullableString(value.owner),
     updated_at: pickNullableString(value.updated_at),
     published_version: publishedVersion ?? null,
     draft_version: draftVersion ?? null,
     has_pending_review: pickBoolean(value.has_pending_review) ?? null,
     pinned: pinned ?? null,
+    default_locale: defaultLocale,
+    available_locales: availableLocales.length ? availableLocales : undefined,
+    localized_slugs: localizedSlugs,
     shared_bindings: sharedBindings.length ? sharedBindings : undefined,
     bindings: sharedBindings.length ? sharedBindings : undefined,
     block_refs: blockRefs.length ? blockRefs : undefined,
@@ -118,6 +140,25 @@ export function normalizeDraft(value: unknown): SitePageDraft | null {
   const reviewStatus = REVIEW_STATUSES.has(reviewStatusRaw)
     ? (reviewStatusRaw as SitePageDraft['review_status'])
     : 'none';
+  const defaultLocale = pickString(value.default_locale) ?? pickString(value.locale) ?? 'ru';
+  const availableLocales = ensureArray(
+    value.available_locales,
+    (entry): string | null => {
+      if (typeof entry !== 'string') {
+        return null;
+      }
+      const normalized = entry.trim();
+      return normalized || null;
+    },
+  ).filter((entry): entry is string => typeof entry === 'string' && entry.length > 0);
+  const slugLocalized = isObjectRecord(value.slug_localized)
+    ? Object.entries(value.slug_localized).reduce<Record<string, string>>((acc, [locale, slugValue]) => {
+        if (typeof slugValue === 'string' && locale) {
+          acc[locale] = slugValue;
+        }
+        return acc;
+      }, {})
+    : undefined;
   let sharedBindings = ensureArray(
     value.shared_bindings,
     normalizePageAttachedBlock,
@@ -138,6 +179,11 @@ export function normalizeDraft(value: unknown): SitePageDraft | null {
     version: version as number,
     data,
     meta,
+    default_locale: defaultLocale,
+    available_locales: availableLocales.length ? availableLocales : undefined,
+    slug_localized: slugLocalized,
+    active_locale: pickString(value.active_locale) ?? undefined,
+    fallback_locale: pickString(value.fallback_locale) ?? undefined,
     comment: pickNullableString(value.comment) ?? null,
     review_status: reviewStatus,
     updated_at: pickNullableString(value.updated_at),
