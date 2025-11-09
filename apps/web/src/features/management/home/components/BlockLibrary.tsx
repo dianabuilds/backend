@@ -235,13 +235,6 @@ export function BlockLibraryPanel(): React.ReactElement {
 
   const handleAttach = React.useCallback(
     (siteBlock: SiteBlock) => {
-      const alreadyUsed = data.blocks.some(
-        (block) => block.source === 'site' && block.siteBlockId === siteBlock.id,
-      );
-      if (alreadyUsed) {
-        pushToast({ intent: 'info', description: 'Этот блок уже есть на странице' });
-        return;
-      }
       const nextBlock = createBlockFromSiteBlock({
         siteBlock,
         existingBlocks: data.blocks,

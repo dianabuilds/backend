@@ -38,6 +38,12 @@ export {
   previewSiteBlock,
 } from './blocks';
 
+export {
+  fetchComponentCatalog,
+  fetchComponent,
+  fetchComponentSchema,
+} from './components';
+
 export { fetchSitePageMetrics, fetchSiteBlockMetrics } from './metrics';
 
 export { fetchSiteAudit } from './audit';
@@ -80,6 +86,11 @@ import {
 } from './blocks';
 import { fetchSitePageMetrics, fetchSiteBlockMetrics } from './metrics';
 import { fetchSiteAudit } from './audit';
+import {
+  fetchComponentCatalog,
+  fetchComponent,
+  fetchComponentSchema,
+} from './components';
 
 export const managementSiteEditorApi = {
   fetchSitePages,
@@ -117,6 +128,9 @@ export const managementSiteEditorApi = {
   createBlockTemplate,
   updateBlockTemplate,
   fetchSiteAudit,
+  fetchComponentCatalog,
+  fetchComponent,
+  fetchComponentSchema,
 };
 
 

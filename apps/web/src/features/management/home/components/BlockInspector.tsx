@@ -59,69 +59,67 @@ export function BlockInspector(): React.ReactElement {
       padding="sm"
       className="space-y-4 border border-gray-200/70 bg-white/95 shadow-sm dark:border-dark-600/60 dark:bg-dark-800/80"
     >
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-50">
-            {block.title || definition?.label || block.type}
-          </h3>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-400 dark:text-dark-300">Блок на странице</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-dark-50">
+              {block.title || definition?.label || block.type}
+            </h3>
+          </div>
           <Badge variant="outline" color="neutral">
             {definition?.label ?? block.type}
           </Badge>
         </div>
-        <p className="text-xs text-gray-500 dark:text-dark-300">
-          ID блока: <span className="font-mono text-gray-700 dark:text-dark-100">{block.id}</span>
-        </p>
-        <p className="text-xs text-gray-500 dark:text-dark-300">
-          Состояние: {block.enabled ? 'активен и будет показан на главной' : 'отключен и скрыт из публикации'}.
-        </p>
-        {usesLibrary ? (
-          <div className="space-y-3 rounded-2xl border border-primary-100 bg-primary-50/40 p-3 text-sm text-gray-700">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-dark-300">
+          <span>
+            ID · <span className="font-mono text-gray-800 dark:text-dark-100">{block.id}</span>
+          </span>
+          <span>
+            Статус ·{' '}
+            <span className="font-medium text-gray-900 dark:text-dark-50">
+              {block.enabled ? 'активен' : 'отключён'}
+            </span>
+          </span>
+          {usesLibrary && block.siteBlockStatus ? (
+            <span className="inline-flex items-center gap-1">
+              <span className="text-gray-400">Источник</span>
               <Badge color="primary" variant="soft">
                 Библиотека
               </Badge>
               {libraryStatusMeta ? (
-                <Badge color={libraryStatusMeta.color} variant="soft">
+                <Badge color={libraryStatusMeta.color} variant="outline">
                   {libraryStatusMeta.label}
                 </Badge>
               ) : null}
-              {block.siteBlockRequiresPublisher ? (
-                <Badge color="warning" variant="outline">
-                  Требуется publisher
-                </Badge>
-              ) : null}
-            </div>
-            <dl className="grid gap-1 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <dt className="text-gray-500">Ключ:</dt>
-                <dd className="font-mono text-gray-800">{block.siteBlockKey}</dd>
-              </div>
-              <div className="flex items-center gap-1">
-                <dt className="text-gray-500">Секция:</dt>
-                <dd className="font-medium text-gray-800">{librarySection}</dd>
-              </div>
-              <div className="flex items-center gap-1">
-                <dt className="text-gray-500">Локаль:</dt>
-                <dd className="font-medium text-gray-800 uppercase">{libraryLocale}</dd>
-              </div>
-              <div className="flex items-center gap-1">
-                <dt className="text-gray-500">Обновлён:</dt>
-                <dd className="font-medium text-gray-800">
-                  {libraryUpdatedAt}
-                  {block.siteBlockUpdatedBy ? ` · ${block.siteBlockUpdatedBy}` : ''}
-                </dd>
-              </div>
-            </dl>
+            </span>
+          ) : null}
+        </div>
+        {usesLibrary ? (
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary-100/70 bg-primary-50/40 px-3 py-2 text-xs text-gray-700">
+            <span className="font-mono text-sm text-gray-900">{block.siteBlockKey ?? '—'}</span>
+            <span className="text-gray-500">
+              {librarySection} · {libraryLocale.toUpperCase()}
+            </span>
+            <span className="text-gray-500">
+              Обновлён {libraryUpdatedAt}
+              {block.siteBlockUpdatedBy ? ` · ${block.siteBlockUpdatedBy}` : ''}
+            </span>
+            {block.siteBlockRequiresPublisher ? (
+              <Badge color="warning" variant="outline">
+                Требуется publisher
+              </Badge>
+            ) : null}
             {libraryLink ? (
               <Button
                 as={Link}
                 to={libraryLink}
-                size="sm"
+                size="xs"
                 variant="ghost"
-                className="inline-flex items-center gap-1.5"
+                className="inline-flex items-center gap-1"
               >
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                <span>Открыть блок</span>
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                Открыть блок
               </Button>
             ) : null}
           </div>

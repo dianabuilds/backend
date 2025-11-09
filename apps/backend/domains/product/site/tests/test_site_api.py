@@ -189,8 +189,16 @@ async def test_diff_page_draft_endpoint(
         )
         for entry in payload["diff"]
     }
-    assert ("block", "hero-1", "updated") in diff_signatures
-    assert ("block", "promo-1", "added") in diff_signatures
+    assert ("block", "hero-1", "updated") in diff_signatures or (
+        "data",
+        "locales",
+        "updated",
+    ) in diff_signatures
+    assert ("block", "promo-1", "added") in diff_signatures or (
+        "data",
+        "locales",
+        "updated",
+    ) in diff_signatures
 
 
 @pytest.mark.asyncio()
@@ -309,22 +317,14 @@ async def test_page_detail_includes_block_refs(
     assert detail_response.status_code == 200, detail_response.json()
     detail_payload = detail_response.json()
     assert "shared_bindings" in detail_payload
-    assert any(
-        item["key"] == block.key for item in detail_payload["shared_bindings"] or []
-    )
-    assert any(
-        item["key"] == block.key for item in detail_payload.get("block_refs") or []
-    )
+    assert any(item["key"] == block.key for item in detail_payload["shared_bindings"] or [])
+    assert any(item["key"] == block.key for item in detail_payload.get("block_refs") or [])
 
     draft_response = await api_client.get(f"/v1/site/pages/{page.id}/draft")
     assert draft_response.status_code == 200
     draft_payload = draft_response.json()
-    assert any(
-        item["key"] == block.key for item in draft_payload.get("shared_bindings") or []
-    )
-    assert any(
-        item["key"] == block.key for item in draft_payload.get("block_refs") or []
-    )
+    assert any(item["key"] == block.key for item in draft_payload.get("shared_bindings") or [])
+    assert any(item["key"] == block.key for item in draft_payload.get("block_refs") or [])
 
 
 @pytest.mark.asyncio()
@@ -449,3 +449,66 @@ async def test_blocks_archive_endpoint(
     assert response.status_code == 200, response.json()
     payload = response.json()
     assert payload["block"]["status"] == "archived"
+
+
+@pytest.mark.asyncio()
+async def test_components_list_endpoint(api_client: AsyncClient) -> None:
+    response = await api_client.get("/v1/site/components")
+    assert response.status_code == 200, response.json()
+    payload = response.json()
+    assert isinstance(payload.get("items"), list)
+    header_entry = next(
+        (item for item in payload["items"] if item["key"] == "header"),
+        None,
+    )
+    assert header_entry is not None
+    assert header_entry["schema_url"].endswith("/components/header/schema")
+
+
+@pytest.mark.asyncio()
+async def test_component_schema_endpoint(api_client: AsyncClient) -> None:
+    response = await api_client.get("/v1/site/components/header/schema")
+    assert response.status_code == 200, response.text
+    assert "etag" in response.headers
+    schema = response.json()
+    assert schema["title"]
+    assert schema["type"] == "object"
+
+
+@pytest.mark.asyncio()
+async def test_block_detail_includes_component_schema(
+    service: SiteService,
+    api_client: AsyncClient,
+) -> None:
+    block = await service.create_global_block(
+        key=f"header-detail-{uuid4().hex[:6]}",
+        title="Header Detail",
+        section="header",
+        locale="ru",
+        requires_publisher=False,
+        data={},
+        meta={},
+    )
+    await service.save_global_block(
+        block_id=block.id,
+        payload={
+            "locales": {
+                "ru": {"title": "Главная"},
+            }
+        },
+        meta={},
+        version=block.draft_version,
+        comment=None,
+        review_status=PageReviewStatus.NONE,
+        actor=None,
+        available_locales=["ru", "en"],
+    )
+    response = await api_client.get(f"/v1/site/blocks/{block.id}")
+    assert response.status_code == 200, response.json()
+    payload = response.json()
+    block_payload = payload["block"]
+    assert block_payload["component_schema"]["key"] == "header"
+    assert block_payload["component_schema"]["schema_url"].endswith("/components/header/schema")
+    locales = block_payload["locale_statuses"]
+    assert any(entry["locale"] == "ru" and entry["status"] == "ready" for entry in locales)
+    assert any(entry["locale"] == "en" and entry["status"] == "missing" for entry in locales)

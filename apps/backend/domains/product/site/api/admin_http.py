@@ -16,6 +16,7 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, root_validator
 
 from apps.backend.app.api_gateway.routers import get_container
@@ -48,6 +49,7 @@ from domains.product.site.domain import (
     SiteValidationError,
 )
 from domains.product.site.infrastructure.repositories import helpers as repo_helpers
+from domains.product.site.schema import ComponentSummary, get_component_summary
 
 
 def _serialize_page(
@@ -204,11 +206,7 @@ def _serialize_block_binding(binding: BlockBinding) -> dict[str, Any]:
         "owner": binding.owner,
         "default_locale": binding.default_locale,
         "available_locales": list(binding.available_locales or ()),
-        "scope": (
-            binding.scope.value
-            if isinstance(binding.scope, BlockScope)
-            else binding.scope
-        ),
+        "scope": (binding.scope.value if isinstance(binding.scope, BlockScope) else binding.scope),
         "requires_publisher": binding.requires_publisher,
         "status": (
             binding.status.value
@@ -218,11 +216,7 @@ def _serialize_block_binding(binding: BlockBinding) -> dict[str, Any]:
         "review_status": (
             binding.review_status.value
             if isinstance(binding.review_status, PageReviewStatus)
-            else (
-                str(binding.review_status)
-                if binding.review_status is not None
-                else None
-            )
+            else (str(binding.review_status) if binding.review_status is not None else None)
         ),
         "updated_at": binding.updated_at.isoformat() if binding.updated_at else None,
         "extras": extras,
@@ -230,7 +224,7 @@ def _serialize_block_binding(binding: BlockBinding) -> dict[str, Any]:
 
 
 def _serialize_block(block) -> dict[str, Any]:
-    return {
+    payload = {
         "id": str(block.id),
         "key": block.key,
         "title": block.title,
@@ -254,12 +248,153 @@ def _serialize_block(block) -> dict[str, Any]:
         "comment": block.comment,
         "usage_count": int(block.usage_count or 0),
         "extras": dict(block.extras or {}),
-        "has_pending_publish": (block.draft_version or 0)
-        > (block.published_version or 0),
+        "has_pending_publish": (block.draft_version or 0) > (block.published_version or 0),
         "is_template": block.is_template,
-        "origin_block_id": (
-            str(block.origin_block_id) if block.origin_block_id else None
-        ),
+        "origin_block_id": (str(block.origin_block_id) if block.origin_block_id else None),
+    }
+    library_source = _build_library_source(block)
+    if library_source:
+        payload["library_source"] = library_source
+    locale_statuses = _build_locale_statuses(block)
+    if locale_statuses:
+        payload["locale_statuses"] = locale_statuses
+    component_schema_ref = _build_component_schema_ref(block)
+    if component_schema_ref:
+        payload["component_schema"] = component_schema_ref
+    return payload
+
+
+def _build_library_source(block) -> dict[str, Any] | None:
+    meta = block.meta if isinstance(block.meta, Mapping) else {}
+    library_meta = meta.get("library") if isinstance(meta, Mapping) else None
+    library_payload: Mapping[str, Any] | None = (
+        library_meta if isinstance(library_meta, Mapping) else None
+    )
+    key = None
+    if library_payload:
+        candidate = library_payload.get("key") or library_payload.get("template_key")
+        if isinstance(candidate, str) and candidate.strip():
+            key = candidate.strip()
+    if key is None:
+        if block.template_key:
+            key = str(block.template_key)
+        elif block.key:
+            key = str(block.key)
+        else:
+            return None
+    thumbnail_url = None
+    sync_state = "synced"
+    if library_payload:
+        thumb = library_payload.get("thumbnail_url") or library_payload.get("thumbnail")
+        if isinstance(thumb, str) and thumb.strip():
+            thumbnail_url = thumb.strip()
+        raw_state = library_payload.get("sync_state")
+        if isinstance(raw_state, str) and raw_state.strip():
+            sync_state = raw_state.strip()
+    return {
+        "key": key,
+        "section": block.section,
+        "locale": block.locale or block.default_locale,
+        "updated_at": block.updated_at.isoformat(),
+        "updated_by": block.updated_by,
+        "thumbnail_url": thumbnail_url,
+        "sync_state": sync_state,
+    }
+
+
+def _build_locale_statuses(block) -> list[dict[str, Any]]:
+    default_locale = (block.default_locale or "ru").strip() or "ru"
+    available_locales = [
+        locale.strip()
+        for locale in block.available_locales
+        if isinstance(locale, str) and locale.strip()
+    ]
+    if default_locale not in available_locales:
+        available_locales.insert(0, default_locale)
+    _, locales_map, _, _ = repo_helpers.project_localized_document(
+        block.data,
+        default_locale=default_locale,
+        allow_shared=True,
+    )
+    statuses: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for locale in available_locales:
+        payload = locales_map.get(locale) or {}
+        statuses.append(
+            {
+                "locale": locale,
+                "required": True,
+                "status": "ready" if payload else "missing",
+            }
+        )
+        seen.add(locale)
+    for locale, payload in sorted(locales_map.items()):
+        if locale in seen:
+            continue
+        statuses.append(
+            {
+                "locale": locale,
+                "required": False,
+                "status": "ready" if payload else "not_required",
+            }
+        )
+        seen.add(locale)
+    if not statuses:
+        statuses.append(
+            {
+                "locale": default_locale,
+                "required": True,
+                "status": "missing",
+            }
+        )
+    return statuses
+
+
+def _build_component_schema_ref(block) -> dict[str, Any] | None:
+    summary = _resolve_component_schema_for_block(block)
+    if summary is None:
+        return None
+    return {
+        "key": summary.key,
+        "version": summary.version,
+        "schema_url": f"/v1/site/components/{summary.key}/schema",
+    }
+
+
+def _resolve_component_schema_for_block(block) -> ComponentSummary | None:
+    meta = block.meta if isinstance(block.meta, Mapping) else {}
+    component_meta = meta.get("component_schema") if isinstance(meta, Mapping) else None
+    candidate_keys: list[str] = []
+    if isinstance(component_meta, Mapping):
+        raw = component_meta.get("key")
+        if isinstance(raw, str) and raw.strip():
+            candidate_keys.append(raw.strip())
+    for candidate in (block.section, block.template_key, block.key):
+        if isinstance(candidate, str) and candidate.strip():
+            candidate_keys.append(candidate.strip())
+    seen: set[str] = set()
+    for candidate in candidate_keys:
+        normalized = candidate.lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        try:
+            return get_component_summary(normalized)
+        except KeyError:
+            continue
+    return None
+
+
+def _serialize_component_summary(component: ComponentSummary) -> dict[str, Any]:
+    return {
+        "key": component.key,
+        "title": component.title,
+        "section": component.section,
+        "description": component.description,
+        "version": component.version,
+        "locales": list(component.locales),
+        "thumbnail_url": component.thumbnail_url,
+        "schema_url": f"/v1/site/components/{component.key}/schema",
     }
 
 
@@ -368,8 +503,7 @@ def _serialize_page_metrics(metrics: PageMetrics) -> dict[str, Any]:
         "status": metrics.status,
         "source_lag_ms": metrics.source_lag_ms,
         "metrics": {
-            name: _serialize_metric_value(value)
-            for name, value in metrics.metrics.items()
+            name: _serialize_metric_value(value) for name, value in metrics.metrics.items()
         },
         "alerts": [_serialize_metric_alert(alert) for alert in metrics.alerts],
     }
@@ -392,8 +526,7 @@ def _serialize_block_metrics(metrics: BlockMetrics) -> dict[str, Any]:
         "status": metrics.status,
         "source_lag_ms": metrics.source_lag_ms,
         "metrics": {
-            name: _serialize_metric_value(value)
-            for name, value in metrics.metrics.items()
+            name: _serialize_metric_value(value) for name, value in metrics.metrics.items()
         },
         "alerts": [_serialize_metric_alert(alert) for alert in metrics.alerts],
         "top_pages": [_serialize_top_page(item) for item in metrics.top_pages],
@@ -656,6 +789,46 @@ async def preview_block(
     container=Depends(get_container),
 ) -> dict[str, Any]:
     return await build_block_preview(container, block_id, locale=locale, limit=limit)
+
+
+@router.get(
+    "/components",
+    dependencies=[Depends(require_role_db("user"))],
+)
+async def list_components(
+    service: SiteService = Depends(get_site_service),
+) -> dict[str, Any]:
+    components = service.list_components()
+    return {"items": [_serialize_component_summary(component) for component in components]}
+
+
+@router.get(
+    "/components/{component_key}",
+    dependencies=[Depends(require_role_db("user"))],
+)
+async def get_component(
+    component_key: str,
+    service: SiteService = Depends(get_site_service),
+) -> dict[str, Any]:
+    component = service.get_component(component_key)
+    payload = _serialize_component_summary(component)
+    payload["schema_version"] = component.version
+    return payload
+
+
+@router.get(
+    "/components/{component_key}/schema",
+    dependencies=[Depends(require_role_db("user"))],
+)
+async def get_component_schema(
+    component_key: str,
+    service: SiteService = Depends(get_site_service),
+) -> JSONResponse:
+    component = service.get_component(component_key)
+    return JSONResponse(
+        content=component.schema,
+        headers={"ETag": component.version},
+    )
 
 
 def _add_role(target: set[str], value: Any) -> None:
@@ -1036,9 +1209,9 @@ async def preview_page(
         meta=validated.meta,
     )
     rendered_payload = await composer.compose(preview_config, use_cache=False)
-    generated_at = rendered_payload.get("generated_at") or datetime.now(
-        UTC
-    ).isoformat().replace("+00:00", "Z")
+    generated_at = rendered_payload.get("generated_at") or datetime.now(UTC).isoformat().replace(
+        "+00:00", "Z"
+    )
     layout_payload = {
         layout: {
             "layout": layout,
@@ -1099,9 +1272,7 @@ async def list_page_history(
     offset: int = Query(0, ge=0),
     service: SiteService = Depends(get_site_service),
 ) -> dict[str, Any]:
-    versions, total = await service.list_page_history(
-        page_id, limit=limit, offset=offset
-    )
+    versions, total = await service.list_page_history(page_id, limit=limit, offset=offset)
     return {
         "items": [_serialize_version(v) for v in versions],
         "total": total,
@@ -1520,8 +1691,7 @@ async def publish_block(
         for item in usage_after
     ]
     job_payload = [
-        {"job_id": str(job.job_id), "type": job.type, "status": job.status.value}
-        for job in jobs
+        {"job_id": str(job.job_id), "type": job.type, "status": job.status.value} for job in jobs
     ]
     response: dict[str, Any] = {
         "id": str(published_block.id),

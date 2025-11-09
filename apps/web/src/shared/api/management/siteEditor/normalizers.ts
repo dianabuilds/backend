@@ -302,6 +302,56 @@ export function normalizeBlock(value: unknown): SiteBlock | null {
   const isTemplate = pickBoolean(value.is_template) ?? false;
   const originBlockId = pickNullableString(value.origin_block_id) ?? null;
   const extras = isObjectRecord(value.extras) ? (value.extras as Record<string, unknown>) : undefined;
+  const librarySource = isObjectRecord(value.library_source)
+    ? (() => {
+        const sourceKey = pickString(value.library_source.key);
+        if (!sourceKey) {
+          return null;
+        }
+        return {
+          key: sourceKey,
+          section: pickString(value.library_source.section) ?? section,
+          locale: pickNullableString(value.library_source.locale) ?? locale,
+          updated_at: pickNullableString(value.library_source.updated_at) ?? null,
+          updated_by: pickNullableString(value.library_source.updated_by) ?? null,
+          thumbnail_url: pickNullableString(value.library_source.thumbnail_url) ?? null,
+          sync_state: pickNullableString(value.library_source.sync_state) ?? null,
+        };
+      })()
+    : null;
+  const localeStatuses = Array.isArray(value.locale_statuses)
+    ? value.locale_statuses
+        .map((entry) => {
+          if (!isObjectRecord(entry)) {
+            return null;
+          }
+          const localeCode = pickString(entry.locale);
+          if (!localeCode) {
+            return null;
+          }
+          return {
+            locale: localeCode,
+            required: Boolean(entry.required),
+            status: pickString(entry.status) ?? 'unknown',
+          };
+        })
+        .filter((entry): entry is { locale: string; required: boolean; status: string } => entry != null)
+    : undefined;
+  const componentSchema = isObjectRecord(value.component_schema)
+    ? (() => {
+        const schemaKey = pickString(value.component_schema.key);
+        const schemaVersion = pickString(value.component_schema.version);
+        const schemaUrl = pickString(value.component_schema.schema_url);
+        if (!schemaKey || !schemaVersion || !schemaUrl) {
+          return null;
+        }
+        return {
+          key: schemaKey,
+          version: schemaVersion,
+          schema_url: schemaUrl,
+        };
+      })()
+    : null;
 
   return {
     id,
@@ -333,6 +383,9 @@ export function normalizeBlock(value: unknown): SiteBlock | null {
     extras,
     is_template: isTemplate,
     origin_block_id: originBlockId,
+    library_source: librarySource,
+    locale_statuses: localeStatuses,
+    component_schema: componentSchema,
   };
 }
 

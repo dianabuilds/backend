@@ -487,7 +487,11 @@ function SortableBlockCard({ block, index, selected, hasErrors, onSelect, onTogg
   );
 }
 
-export function BlockCanvas(): React.ReactElement {
+export type BlockCanvasProps = {
+  compact?: boolean;
+};
+
+export function BlockCanvas({ compact = false }: BlockCanvasProps = {}): React.ReactElement {
   const {
     page,
     data,
@@ -544,11 +548,17 @@ export function BlockCanvas(): React.ReactElement {
     selectBlock(blockId);
   }, [selectBlock]);
 
+  const headerPadding = compact ? 'px-2 py-1.5' : 'px-3 py-2';
+  const headerTitleClass = compact ? 'text-xs' : 'text-sm';
+  const blockCountClass = compact ? 'text-[11px]' : 'text-xs';
+
   return (
-    <Card padding="sm" className="space-y-3 bg-white/95 shadow-sm">
-      <div className="flex items-center justify-between rounded-xl border border-gray-100/80 bg-gray-50/60 px-3 py-2">
-        <h3 className="text-sm font-semibold text-gray-900">Структура страницы</h3>
-        <span className="text-xs text-gray-500">{blocks.length} блок(ов)</span>
+    <Card padding="sm" className={`bg-white/95 shadow-sm ${compact ? 'space-y-2 text-sm' : 'space-y-3'}`}>
+      <div
+        className={`flex items-center justify-between rounded-xl border border-gray-100/80 bg-gray-50/60 ${headerPadding}`}
+      >
+        <h3 className={`${headerTitleClass} font-semibold text-gray-900`}>Структура страницы</h3>
+        <span className={`${blockCountClass} text-gray-500`}>{blocks.length} блок(ов)</span>
       </div>
 
       {sharedState.error ? (

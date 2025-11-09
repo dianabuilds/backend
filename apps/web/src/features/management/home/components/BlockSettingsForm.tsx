@@ -5,10 +5,12 @@ import { ExternalLink } from '@icons';
 import { managementSiteEditorApi } from '@shared/api/management';
 import { formatDateTime } from '@shared/utils/format';
 import type { SiteBlock } from '@shared/types/management';
-import type { HomeBlock, HomeBlockDataSource } from '../types';
+import type { HomeBlock, HomeBlockDataSource, HomeBlockType } from '../types';
 import type { FieldError } from '../validation';
 import { useHomeEditorContext } from '../HomeEditorContext';
 import { ManualItemsEditor } from './ManualItemsEditor';
+import BlockSchemaForm from '../../site-editor/components/BlockSchemaForm';
+import { useComponentSchema } from '../../site-editor/hooks/useComponentSchema';
 
 const DEFAULT_MODE_MAP: Record<HomeBlock['type'], 'auto' | 'manual'> = {
   hero: 'manual',
@@ -40,6 +42,36 @@ const MODE_LIMITS: Partial<Record<HomeBlock['type'], Array<'auto' | 'manual'>>> 
   popular_carousel: ['auto'],
   recommendations: ['auto'],
 };
+
+const BLOCK_COMPONENT_KEYS: Partial<Record<HomeBlockType, string>> = {
+  hero: 'hero',
+};
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const toRecord = (value: unknown): Record<string, unknown> =>
+  isObjectRecord(value) ? { ...value } : {};
+
+function normalizeSchemaSlotsPayload(
+  raw: Record<string, unknown> | null | undefined,
+  locale: string,
+): Record<string, unknown> {
+  const base = toRecord(raw);
+  const locales = isObjectRecord(base.locales) ? { ...(base.locales as Record<string, unknown>) } : {};
+  const activePayload = isObjectRecord(locales[locale]) ? { ...(locales[locale] as Record<string, unknown>) } : {};
+  Object.entries(base).forEach(([key, value]) => {
+    if (key === 'locales' || key === 'shared') {
+      return;
+    }
+    activePayload[key] = value;
+  });
+  locales[locale] = activePayload;
+  return {
+    ...base,
+    locales,
+  };
+}
 
 type BlockSettingsFormProps = {
   block: HomeBlock;
@@ -210,7 +242,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function BlockSettingsForm({ block, onChange, errors }: BlockSettingsFormProps): React.ReactElement {
   const slots = React.useMemo(() => asRecord(block.slots), [block.slots]);
   const ctaSlots = React.useMemo(() => asRecord(slots.cta), [slots]);
-  const { activeLocale } = useHomeEditorContext();
+  const { activeLocale, availableLocales, setActiveLocale } = useHomeEditorContext();
 
   const allowedModes = MODE_LIMITS[block.type] ?? ['auto', 'manual'];
   const [heroOptions, setHeroOptions] = React.useState<SiteBlock[]>([]);
@@ -481,6 +513,129 @@ export function BlockSettingsForm({ block, onChange, errors }: BlockSettingsForm
     heroSelection,
   ]);
 
+  const componentKey = BLOCK_COMPONENT_KEYS[block.type] ?? null;
+  const {
+    schema: componentSchema,
+    loading: componentSchemaLoading,
+    error: componentSchemaError,
+  } = useComponentSchema(componentKey);
+
+  const localeSchema = React.useMemo(() => {
+    if (!componentSchema) {
+      return null;
+    }
+    const properties = (componentSchema as Record<string, unknown>).properties;
+    if (isObjectRecord(properties)) {
+      const localesSchema = properties.locales;
+      if (isObjectRecord(localesSchema)) {
+        if (isObjectRecord(localesSchema.additionalProperties)) {
+          return localesSchema.additionalProperties as Record<string, unknown>;
+        }
+        if (isObjectRecord(localesSchema.properties)) {
+          const candidate = Object.values(localesSchema.properties).find(isObjectRecord);
+          if (candidate && isObjectRecord(candidate)) {
+            return candidate as Record<string, unknown>;
+          }
+        }
+      }
+      if (isObjectRecord(properties.locale)) {
+        return properties.locale as Record<string, unknown>;
+      }
+      if (isObjectRecord(properties.content)) {
+        return properties.content as Record<string, unknown>;
+      }
+    }
+    return componentSchema as Record<string, unknown>;
+  }, [componentSchema]);
+
+  const sharedSchema = React.useMemo(() => {
+    if (!componentSchema) {
+      return null;
+    }
+    const properties = (componentSchema as Record<string, unknown>).properties;
+    if (isObjectRecord(properties) && isObjectRecord(properties.shared)) {
+      return properties.shared as Record<string, unknown>;
+    }
+    return null;
+  }, [componentSchema]);
+
+  const schemaLocaleOptions = React.useMemo(() => {
+    if (availableLocales && availableLocales.length) {
+      return availableLocales;
+    }
+    return [activeLocale || 'ru'];
+  }, [availableLocales, activeLocale]);
+
+  const schemaPayload = React.useMemo(
+    () => normalizeSchemaSlotsPayload(slots, activeLocale || 'ru'),
+    [slots, activeLocale],
+  );
+
+  const schemaLocaleValue = React.useMemo(() => {
+    if (!componentKey || !componentSchema) {
+      return {};
+    }
+    const locales = schemaPayload.locales;
+    if (isObjectRecord(locales)) {
+      const candidate = locales[activeLocale];
+      if (isObjectRecord(candidate)) {
+        return { ...(candidate as Record<string, unknown>) };
+      }
+    }
+    return {};
+  }, [componentKey, componentSchema, schemaPayload, activeLocale]);
+
+  const schemaSharedValue = React.useMemo(() => {
+    if (!componentKey || !componentSchema) {
+      return {};
+    }
+    return toRecord(schemaPayload.shared);
+  }, [componentKey, componentSchema, schemaPayload]);
+
+  const shouldUseSchemaForm = Boolean(componentKey && componentSchema && localeSchema);
+
+  const handleSchemaLocaleValueChange = React.useCallback(
+    (locale: string, nextValue: Record<string, unknown>) => {
+      if (!componentKey) {
+        return;
+      }
+      updateSlots((prev) => {
+        const next = { ...prev };
+        const locales = isObjectRecord(next.locales)
+          ? { ...(next.locales as Record<string, unknown>) }
+          : {};
+        locales[locale] = nextValue;
+        next.locales = locales;
+        if (locale === activeLocale) {
+          Object.keys(next).forEach((key) => {
+            if (key === 'locales' || key === 'shared') {
+              return;
+            }
+            delete next[key];
+          });
+          Object.entries(nextValue).forEach(([field, fieldValue]) => {
+            next[field] = fieldValue;
+          });
+        }
+        return next;
+      });
+    },
+    [componentKey, updateSlots, activeLocale],
+  );
+
+  const handleSchemaSharedChange = React.useCallback(
+    (nextValue: Record<string, unknown>) => {
+      if (!componentKey) {
+        return;
+      }
+      updateSlots((prev) => ({
+        ...prev,
+        shared: nextValue,
+      }));
+    },
+    [componentKey, updateSlots],
+  );
+
   const usesHeroLibrary = isHeroBlock && block.source === 'site' && Boolean(block.siteBlockKey);
   const heroSelectValue = usesHeroLibrary && block.siteBlockKey ? block.siteBlockKey : '';
 
@@ -712,40 +867,62 @@ export function BlockSettingsForm({ block, onChange, errors }: BlockSettingsForm
               onDetach={usesHeroLibrary ? handleHeroDetach : undefined}
             />
             {!usesHeroLibrary ? (
-              <>
-                <Input
-                  label="Заголовок"
-                  value={typeof slots.headline === 'string' ? slots.headline : ''}
-                  placeholder="Заголовок hero"
-                  onChange={(event) => handleSlotChange('headline', event.target.value)}
-                  error={firstFieldError(errors, '/slots/headline')}
-                />
-                <Textarea
-                  label="Описание"
-                  value={typeof slots.subheadline === 'string' ? slots.subheadline : ''}
-                  rows={3}
-                  placeholder="Краткое описание"
-                  onChange={(event) => handleSlotChange('subheadline', event.target.value)}
-                  error={firstFieldError(errors, '/slots/subheadline')}
-                />
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="CTA — текст кнопки"
-                    value={typeof ctaSlots.label === 'string' ? ctaSlots.label : ''}
-                    placeholder="Например, Узнать больше"
-                    onChange={(event) => handleCtaChange('label', event.target.value)}
-                    error={firstFieldError(errors, '/slots/cta/label')}
-                  />
-                  <Input
-                    label="CTA — ссылка"
-                    value={typeof ctaSlots.href === 'string' ? ctaSlots.href : ''}
-                    placeholder="/quests"
-                    onChange={(event) => handleCtaChange('href', event.target.value)}
-                    error={firstFieldError(errors, '/slots/cta/href')}
-                  />
+              componentKey && componentSchemaLoading ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Spinner className="h-4 w-4" /> Загружаем параметры блока…
                 </div>
-                <HeroMediaUploader value={manualHeroImage} onSelectFile={handleHeroImageUpload} />
-              </>
+              ) : componentKey && componentSchemaError ? (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                  {componentSchemaError}
+                </div>
+              ) : shouldUseSchemaForm ? (
+                <BlockSchemaForm
+                  localeSchema={localeSchema}
+                  sharedSchema={sharedSchema ?? undefined}
+                  localeValue={schemaLocaleValue}
+                  sharedValue={schemaSharedValue}
+                  locales={schemaLocaleOptions}
+                  activeLocale={activeLocale}
+                  onActiveLocaleChange={setActiveLocale}
+                  onLocaleValueChange={handleSchemaLocaleValueChange}
+                  onSharedValueChange={sharedSchema ? handleSchemaSharedChange : undefined}
+                />
+              ) : (
+                <>
+                  <Input
+                    label="Теглайн"
+                    value={typeof slots.headline === 'string' ? slots.headline : ''}
+                    placeholder="Например, «Платформа Caves»"
+                    onChange={(event) => handleSlotChange('headline', event.target.value)}
+                    error={firstFieldError(errors, '/slots/headline')}
+                  />
+                  <Textarea
+                    label="Подзаголовок"
+                    value={typeof slots.subheadline === 'string' ? slots.subheadline : ''}
+                    rows={3}
+                    placeholder="Расскажите пользователю о ключевом предложении"
+                    onChange={(event) => handleSlotChange('subheadline', event.target.value)}
+                    error={firstFieldError(errors, '/slots/subheadline')}
+                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Input
+                      label="CTA — текст кнопки"
+                      value={typeof ctaSlots.label === 'string' ? ctaSlots.label : ''}
+                      placeholder="Например, «Узнать больше»"
+                      onChange={(event) => handleCtaChange('label', event.target.value)}
+                      error={firstFieldError(errors, '/slots/cta/label')}
+                    />
+                    <Input
+                      label="CTA — ссылка"
+                      value={typeof ctaSlots.href === 'string' ? ctaSlots.href : ''}
+                      placeholder="/quests"
+                      onChange={(event) => handleCtaChange('href', event.target.value)}
+                      error={firstFieldError(errors, '/slots/cta/href')}
+                    />
+                  </div>
+                  <HeroMediaUploader value={manualHeroImage} onSelectFile={handleHeroImageUpload} />
+                </>
+              )
             ) : null}
           </div>
         </Section>

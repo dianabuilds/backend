@@ -561,7 +561,7 @@ const handleUpdatePageInfo = React.useCallback(
           </Card>
         ) : (
           <div className="rounded-4xl border border-gray-100/70 bg-gray-50/80 p-4 shadow-inner dark:border-dark-700/70 dark:bg-dark-900/50 sm:p-5">
-            <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+            <div className="grid gap-4 lg:grid-cols-[260px_minmax(260px,1fr)_360px]">
               <div className="order-2 space-y-4 lg:order-1">
                 <BlockLibraryPanel />
               </div>
@@ -569,7 +569,11 @@ const handleUpdatePageInfo = React.useCallback(
                 <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/95 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
                   <Tabs items={workspaceTabs} value={workspaceTab} onChange={handleWorkspaceTabChange} className="px-4 pt-2" />
                 </div>
-                {workspaceTab === 'layout' ? <BlockCanvas /> : null}
+                {workspaceTab === 'layout' ? (
+                  <div className="rounded-3xl border border-white/80 bg-white/95 p-3 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+                    <BlockCanvas compact />
+                  </div>
+                ) : null}
                 {workspaceTab === 'preview' ? (
                   <BlockPreviewPanel
                     loading={loading}

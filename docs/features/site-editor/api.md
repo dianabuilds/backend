@@ -40,6 +40,20 @@
   "section": "hero",
   "status": "draft",
   "version": 3,
+  "library_source": {
+    "key": "hero-sample",
+    "locale": "ru",
+    "section": "hero",
+    "updated_at": "2025-11-08T23:24:00Z",
+    "updated_by": "user_yjbfwx_8@example.com",
+    "thumbnail_url": "https://cdn/site-editor/hero-sample.png",
+    "sync_state": "has_updates" // synced | has_updates | detached
+  },
+  "locale_statuses": [
+    {"locale": "ru", "required": true, "status": "ready"},
+    {"locale": "en", "required": true, "status": "missing"},
+    {"locale": "kk", "required": false, "status": "not_required"}
+  ],
   "data": {
     "title": {"ru": "Погружайся", "en": "Dive in"},
     "links": [
@@ -47,10 +61,19 @@
     ]
   },
   "meta": {"owners": ["team_public_site"]},
+  "component_schema": {
+    "key": "hero",
+    "version": "2025-10-01",
+    "schema_url": "https://cdn/site-editor/components/hero.schema.json"
+  },
   "updated_at": "2025-12-05T10:00:00Z",
   "updated_by": "editor:irina"
 }
 ```
+
+- `library_source` заполняется только для блоков, импортированных из библиотеки. Если пользователь перевёл блок в ручной режим, `sync_state="detached"`, а CTA «Применить обновления» скрывается.
+- `locale_statuses` помогает UI показывать готовность локалей и блокировать публикацию, пока обязательные языки не заполнены.
+- `component_schema` указывает, по какой схеме собирать форму. Клиент запрашивает саму схему по `schema_url` (см. раздел «Компоненты» ниже) и кэширует `version`.
 
 ---
 
@@ -108,7 +131,21 @@
 
 ---
 
-## 5. Ошибки и соглашения
+## 5. Компоненты (`/v1/site/components`)
+
+UI редактора блоков собирает формы по JSON Schema. Схемы живут вместе с библиотекой блоков, но должны быть доступны фронту через API.
+
+| Метод | Путь | Роль | Назначение |
+|-------|------|------|------------|
+| GET | `/components` | viewer | Каталог компонент: `key`, `section`, `title`, поддерживаемые локали, текущая версия схемы. |
+| GET | `/components/{key}` | viewer | Метаданные компонента, список файлов, краткое описание полей. |
+| GET | `/components/{key}/schema` | viewer | JSON Schema компонента. Ответ кэшируем по `ETag`. Используется для построения формы редактирования блока. |
+
+Сами блокисылаются на компонент через `component_schema.key`. При публикации библиотечных блоков схема обновляется и меняет `version`. Клиент, увидев несовпадение версий, принудительно перечитывает схему.
+
+---
+
+## 6. Ошибки и соглашения
 - `409` — конфликт версии (`version` не совпадает) или попытка архивировать блок с активными привязками.  
 - `422` — бизнес-валидация: нет перевода обязательной локали, попытка привязать `is_template=true` блок напрямую к странице, нарушение ограничений секции.  
 - Все списки сортируются по `updated_at desc`, если клиент не указал своё `sort`.  
@@ -116,4 +153,4 @@
 
 ---
 
-Это единственная документация по API редактора. Детализация схем находится в `apps/backend/domains/product/site/schemas/` и в `docs/openapi/site-editor.yml`; при расхождении источником истины считается это описание.
+Это единственная документация по API редактора. Детализация схем находится в `apps/backend/domains/product/site/schemas/` и в `docs/openapi/site-editor.yml`; при расхождении источником истины считается это описание. Добавляя новые поля в компонент, обновляйте JSON Schema и `component_schema.version`, чтобы фронт автоматически подхватывал новые параметры.

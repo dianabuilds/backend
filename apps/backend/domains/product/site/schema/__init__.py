@@ -5,6 +5,14 @@ from collections.abc import Mapping
 from importlib import resources
 from typing import Any
 
+from .components import (
+    ComponentSchema,
+    ComponentSummary,
+    get_component_schema,
+    get_component_summary,
+    list_component_summaries,
+)
+
 _SHARED_BLOCKS_PACKAGE = resources.files(__package__).joinpath("shared_blocks")
 
 
@@ -33,4 +41,12 @@ def load_shared_block_schema(name: str) -> Mapping[str, Any]:
         return json.load(fp)
 
 
-__all__ = ["available_shared_block_schemas", "load_shared_block_schema"]
+__all__ = [
+    "available_shared_block_schemas",
+    "load_shared_block_schema",
+    "ComponentSchema",
+    "ComponentSummary",
+    "get_component_schema",
+    "get_component_summary",
+    "list_component_summaries",
+]

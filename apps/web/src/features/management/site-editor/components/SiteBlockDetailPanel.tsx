@@ -30,6 +30,11 @@ import {
 import { ensureFooterConfig, type FooterConfig } from '../schemas/footerBlock';
 import { useSiteBlockDetail } from '../hooks/useSiteBlockDetail';
 import SiteBlockDetailHeader from './SiteBlockDetailHeader';
+import SiteBlockLibrarySourceCard from './SiteBlockLibrarySourceCard';
+import SiteBlockLocaleStatusCard from './SiteBlockLocaleStatusCard';
+import SiteBlockComponentSchemaCard from './SiteBlockComponentSchemaCard';
+import BlockSchemaForm from './BlockSchemaForm';
+import { useComponentSchema } from '../hooks/useComponentSchema';
 
 type Props = {
   blockId: string | null;
@@ -83,6 +88,13 @@ function normalizeHeaderConfig(raw: unknown): SiteHeaderConfig {
   }
   return createDefaultHeaderConfig();
 }
+
+const cloneBlockData = (value: Record<string, unknown> | null | undefined): Record<string, unknown> | null => {
+  if (value == null) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+};
 export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.ReactElement {
   const {
     block: detailBlock,
@@ -180,6 +192,34 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
   const [restoreTarget, setRestoreTarget] = React.useState<SiteBlockHistoryItem | null>(null);
   const [restoreError, setRestoreError] = React.useState<string | null>(null);
   const [restoring, setRestoring] = React.useState(false);
+  const [schemaDialogOpen, setSchemaDialogOpen] = React.useState(false);
+  const [schemaDialogLoading, setSchemaDialogLoading] = React.useState(false);
+  const [schemaDialogContent, setSchemaDialogContent] = React.useState<string | null>(null);
+  const [schemaDialogError, setSchemaDialogError] = React.useState<string | null>(null);
+  const [schemaFormData, setSchemaFormData] = React.useState<Record<string, unknown> | null>(null);
+  const [activeDataLocale, setActiveDataLocale] = React.useState('ru');
+  const componentSchemaKey = detailBlock?.component_schema?.key ?? null;
+  const {
+    schema: componentSchema,
+    loading: componentSchemaLoading,
+    error: componentSchemaError,
+    refresh: refreshComponentSchema,
+  } = useComponentSchema(componentSchemaKey);
+
+  React.useEffect(() => {
+    if (!detailBlock) {
+      setSchemaFormData(null);
+      setActiveDataLocale('ru');
+      return;
+    }
+    setSchemaFormData(cloneBlockData(detailBlock.data));
+    const initialLocale =
+      detailBlock.locale ??
+      detailBlock.default_locale ??
+      detailBlock.available_locales?.[0] ??
+      'ru';
+    setActiveDataLocale(initialLocale);
+  }, [detailBlock]);
   const { pushToast } = useToast();
   const {
     items: historyItems,
@@ -643,6 +683,29 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
     refreshHistory,
   ]);
 
+  const handleShowSchema = React.useCallback(async () => {
+    if (!detailBlock?.component_schema?.key) {
+      return;
+    }
+    setSchemaDialogOpen(true);
+    setSchemaDialogError(null);
+    if (componentSchema) {
+      setSchemaDialogContent(JSON.stringify(componentSchema, null, 2));
+      setSchemaDialogLoading(false);
+      return;
+    }
+    setSchemaDialogLoading(true);
+    setSchemaDialogContent(null);
+    const response = await refreshComponentSchema();
+    if (response?.schema) {
+      setSchemaDialogContent(JSON.stringify(response.schema, null, 2));
+      setSchemaDialogError(null);
+    } else {
+      setSchemaDialogError(componentSchemaError ?? 'Не удалось загрузить схему');
+    }
+    setSchemaDialogLoading(false);
+  }, [detailBlock, componentSchema, refreshComponentSchema, componentSchemaError]);
+
   const handleSave = React.useCallback(async () => {
     if (!detailBlock) {
       return;
@@ -665,9 +728,18 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
           ? detailBlock.version
           : detailBlock.draft_version ?? detailBlock.published_version ?? 0;
       const normalizedOriginBlock = blockOriginBlockId.trim();
-      const dataPayload = headerConfig ?? heroConfig ?? footerConfig ?? detailBlock.data ?? {};
+      let dataPayload: Record<string, unknown> | null = null;
+      if (componentSchema && schemaFormData) {
+        dataPayload = schemaFormData;
+      } else if (headerConfig) {
+        dataPayload = headerConfig;
+      } else if (heroConfig) {
+        dataPayload = heroConfig;
+      } else if (footerConfig) {
+        dataPayload = footerConfig;
+      }
       const payload: SaveSiteBlockPayload = {
-        data: dataPayload,
+        data: dataPayload ?? detailBlock.data ?? {},
         comment: comment.trim(),
         review_status: reviewStatus,
         title: normalizedTitle,
@@ -713,6 +785,8 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
     blockSection,
     blockTitle,
     comment,
+    componentSchema,
+    schemaFormData,
     detailBlock,
     detailUsage,
     detailWarnings,
@@ -743,9 +817,112 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
       (blockOriginBlockId.trim() || '') !== (detailBlock.origin_block_id ?? '')
     : false;
 
+  const schemaAvailableLocales = React.useMemo(() => {
+    if (Array.isArray(detailBlock?.available_locales) && detailBlock?.available_locales.length) {
+      return detailBlock.available_locales.filter(Boolean);
+    }
+    if (detailBlock?.locale) {
+      return [detailBlock.locale];
+    }
+    if (detailBlock?.default_locale) {
+      return [detailBlock.default_locale];
+    }
+    return ['ru'];
+  }, [detailBlock]);
+  const schemaLocaleOptions = schemaAvailableLocales.length ? schemaAvailableLocales : [activeDataLocale || 'ru'];
+
+  const localeSchema = React.useMemo(() => {
+    if (!componentSchema) {
+      return null;
+    }
+    const schemaRoot = componentSchema as Record<string, any>;
+    const properties = schemaRoot.properties as Record<string, any> | undefined;
+    const localesSchema = properties && isObjectRecord(properties.locales) ? (properties.locales as Record<string, any>) : null;
+    if (localesSchema) {
+      if (isObjectRecord(localesSchema.additionalProperties)) {
+        return localesSchema.additionalProperties as Record<string, unknown>;
+      }
+      if (isObjectRecord(localesSchema.properties)) {
+        const localeKey =
+          detailBlock?.default_locale ??
+          detailBlock?.locale ??
+          Object.keys(localesSchema.properties)[0];
+        const candidate = localesSchema.properties[localeKey as keyof typeof localesSchema.properties];
+        if (isObjectRecord(candidate)) {
+          return candidate as Record<string, unknown>;
+        }
+      }
+    }
+    return componentSchema;
+  }, [componentSchema, detailBlock?.default_locale, detailBlock?.locale]);
+
+  const sharedSchema = React.useMemo(() => {
+    if (!componentSchema) {
+      return null;
+    }
+    const schemaRoot = componentSchema as Record<string, any>;
+    const properties = schemaRoot.properties as Record<string, any> | undefined;
+    const shared = properties && isObjectRecord(properties.shared) ? (properties.shared as Record<string, unknown>) : null;
+    return shared ?? null;
+  }, [componentSchema]);
+
+  const schemaLocaleValue = React.useMemo(() => {
+    if (!schemaFormData) {
+      return {};
+    }
+    const localesPayload = (schemaFormData as Record<string, unknown>).locales;
+    if (isObjectRecord(localesPayload)) {
+      const current = localesPayload[activeDataLocale];
+      if (isObjectRecord(current)) {
+        return current as Record<string, unknown>;
+      }
+    }
+    return {};
+  }, [schemaFormData, activeDataLocale]);
+
+  const schemaSharedValue = React.useMemo(() => {
+    if (!schemaFormData) {
+      return {};
+    }
+    const sharedPayload = (schemaFormData as Record<string, unknown>).shared;
+    return isObjectRecord(sharedPayload) ? (sharedPayload as Record<string, unknown>) : {};
+  }, [schemaFormData]);
+
+  const handleSchemaLocaleValueChange = React.useCallback(
+    (locale: string, nextValue: Record<string, unknown>) => {
+      setSchemaFormData((prev) => {
+        const base: Record<string, unknown> = isObjectRecord(prev) ? { ...prev } : {};
+        const localesPayload = isObjectRecord(base.locales)
+          ? { ...(base.locales as Record<string, unknown>) }
+          : {};
+        localesPayload[locale] = nextValue;
+        base.locales = localesPayload;
+        return base;
+      });
+    },
+    [],
+  );
+
+  const handleSchemaSharedChange = React.useCallback((nextValue: Record<string, unknown>) => {
+    setSchemaFormData((prev) => {
+      const base: Record<string, unknown> = isObjectRecord(prev) ? { ...prev } : {};
+      base.shared = nextValue;
+      return base;
+    });
+  }, []);
+
+  const showSchemaForm = Boolean(componentSchema && localeSchema);
+  const schemaDirty = React.useMemo(() => {
+    if (!componentSchema) {
+      return false;
+    }
+    const originalString = JSON.stringify(detailBlock?.data ?? {});
+    const currentString = JSON.stringify(schemaFormData ?? detailBlock?.data ?? {});
+    return currentString !== originalString;
+  }, [componentSchema, schemaFormData, detailBlock?.data]);
   const canSave =
     Boolean(detailBlock) &&
-    (headerDirty || heroDirty || footerDirty || commentDirty || reviewDirty || baseInfoDirty);
+    (schemaDirty || headerDirty || heroDirty || footerDirty || commentDirty || reviewDirty || baseInfoDirty);
   const canPublish =
     Boolean(detailBlock?.draft_version) && detailBlock?.status !== 'archived' && !detailBlock?.is_template;
   const historyHasMore = historyItems.length < historyTotal;
@@ -755,6 +932,7 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
     : (isArchived ? 'Вернуть из архива' : 'В архив');
   const archiveColor: 'primary' | 'error' = isArchived ? 'primary' : 'error';
   const documentationUrl = detailBlock ? pickDocumentationUrl(detailBlock) : null;
+
   return (
     <div className="space-y-4" data-testid="site-block-library-detail">
       {detailBlock ? (
@@ -798,7 +976,7 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
               onChange={(key) => setDetailTab(key as DetailTab)}
               items={[
                 { key: 'overview', label: 'Сводка' },
-                { key: 'settings', label: 'Настройки' },
+                { key: 'settings', label: showSchemaForm ? 'Параметры' : 'Настройки' },
                 ...(isHeaderBlock || isHeroBlock ? [{ key: 'preview', label: 'Предпросмотр' }] : []),
                 { key: 'history', label: 'История' },
                 {
@@ -819,16 +997,26 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
               >
                 Документация
               </Button>
-            ) : null}
-          </div>
-          {detailTab === 'overview' ? (
-            <div className="space-y-4">
-              <Card className="space-y-4 border border-gray-200 bg-white p-5 shadow-sm dark:border-dark-600/80 dark:bg-dark-800">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <label htmlFor="block-title" className="text-xs font-semibold text-gray-600 dark:text-dark-200">
-                      Название
-                    </label>
+          ) : null}
+        </div>
+        {detailTab === 'overview' ? (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <SiteBlockComponentSchemaCard
+                block={detailBlock}
+                onViewSchema={handleShowSchema}
+                loading={componentSchemaLoading}
+                error={componentSchemaError}
+              />
+              <SiteBlockLocaleStatusCard block={detailBlock} />
+              <SiteBlockLibrarySourceCard block={detailBlock} />
+            </div>
+            <Card className="space-y-4 border border-gray-200 bg-white p-5 shadow-sm dark:border-dark-600/80 dark:bg-dark-800">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <label htmlFor="block-title" className="text-xs font-semibold text-gray-600 dark:text-dark-200">
+                    Название
+                  </label>
                     <Input
                       id="block-title"
                       value={blockTitle}
@@ -935,12 +1123,12 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
                     ))}
                   </Select>
                 </div>
-              </Card>
+            </Card>
 
-              <div className="space-y-3">
-                {detailWarnings.length ? (
-                  <Card className="space-y-2 border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-                    <div className="flex items-center gap-2 font-semibold">
+            <div className="space-y-3">
+              {detailWarnings.length ? (
+                <Card className="space-y-2 border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                  <div className="flex items-center gap-2 font-semibold">
                       <AlertTriangle className="h-4 w-4" />
                       Есть предупреждения
                     </div>
@@ -962,40 +1150,68 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
             </div>
           ) : null}
           {detailTab === 'settings' ? (
-            <Card className="space-y-4 border border-white/80 bg-white/95 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-50">Данные блока</h3>
-                <p className="text-xs text-gray-500 dark:text-dark-300">
-                  Здесь отражается структура данных текущего блока. Для заголовка доступно редактирование
-                  через форму ниже, для остальных блоков — через API.
-                </p>
-              </div>
-              {isHeaderBlock && headerConfig ? (
-                <SiteBlockHeaderForm
-                  value={headerConfig}
-                  onChange={setHeaderConfig}
-                  disabled={saving || publishing}
-                />
-              ) : isHeroBlock && heroConfig ? (
-                <SiteBlockHeroForm
-                  value={heroConfig}
-                  onChange={setHeroConfig}
-                  localeOptions={heroLocaleOptions}
-                  defaultLocale={blockDefaultLocale || 'ru'}
-                  disabled={saving || publishing}
-                />
-              ) : isFooterBlock && footerConfig ? (
-                <SiteBlockFooterForm
-                  value={footerConfig}
-                  onChange={setFooterConfig}
-                  disabled={saving || publishing}
-                />
+            showSchemaForm ? (
+              componentSchemaLoading ? (
+                <Card className="flex items-center justify-center border border-white/80 bg-white/95 p-6 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Spinner className="h-4 w-4" /> Загружаем схему блока…
+                  </div>
+                </Card>
+              ) : componentSchemaError ? (
+                <Card className="border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
+                  {componentSchemaError}
+                </Card>
               ) : (
-                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-900/40 dark:text-dark-200">
-                  Данные для этого блока редактируются через API. Сохранение обновит черновик в библиотеке.
+                <Card className="space-y-4 border border-white/80 bg-white/95 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+                  <BlockSchemaForm
+                    localeSchema={localeSchema}
+                    sharedSchema={sharedSchema ?? undefined}
+                    localeValue={schemaLocaleValue}
+                    sharedValue={schemaSharedValue}
+                    locales={schemaLocaleOptions}
+                    activeLocale={activeDataLocale}
+                    onActiveLocaleChange={setActiveDataLocale}
+                    onLocaleValueChange={handleSchemaLocaleValueChange}
+                    onSharedValueChange={sharedSchema ? handleSchemaSharedChange : undefined}
+                  />
+                </Card>
+              )
+            ) : (
+              <Card className="space-y-4 border border-white/80 bg-white/95 p-5 shadow-sm dark:border-dark-700/70 dark:bg-dark-800">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-dark-50">Данные блока</h3>
+                  <p className="text-xs text-gray-500 dark:text-dark-300">
+                    Здесь отражается структура данных текущего блока. Для заголовка доступно редактирование через форму
+                    ниже, для остальных блоков — через API.
+                  </p>
                 </div>
-              )}
-            </Card>
+                {isHeaderBlock && headerConfig ? (
+                  <SiteBlockHeaderForm
+                    value={headerConfig}
+                    onChange={setHeaderConfig}
+                    disabled={saving || publishing}
+                  />
+                ) : isHeroBlock && heroConfig ? (
+                  <SiteBlockHeroForm
+                    value={heroConfig}
+                    onChange={setHeroConfig}
+                    localeOptions={heroLocaleOptions}
+                    defaultLocale={blockDefaultLocale || 'ru'}
+                    disabled={saving || publishing}
+                  />
+                ) : isFooterBlock && footerConfig ? (
+                  <SiteBlockFooterForm
+                    value={footerConfig}
+                    onChange={setFooterConfig}
+                    disabled={saving || publishing}
+                  />
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-900/40 dark:text-dark-200">
+                    Данные для этого блока редактируются через API. Сохранение обновит черновик в библиотеке.
+                  </div>
+                )}
+              </Card>
+            )
           ) : null}
 
           {detailTab === 'preview' && detailBlock ? (
@@ -1223,6 +1439,32 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
         </Card>
       ) : null}
       <Dialog
+        open={schemaDialogOpen}
+        onClose={() => setSchemaDialogOpen(false)}
+        title={
+          detailBlock?.component_schema?.key
+            ? `JSON Schema · ${detailBlock.component_schema.key}`
+            : 'JSON Schema'
+        }
+      >
+        {schemaDialogLoading ? (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Spinner className="h-4 w-4" /> Загружаем схему…
+          </div>
+        ) : schemaDialogError ? (
+          <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-100">
+            {schemaDialogError}
+          </div>
+        ) : schemaDialogContent ? (
+          <pre className="max-h-[60vh] overflow-auto rounded-lg bg-gray-900 p-3 text-xs text-gray-100 shadow-inner dark:bg-dark-900">
+            {schemaDialogContent}
+          </pre>
+        ) : (
+          <div className="text-sm text-gray-500 dark:text-dark-200">Нет данных для отображения.</div>
+        )}
+      </Dialog>
+
+      <Dialog
         open={publishDialogOpen}
         onClose={closePublishDialog}
         title="Публикация блока"
@@ -1367,3 +1609,4 @@ export function SiteBlockDetailPanel({ blockId, onBlockMutated }: Props): React.
 }
 
 export default SiteBlockDetailPanel;
+

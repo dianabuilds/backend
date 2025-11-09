@@ -199,6 +199,26 @@ export type FetchBlockTemplatesParams = {
   includeData?: boolean;
 };
 
+export type SiteComponentSummary = {
+  key: string;
+  title: string;
+  section: string;
+  description?: string | null;
+  version: string;
+  locales: string[];
+  thumbnail_url?: string | null;
+  schema_url: string;
+};
+
+export type SiteComponentCatalogResponse = {
+  items: SiteComponentSummary[];
+};
+
+export type SiteComponentSchemaResponse = {
+  version: string | null;
+  schema: Record<string, unknown>;
+};
+
 export type SiteBlockTemplateList = SiteBlockTemplateListResponse;
 
 export type SiteBlockTemplateDetail = SiteBlockTemplate;

@@ -903,6 +903,25 @@ export type SiteBlock = {
   extras?: Record<string, unknown>;
   is_template?: boolean;
   origin_block_id?: string | null;
+  library_source?: {
+    key: string;
+    section: string;
+    locale?: string | null;
+    updated_at?: string | null;
+    updated_by?: string | null;
+    thumbnail_url?: string | null;
+    sync_state?: string | null;
+  } | null;
+  locale_statuses?: Array<{
+    locale: string;
+    required: boolean;
+    status: string;
+  }>;
+  component_schema?: {
+    key: string;
+    version: string;
+    schema_url: string;
+  } | null;
 };
 
 export type SiteBlockTemplateStatus = 'available' | 'draft' | 'archived' | string;

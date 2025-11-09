@@ -601,10 +601,7 @@ export function useSitePageEditorState(
     const activeLocale = activeLocaleRef.current;
     const draft = localeDraftsRef.current[activeLocale] ?? dataRef.current;
     const payload = buildDraftPayload(draftAdapter, draft);
-    const data = { ...(payload.data ?? {}) };
-    if ('shared' in data) {
-      delete data.shared;
-    }
+    const data = payload.data ? { ...payload.data } : {};
     const meta = payload.meta ? { ...payload.meta } : undefined;
     return { data, meta };
   }, [draftAdapter]);

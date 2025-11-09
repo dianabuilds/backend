@@ -32,6 +32,12 @@ from domains.product.site.domain import (
 )
 from domains.product.site.infrastructure import SiteRepository
 from domains.product.site.infrastructure.repositories import helpers as repo_helpers
+from domains.product.site.schema import (
+    ComponentSchema,
+    ComponentSummary,
+    get_component_schema,
+    list_component_summaries,
+)
 
 from .validation import PageDraftValidator, ValidatedDraft
 
@@ -300,9 +306,7 @@ class SiteService:
     async def list_page_global_blocks(
         self, page_id: UUID, *, include_inactive: bool = False
     ) -> list[Mapping[str, Any]]:
-        return await self._repo.list_page_global_blocks(
-            page_id, include_inactive=include_inactive
-        )
+        return await self._repo.list_page_global_blocks(page_id, include_inactive=include_inactive)
 
     async def get_page_metrics(
         self, page_id: UUID, *, period: str = "7d", locale: str = "ru"
@@ -581,9 +585,7 @@ class SiteService:
             scope=scope,
             section=section,
             default_locale=default_locale,
-            available_locales=(
-                list(available_locales) if available_locales is not None else None
-            ),
+            available_locales=(list(available_locales) if available_locales is not None else None),
             requires_publisher=requires_publisher,
             data=data,
             meta=meta,
@@ -628,17 +630,13 @@ class SiteService:
             description=description,
             status=status,
             default_locale=default_locale,
-            available_locales=(
-                list(available_locales) if available_locales is not None else None
-            ),
+            available_locales=(list(available_locales) if available_locales is not None else None),
             block_type=block_type,
             category=category,
             sources=list(sources) if sources is not None else None,
             surfaces=list(surfaces) if surfaces is not None else None,
             owners=list(owners) if owners is not None else None,
-            catalog_locales=(
-                list(catalog_locales) if catalog_locales is not None else None
-            ),
+            catalog_locales=(list(catalog_locales) if catalog_locales is not None else None),
             documentation_url=documentation_url,
             keywords=list(keywords) if keywords is not None else None,
             preview_kind=preview_kind,
@@ -689,17 +687,13 @@ class SiteService:
             description=description,
             status=status,
             default_locale=default_locale,
-            available_locales=(
-                list(available_locales) if available_locales is not None else None
-            ),
+            available_locales=(list(available_locales) if available_locales is not None else None),
             block_type=block_type,
             category=category,
             sources=list(sources) if sources is not None else None,
             surfaces=list(surfaces) if surfaces is not None else None,
             owners=list(owners) if owners is not None else None,
-            catalog_locales=(
-                list(catalog_locales) if catalog_locales is not None else None
-            ),
+            catalog_locales=(list(catalog_locales) if catalog_locales is not None else None),
             documentation_url=documentation_url,
             keywords=list(keywords) if keywords is not None else None,
             preview_kind=preview_kind,
@@ -769,6 +763,12 @@ class SiteService:
             locale=locale,
         )
 
+    def list_components(self) -> list[ComponentSummary]:
+        return list_component_summaries()
+
+    def get_component(self, key: str) -> ComponentSchema:
+        return get_component_schema(key)
+
     async def list_block_history(
         self,
         block_id: UUID,
@@ -798,9 +798,7 @@ class SiteService:
     ) -> BlockVersion:
         return await self._repo.get_block_version(block_id, version)
 
-    async def get_global_block_version(
-        self, block_id: UUID, version: int
-    ) -> BlockVersion:
+    async def get_global_block_version(self, block_id: UUID, version: int) -> BlockVersion:
         return await self.get_block_version(block_id, version)
 
     async def restore_block_version(
